@@ -1,0 +1,170 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #333;
+    font-family: sans-serif;
+}
+
+#game-container {
+    width: 360px; /* Proporção de celular */
+    height: 640px;
+    position: relative;
+    overflow: hidden;
+    background-color: #fff;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Cenário */
+.cenario {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+.parede-fundo {
+    height: 70%;
+    background-color: #414141; /* parede */
+}
+
+.chao {
+    height: 30%;
+    background-color: #bdbdbd; /* chao */
+}
+
+/*O Pet)*/
+.pet {
+    position: absolute;
+    bottom: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 260px;
+    height: 220px;
+    background-color: #00ff0d; /* Cor de fundo do corpo do Lumo */
+    background-image: url('assets/body.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    transform-origin: bottom center;
+    animation: respirar 4s ease-in-out infinite;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.olhos-container {
+    display: flex;
+    gap: 30px;
+    margin-top: 090px;
+}
+
+.olho {
+    width: 40px;
+    height: 40px;
+    background-color: #e2ffa8; /*branco dos olhos*/
+    border-radius: 50%;
+    border: 1px solid #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.olho::after {
+    content: '';
+    width: 32px;
+    height: 32px;
+    background: 
+        radial-gradient(circle at 65% 35%, #fff 5px, transparent 2px), 
+        radial-gradient(circle, #000 10px, #01a3d4 5px); 
+    /* Camadas: Brilho, Pupila (10px) e Íris */
+    border-radius: 50%;
+    position: relative;
+    top: 0px;  /* Altere para mover verticalmente */
+}
+
+#olho-esq::after {
+    left: 3px; /* Move a íris esquerda para o centro */
+}
+
+#olho-dir::after {
+    left: -3px; /* Move a íris direita para o centro */
+}
+
+.boca {
+    width: 60px;
+    height: 30px;
+    background-image: url('assets/mouth.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    margin-top: -13px;
+    z-index: 1;
+}
+
+.nariz {
+    width: 9px;
+    height: 5px;
+    background-color: #8A2BE2; /* Roxo do nariz */
+    border-radius: 50%;
+    margin-top: -15px;
+    z-index: 2;
+}
+
+/* Animação de Respiração */
+@keyframes respirar {
+    0%, 100% {
+        transform: translateX(-50%) scale(1);
+    }
+    50% {
+        transform: translateX(-50%) scale(1.03, 0.97); /* Alarga levemente e achata */
+    }
+}
+
+
+/* Interface de Status (Pílula) */
+.status-container {
+    position: absolute;
+    bottom: 20px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    z-index: 20;
+}
+
+.status-pill {
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    padding: 5px 15px;
+    border-radius: 50px; /* Formato de pílula */
+    gap: 10px;
+    border: 2px solid #666;
+}
+
+.status-item {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #888;
+    border-radius: 10px;
+    font-size: 20px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.status-item:hover {
+    background-color: #aaa;
+}
