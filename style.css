@@ -49,11 +49,20 @@ body {
     transform: translateX(-50%);
     width: 260px;
     height: 220px;
-    background-color: #00ff0d; /* Cor de fundo do corpo do Lumo */
+    background-color: #4ed401; /* A cor verde que você escolheu */
     background-image: url('assets/body.png');
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
+    background-blend-mode: multiply; /* Faz a cor tingir apenas o que é branco na imagem */
+    -webkit-mask-image: url('assets/body.png'); /* Define que a área visível segue o formato do PNG */
+    mask-image: url('assets/body.png');
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
     transform-origin: bottom center;
     animation: respirar 4s ease-in-out infinite;
     z-index: 10;
