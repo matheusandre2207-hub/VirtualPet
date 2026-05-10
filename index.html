@@ -9,12 +9,52 @@
 <body>
 
     <main id="game-container">
-        <div class="cenario">
-            <div class="parede-fundo"></div>
+        <div id="mundo">
+            <!-- Chão Único e Contínuo -->
             <div class="chao"></div>
+
+            <!-- Banheiro (Cômodo 1) -->
+            <div class="cenario" id="banheiro">
+                <div class="parede-fundo"></div>
+
+                <!-- Elementos do Banheiro -->
+                <div class="chuveiro">
+                    <div class="chuveiro-cano"></div>
+                    <div class="chuveiro-cabeca"></div>
+                </div>
+                <div class="armario"></div>
+                <div class="toalha-suporte"></div>
+                <div class="sabonete-container">
+                    <div class="suporte-sabonete"></div>
+                    <div id="sabonete" class="sabonete-img"></div>
+                </div>
+                <div class="pia-container">
+                    <div class="pia"></div>
+                </div>
+            </div>
+
+            <!-- Sala (Cômodo 2) -->
+            <div class="cenario" id="sala">
+                <div class="parede-fundo" style="background-color: #6d4c41;"></div> <!-- Parede em tom madeira/quente -->
+                
+                <!-- Elementos da Sala -->
+                <div class="tv"></div>
+                <div class="rack"></div>
+                <div class="planta"></div>
+            </div>
+
+            <!-- Cozinha (Cômodo 3) -->
+            <div class="cenario" id="cozinha">
+                <div class="parede-fundo" style="background-color: #8d996d;"></div> <!-- Tom verde oliva para a cozinha -->
+                <div class="geladeira"></div>
+                <div class="fogao"></div>
+                <div class="mesa"></div>
+                <div id="maca" class="maca-img">🍎</div>
+            </div>
         </div>
 
         <div id="lumo" class="pet">
+            <div class="espuma-container"></div>
             <div class="olhos-container">
                 <div class="olho" id="olho-esq"></div>
                 <div class="olho" id="olho-dir"></div>

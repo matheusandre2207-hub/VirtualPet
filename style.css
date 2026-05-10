@@ -23,28 +23,305 @@ body {
     flex-direction: column;
 }
 
+/* Wrapper para deslizar entre os cômodos */
+#mundo {
+    display: flex;
+    width: 300%; /* Três cômodos */
+    height: 100%;
+    position: absolute;
+    left: 0;
+    transition: left 0.5s ease-out;
+}
+
 /* Cenário */
 .cenario {
-    position: absolute;
-    width: 100%;
+    position: relative;
+    width: 360px; /* Largura de um celular */
     height: 100%;
-    z-index: 1;
+    flex-shrink: 0;
 }
 
 .parede-fundo {
     height: 70%;
     background-color: #414141; /* parede */
+    position: relative;
+    background-image: 
+        linear-gradient(90deg, rgba(255, 255, 255, 0.07) 2px, transparent 2px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.07) 2px, transparent 2px),
+        linear-gradient(rgba(255, 255, 255, 0.07) 2px, transparent 2px);
+    background-size: 80px 40px;
+    background-position: 0 0, 40px 20px, 0 0;
+}
+
+.parede-fundo::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 15px; /* Altura do rodapé */
+    background-color: #fcfcfc;
+    background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.411) 2px, transparent 2px);
+    background-size: 60px 100%; /* Mesma largura das lajotas do chão */
+    border-top: 1px solid #777; /* Linha superior para dar profundidade */
 }
 
 .chao {
     height: 30%;
-    background-color: #bdbdbd; /* chao */
+    width: 100%; /* Ocupa toda a largura do #mundo (os dois cômodos) */
+    background: radial-gradient(circle at 50% 0%, #ffffff 20%, #e0e0e0 100%);
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    overflow: hidden;
+    box-shadow: inset 0 15px 20px -15px rgba(0,0,0,0.5); /* Sombra de contato com a parede */
+    z-index: 0;
+}
+
+.chao::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -50%;
+    width: 200%;
+    height: 1000px;
+    background-image: 
+        linear-gradient(rgba(29, 29, 29, 0.4) 2px, transparent 2px),
+        linear-gradient(90deg, rgba(29, 29, 29, 0.4) 2px, transparent 2px);
+    background-size: 60px 60px;
+    transform: perspective(200px) rotateX(55deg);
+    transform-origin: top center;
+}
+
+/* --- Decorações do Banheiro --- */
+
+/* Chuveiro no Centro Superior */
+.chuveiro {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 2;
+    cursor: pointer;
+}
+
+.chuveiro-cano {
+    width: 10px;
+    height: 40px;
+    background: #999;
+}
+
+.chuveiro-cabeca {
+    width: 60px;
+    height: 15px;
+    background: #bbb;
+    border-radius: 5px 5px 0 0;
+    border-bottom: 2px solid #888;
+}
+
+/* Gotas de Água (Pixels esticados) */
+.gota {
+    position: absolute;
+    top: 55px; /* Inicia logo abaixo da cabeça do chuveiro */
+    width: 2px;
+    height: 25px;
+    background-color: rgba(173, 216, 230, 0.6);
+    z-index: 15; /* À frente do pet */
+    pointer-events: none;
+    animation: cairAgua 0.7s linear forwards;
+}
+
+@keyframes cairAgua {
+    0% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(450px); opacity: 0; }
+}
+
+/* Pia à Esquerda */
+.pia-container {
+    position: absolute;
+    bottom: 30%; /* Exatamente onde a parede encontra o chão */
+    left: -10px;
+    z-index: 2;
+}
+
+.pia {
+    width: 150px;
+    height: 130px;
+    background-image: url('assets/pia.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: bottom center;
+    transform: translateY(10px); /* Ajuste para encostar no rodapé */
+}
+
+/* Armário acima da pia */
+.armario {
+    position: absolute;
+    bottom: 52%;
+    left: -5px;
+    width: 150px;
+    height: 130px;
+    background-image: url('assets/armario.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    z-index: 2;
+}
+
+/* Toalha e Suporte */
+.toalha-suporte {
+    position: absolute;
+    bottom: 40%;
+    left: 130px;
+    width: 120px;
+    height: 120px;
+    background-image: url('assets/toalha.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    z-index: 2;
+}
+
+/* --- Decorações da Sala --- */
+.tv {
+    position: absolute;
+    bottom: 55%; /* Posicionada para ficar acima do rack */
+    right: 30px; /* Centralizada horizontalmente em relação ao rack */
+    width: 180px;
+    height: 110px;
+    background-color: #000; /* Centro preto para a tela */
+    border: 4px solid #757575; /* Borda branca grossa */
+    border-radius: 5px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    z-index: 2;
+}
+
+.rack {
+    position: absolute;
+    bottom: 30%; /* AJUSTE AQUI A POSIÇÃO VERTICAL (Ex: 28%, 32%, etc) */
+    right: 20px;
+    width: 200px;
+    height: 200px;
+    background-image: url('assets/rack.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: bottom center;
+    z-index: 2;
+}
+
+.planta {
+    position: absolute;
+    bottom: 26%; /* Mesma altura da base do rack, logo acima do chão */
+    left: -50px;
+    width: 200px;
+    height: 250px;
+    background-image: url('assets/planta.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: bottom center;
+    z-index: 2;
+}
+
+/* --- Decorações da Cozinha --- */
+.geladeira {
+    position: absolute;
+    bottom: 29%;
+    right: -50px;
+    width: 250px;
+    height: 320px;
+    background-image: url('assets/armariodecozinha.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: bottom center;
+    z-index: 2;
+}
+
+.fogao {
+    position: absolute;
+    bottom: 29%;
+    left: -10px;
+    width: 150px;
+    height: 150px;
+    background-image: url('assets/fogao.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: bottom center;
+    z-index: 2;
+}
+
+.mesa {
+    position: absolute;
+    bottom: 17%; /* Altura da mesa na parede */
+    left: 0;
+    width: 100%; /* Atravessa de um lado ao outro */
+    height: 50px; /* Espessura da tábua */
+    background-color: #5d4037; /* Cor de madeira escura */
+    border-bottom: 4px solid #3e2723; /* Sombra/detalhe na borda */
+    box-shadow: 0 5px 10px rgba(0,0,0,0.3);
+    z-index: 15; /* Agora à frente do pet (10) */
+}
+
+.maca-img {
+    position: absolute;
+    bottom: 20%; /* Mesma altura da mesa */
+    left: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 30px;
+    margin-left: -20px; /* Centraliza horizontalmente (metade da largura) */
+    cursor: grab;
+    z-index: 25; /* Mesma camada do sabonete, acima do pet e mesa */
+    transition: transform 0.3s ease-out;
+    touch-action: none;
+}
+
+/* Sabonete e Suporte */
+.sabonete-container {
+    position: absolute;
+    bottom: 41%;
+    left: 260px; /* Posicionado à direita da toalha */
+    width: 80px;
+    height: 40px;
+    z-index: 25; /* Agora acima do pet (10) e da interface (20) */
+}
+
+.suporte-sabonete {
+    width: 100%;
+    height: 100%;
+    background-image: url('assets/suporte.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    position: absolute;
+    bottom: 0;
+}
+
+.sabonete-img {
+    width: 100%;
+    height: 100%;
+    background-image: url('assets/sabonete.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    position: absolute;
+    left: 0;
+    bottom: 1px;
+    cursor: grab;
+    z-index: 4;
+    transition: transform 0.3s ease-out; /* Efeito de volta suave */
+    touch-action: none; /* Melhora arraste em dispositivos móveis */
 }
 
 /*O Pet)*/
 .pet {
     position: absolute;
-    bottom: 20%;
+    bottom: 15%; /* Ajusta a posição vertical do pet para ficar acima do chão */
     left: 50%;
     transform: translateX(-50%);
     width: 260px;
@@ -72,10 +349,36 @@ body {
     justify-content: flex-start;
 }
 
+/* Container de Espuma/Bolhas */
+.espuma-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Não interfere no clique */
+    z-index: 5; /* Atrás dos olhos (10) e nariz/boca */
+}
+
+.bolha {
+    position: absolute;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(173, 216, 230, 0.5);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: aparecerBolha 0.3s ease-out forwards;
+}
+
+@keyframes aparecerBolha {
+    0% { transform: scale(0); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
 .olhos-container {
     display: flex;
     gap: 30px;
     margin-top: 090px;
+    z-index: 10;
 }
 
 .olho {
@@ -88,6 +391,16 @@ body {
     justify-content: center;
     align-items: center;
     overflow: hidden;
+    transition: all 0.15s ease-in-out;
+}
+
+.olho.fechado {
+    height: 20px;
+    background-color: transparent;
+    border: none;
+    border-bottom: 4px solid #000;
+    border-radius: 0 0 20px 20px;
+    margin-top: 10px; /* Ajustado para não empurrar o rosto para baixo */
 }
 
 .olho::after {
@@ -95,12 +408,17 @@ body {
     width: 32px;
     height: 32px;
     background: 
-        radial-gradient(circle at 65% 35%, #fff 5px, transparent 2px), 
+        radial-gradient(circle at 65% 35%, #fff 4px, transparent 2.5px), 
         radial-gradient(circle, #000 10px, #01a3d4 5px); 
     /* Camadas: Brilho, Pupila (10px) e Íris */
     border-radius: 50%;
     position: relative;
     top: 0px;  /* Altere para mover verticalmente */
+    transition: opacity 0.1s;
+}
+
+.olho.fechado::after {
+    opacity: 0;
 }
 
 #olho-esq::after {
@@ -112,7 +430,7 @@ body {
 }
 
 .boca {
-    width: 60px;
+    width: 23px;
     height: 30px;
     background-image: url('assets/mouth.png');
     background-size: contain;
@@ -120,6 +438,10 @@ body {
     background-position: center;
     margin-top: -13px;
     z-index: 1;
+}
+
+.boca.boca-aberta {
+    background-image: url('assets/openmouth.png'); /* Imagem da boca aberta */
 }
 
 .nariz {
@@ -155,21 +477,21 @@ body {
 .status-pill {
     background-color: rgba(0, 0, 0, 0.5);
     display: flex;
-    padding: 5px 15px;
+    padding: 4px 10px;
     border-radius: 50px; /* Formato de pílula */
-    gap: 10px;
+    gap: 6px;
     border: 2px solid #666;
 }
 
 .status-item {
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
     background-color: #888;
     border-radius: 10px;
-    font-size: 20px;
+    font-size: 16px;
     cursor: pointer;
     transition: background 0.3s;
 }
