@@ -20,6 +20,50 @@ let status = {
     humor: 100
 };
 
+// Arrays de Customização (20 opções cada)
+const bodyColors = [
+    '#4ed401', '#ff5733', '#3357ff', '#ff33a1', '#33fff6', 
+    '#f6ff33', '#a133ff', '#ff8c33', '#33ff8c', '#8c33ff',
+    '#5733ff', '#ff3357', '#33ff57', '#ffa500', '#800080',
+    '#008080', '#ffdab9', '#e6e6fa', '#ffe4e1', '#2f4f4f'
+];
+
+const noseColors = [
+    '#8A2BE2', '#ff0000', '#005700', '#0000ff', '#9e9e00',
+    '#ff00ff', '#00ffff', '#ffa500', '#800000', '#008000',
+    '#000080', '#808000', '#800080', '#008080', '#c0c0c0',
+    '#808080', '#999999', '#333333', '#663300', '#cc99ff'
+];
+
+const irisColors = [
+    '#01a3d4', '#2e8b57', '#8b4513', '#4682b4', '#d2691e',
+    '#556b2f', '#9932cc', '#8b0000', '#e9967a', '#9400d3',
+    '#00ced1', '#ff8c00', '#ffd700', '#adff2f', '#00ff7f',
+    '#4169e1', '#ff1493', '#00bfff', '#ff4500', '#32cd32'
+];
+
+const bodyPatterns = [
+    'none', // Translúcido/Liso
+    'radial-gradient(circle, #fff 10%, transparent 10%)', // Pontilhado
+    'linear-gradient(45deg, rgba(255,255,255,0.2) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.2) 75%, transparent 75%, transparent)', // Listrado
+    'radial-gradient(circle at 20% 20%, #fff 5%, transparent 5%), radial-gradient(circle at 80% 80%, #fff 10%, transparent 10%)', // Manchado
+    'repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(255,255,255,0.1) 20px, rgba(255,255,255,0.1) 40px)', // Listras Horizontais
+    'repeating-radial-gradient(circle, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)', // Ondas
+    // Adicione aqui as outras 14 variações de padrões CSS
+];
+
+function customizarPet(bodyIdx, noseIdx, irisIdx, patternIdx) {
+    const root = document.getElementById('lumo');
+    root.style.setProperty('--body-color', bodyColors[bodyIdx % 20]);
+    root.style.setProperty('--nose-color', noseColors[noseIdx % 20]);
+    root.style.setProperty('--iris-color', irisColors[irisIdx % 20]);
+    
+    const patternLayer = document.querySelector('.pet-pattern');
+    const pattern = bodyPatterns[patternIdx % bodyPatterns.length] || 'none';
+    patternLayer.style.backgroundImage = pattern === 'none' ? 'none' : pattern;
+    if (pattern !== 'none') patternLayer.style.backgroundSize = '40px 40px';
+}
+
 // Bloqueia menu de contexto em todo o app
 document.addEventListener('contextmenu', event => event.preventDefault());
 
@@ -40,6 +84,71 @@ const roomColors = {
     2: '#d6d6d6', // Cozinha
     3: '#4a5a7a'  // Quarto
 };
+
+
+// Lógica de Comida
+const foodList = "🍎🍕🍔🍟🌭🍿🥓🥚🧇🥞🍞🥐🥨🥯🥖🧀🥗🥙🥪🌮🌯🍖🍗🥩🍠🥟🥠🥡🍘🍙🍚🦪🍣🍤🥮🍝🍦🍧🍨🍩🍪🍰🧁🍫🍬🍭🍮🍯🥛☕🥝🥥🍇🍉🍊🍌🍏🍐🍑🍒🍓🌶🥑🥒🌰🧅🥕".match(/./gu);
+let currentFoodIndex = 0;
+let estaMastigando = false;
+
+function updateFoodUI() {
+    maca.innerText = foodList[currentFoodIndex];
+}
+
+document.getElementById('prev-food').addEventListener('click', (e) => {
+    e.stopPropagation();
+    currentFoodIndex = (currentFoodIndex - 1 + foodList.length) % foodList.length;
+    updateFoodUI();
+});
+
+document.getElementById('next-food').addEventListener('click', (e) => {
+    e.stopPropagation();
+    currentFoodIndex = (currentFoodIndex + 1) % foodList.length;
+    updateFoodUI();
+});
+
+// Troca de comida por deslize (Swipe) no seletor
+let foodStartX = 0;
+maca.addEventListener('touchstart', (e) => foodStartX = e.touches[0].clientX, {passive: true});
+maca.addEventListener('touchend', (e) => {
+    const diff = foodStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 40 && !isDragging) {
+        currentFoodIndex = diff > 0 
+            ? (currentFoodIndex + 1) % foodList.length 
+            : (currentFoodIndex - 1 + foodList.length) % foodList.length;
+        updateFoodUI();
+    }
+}, {passive: true});
+
+function iniciarMastigacao() {
+    estaMastigando = true;
+    let ciclos = 0;
+    const interval = setInterval(() => {
+        boca.classList.toggle('boca-aberta');
+        criarParticulasComida();
+        ciclos++;
+        if (ciclos >= 6) {
+            clearInterval(interval);
+            boca.classList.remove('boca-aberta');
+            estaMastigando = false;
+            maca.style.display = 'flex'; // Comida reaparece
+        }
+    }, 250);
+}
+
+function criarParticulasComida() {
+    const bocaRect = boca.getBoundingClientRect();
+    for (let i = 0; i < 3; i++) {
+        const p = document.createElement('div');
+        p.classList.add('particula-comida');
+        p.style.left = `${bocaRect.left + 10}px`;
+        p.style.top = `${bocaRect.top + 10}px`;
+        p.style.setProperty('--dx', `${(Math.random() - 0.5) * 60}px`);
+        p.style.setProperty('--dy', `${Math.random() * 40 + 20}px`);
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 600);
+    }
+}
 
 function updateStatusBarColor() {
     const metaThemeColor = document.getElementById('theme-color');
@@ -69,10 +178,11 @@ function checkPetEmotions() {
 
     // Lógica dos Olhos (Pupila grande, 2 brilhos e tremor)
     if (estaTriste) {
+        const irisColor = getComputedStyle(lumo).getPropertyValue('--iris-color').trim();
         const sadGradient = `
             radial-gradient(circle at 65% 35%, #fff 4px, transparent 2.5px),
             radial-gradient(circle at 35% 65%, #fff 2px, transparent 1.5px),
-            radial-gradient(circle, #000 14px, #01a3d4 5px)
+            radial-gradient(circle, #000 14px, ${irisColor} 5px)
         `;
         olhoEsq.style.setProperty('--eye-gradient', sadGradient);
         olhoDir.style.setProperty('--eye-gradient', sadGradient);
@@ -217,6 +327,7 @@ maca.addEventListener('mousedown', startDrag);
 maca.addEventListener('touchstart', startDrag, { passive: false });
 
 function startDrag(e) {
+    if (estaMastigando && e.currentTarget.id === 'maca') return;
     e.stopPropagation(); // Impede que o arraste do sabonete mova a tela
     isDragging = true;
     draggingElement = e.currentTarget;
@@ -256,8 +367,11 @@ function drag(e) {
     if (draggingElement.id === 'sabonete') {
         verificarColisaoSabonete(clientX, clientY);
     } else if (draggingElement.id === 'maca') {
-        if (verificarColisaoMacaComBoca(clientX, clientY)) {
-            status.fome = Math.min(100, status.fome + 0.5);
+        if (verificarColisaoMacaComBoca(clientX, clientY) && !estaMastigando) {
+            status.fome = Math.min(100, status.fome + 10);
+            draggingElement.style.display = 'none'; // Comida some
+            endDrag(); // Força o fim do drag
+            iniciarMastigacao();
             updateStatusUI();
         }
     }
@@ -421,4 +535,13 @@ function handleEndDragRoom(endX) {
 
 updateStatusBarColor(); // Define a cor inicial
 updateStatusUI(); // Inicializa os ícones cheios
+
+// Exemplo: Customização Aleatória ao carregar
+customizarPet(
+    Math.floor(Math.random() * 20),
+    Math.floor(Math.random() * 20),
+    Math.floor(Math.random() * 20),
+    Math.floor(Math.random() * 4) // Sorteia entre os primeiros padrões implementados
+);
+
 console.log("Lumo carregado! Aguardando assets para substituição.");
