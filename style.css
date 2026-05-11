@@ -52,12 +52,6 @@ body {
     position: absolute;
     width: 100%;
     z-index: 0;
-    background-image: 
-        linear-gradient(90deg, rgba(255, 255, 255, 0.07) 2px, transparent 2px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.07) 2px, transparent 2px),
-        linear-gradient(rgba(255, 255, 255, 0.07) 2px, transparent 2px);
-    background-size: 80px 40px;
-    background-position: 0 0, 40px 20px, 0 0;
 }
 
 .parede-fundo::after {
@@ -71,6 +65,41 @@ body {
     background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.411) 2px, transparent 2px);
     background-size: 60px 100%; /* Mesma largura das lajotas do chão */
     border-top: 1px solid #777; /* Linha superior para dar profundidade */
+}
+
+/* --- Estampas das Paredes por Cômodo --- */
+
+/* Banheiro: Padrão de Tijolinhos (Original) */
+#banheiro .parede-fundo {
+    background-image: 
+        linear-gradient(90deg, rgba(255, 255, 255, 0.07) 2px, transparent 2px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.07) 2px, transparent 2px),
+        linear-gradient(rgba(255, 255, 255, 0.07) 2px, transparent 2px);
+    background-size: 80px 40px;
+    background-position: 0 0, 40px 20px, 0 0;
+}
+
+/* Sala: Padrão de Listras Verticais (Papel de Parede) */
+#sala .parede-fundo {
+    background-color: #6d4c41;
+    background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.192) 2px, transparent 2px);
+    background-size: 50px 100%;
+}
+
+/* Cozinha: Padrão de Azulejos Quadrados */
+#cozinha .parede-fundo {
+    background-color: #d6d6d6;
+    background-image: 
+        linear-gradient(rgba(0, 0, 0, 0.5) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.5) 1px, transparent 1px);
+    background-size: 30px 30px;
+}
+
+/* Quarto: Padrão Pontilhado Suave (Relaxante) */
+#quarto .parede-fundo {
+    background-color: #4a5a7a;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.1) 2px, transparent 2px);
+    background-size: 40px 40px;
 }
 
 .chao {
