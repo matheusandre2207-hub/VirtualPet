@@ -380,10 +380,10 @@ html, body {
 
 .z-container {
     position: absolute;
-    top: 400px; /* Posicionado exatamente sobre o corpo do pet */
-    left: 180px; /* Centralizado horizontalmente no pet */
+    top: -20px; /* Posicionado levemente acima da cabeça */
+    left: 70%; /* Posicionado acima da cabeça */
     pointer-events: none;
-    z-index: 110; /* Acima do sleep-overlay (100) */
+    z-index: 120;
 }
 
 .z-particle {
@@ -463,6 +463,21 @@ html, body {
     transform: translateX(-50%);
     width: 260px;
     height: 220px;
+    transform-origin: bottom center;
+    animation: respirar 4s ease-in-out infinite;
+    z-index: 20; /* Agora atrás do sleep-overlay (100) e de itens como a mesa (22) */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.pet-corpo-mask {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     background-color: #4ed401; /* A cor verde que você escolheu */
     background-image: url('assets/body.png');
     background-size: contain;
@@ -477,14 +492,6 @@ html, body {
     mask-repeat: no-repeat;
     -webkit-mask-position: center;
     mask-position: center;
-    transform-origin: bottom center;
-    animation: respirar 4s ease-in-out infinite;
-    z-index: 20;
-    transform: translateX(-50%) translateZ(1px);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
 }
 
 /* Container de Espuma/Bolhas */
@@ -609,7 +616,7 @@ html, body {
     width: 100%;
     display: flex;
     justify-content: center;
-    z-index: 20;
+    z-index: 200; /* Sempre no topo de tudo */
 }
 
 .status-pill {

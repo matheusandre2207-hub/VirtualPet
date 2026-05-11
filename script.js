@@ -76,16 +76,23 @@ document.querySelector('.chuveiro').addEventListener('click', () => {
             }
         }, 100);
     } else {
-        // Para a água
-        clearInterval(intervaloAgua);
-        clearInterval(intervaloLimpeza);
-        
-        if (!estaDormindo) {
-            olhoEsq.classList.remove('fechado');
-            olhoDir.classList.remove('fechado');
-        }
+        desligarChuveiro();
     }
 });
+
+function desligarChuveiro() {
+    estaChovendo = false;
+    clearInterval(intervaloAgua);
+    clearInterval(intervaloLimpeza);
+    
+    // Remove gotas restantes imediatamente
+    document.querySelectorAll('.gota').forEach(g => g.remove());
+
+    if (!estaDormindo) {
+        olhoEsq.classList.remove('fechado');
+        olhoDir.classList.remove('fechado');
+    }
+}
 
 function criarGota() {
     const cenario = document.querySelector('.cenario');
@@ -209,15 +216,24 @@ function verificarColisaoMacaComBoca(x, y) {
 // Lógica do Abajur (Sono)
 abajur.addEventListener('click', () => {
     estaDormindo = !estaDormindo;
+    const quarto = document.getElementById('quarto');
+    const container = document.getElementById('game-container');
     
     if (estaDormindo) {
         sleepOverlay.classList.add('active');
         olhoEsq.classList.add('fechado');
         olhoDir.classList.add('fechado');
         intervalZ = setInterval(criarZ, 1200);
+        
+        // Move o pet para dentro do quarto (anexa ao cenário)
+        quarto.appendChild(lumo);
     } else {
         sleepOverlay.classList.remove('active');
         clearInterval(intervalZ);
+        
+        // Traz o pet de volta para o container global (ele volta a seguir você)
+        container.appendChild(lumo);
+
         if (!estaChovendo) {
             olhoEsq.classList.remove('fechado');
             olhoDir.classList.remove('fechado');
@@ -281,9 +297,15 @@ document.addEventListener('touchend', (e) => {
 function handleEndDragRoom(endX) {
     isDraggingRoom = false;
     const diffX = startXRoom - endX;
+    const previousRoom = currentRoom;
 
     if (diffX > 50 && currentRoom < 3) currentRoom++; // Arrastou para a esquerda -> Próximo cômodo
     if (diffX < -50 && currentRoom > 0) currentRoom--; // Arrastou para a direita -> Cômodo anterior
+
+    // Desliga o chuveiro se sair do banheiro (0)
+    if (previousRoom === 0 && currentRoom !== 0 && estaChovendo) {
+        desligarChuveiro();
+    }
 
     mundo.style.left = `-${currentRoom * window.innerWidth}px`;
     updateStatusBarColor();
