@@ -314,16 +314,16 @@ body {
 
 .abajur {
     position: absolute;
-    bottom: 43%;
-    left: 36px; /* Centralizado em relação à nova largura da cômoda */
+    bottom: 78%; /* Gruda exatamente no topo da cômoda */
+    left: 50%;
+    transform: translateX(-50%) translateZ(1px); /* Centraliza e mantém à frente do fundo */
     width: 80px;
     height: 100px;
     background-image: url('assets/abajur.png'); /* Certifique-se de ter este asset */
     background-size: contain;
     background-repeat: no-repeat;
     cursor: pointer;
-    z-index: 11;
-    transform: translateZ(1px);
+    z-index: 1; /* Relativo à cômoda */
 }
 
 #sleep-overlay {
