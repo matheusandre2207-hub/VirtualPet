@@ -7,20 +7,26 @@
     -ms-user-select: none;
     user-select: none;
     -webkit-touch-callout: none;
+    touch-action: none; /* Impede gestos padrão do navegador como zoom e scroll */
 }
 
-body {
+html, body {
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
+    height: 100dvh; /* Viewport dinâmico para mobile */
+    width: 100vw;
     background-color: #333;
     font-family: sans-serif;
+    overflow: hidden;
+    position: fixed; /* Trava a posição da página */
 }
 
 #game-container {
     width: 100vw;
     height: 100vh;
+    height: 100dvh;
     position: relative;
     overflow: hidden;
     background-color: #fff;

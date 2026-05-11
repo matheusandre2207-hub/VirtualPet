@@ -24,6 +24,21 @@ let estaDormindo = false;
 let intervaloAgua, intervaloLimpeza;
 let intervalZ;
 
+// Mapeamento de cores das paredes por cômodo
+const roomColors = {
+    0: '#414141', // Banheiro
+    1: '#6d4c41', // Sala
+    2: '#d6d6d6', // Cozinha
+    3: '#4a5a7a'  // Quarto
+};
+
+function updateStatusBarColor() {
+    const metaThemeColor = document.getElementById('theme-color');
+    if (metaThemeColor) {
+        metaThemeColor.setAttribute('content', roomColors[currentRoom]);
+    }
+}
+
 // Função para fazer o Lumo piscar
 function piscar() {
     if (estaChovendo || estaDormindo) return; // Não pisca se já estiver de olhos fechados
@@ -271,6 +286,8 @@ function handleEndDragRoom(endX) {
     if (diffX < -50 && currentRoom > 0) currentRoom--; // Arrastou para a direita -> Cômodo anterior
 
     mundo.style.left = `-${currentRoom * window.innerWidth}px`;
+    updateStatusBarColor();
 }
 
+updateStatusBarColor(); // Define a cor inicial
 console.log("Lumo carregado! Aguardando assets para substituição.");
