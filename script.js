@@ -6,10 +6,19 @@ const lumo = document.getElementById('lumo');
 const boca = document.getElementById('boca'); // Adicionado: Referência ao elemento da boca
 const olhosContainer = document.querySelector('.olhos-container');
 const espumaContainer = document.querySelector('.espuma-container');
+const corpoMask = document.querySelector('.pet-corpo-mask');
 const mundo = document.getElementById('mundo');
 const abajur = document.getElementById('abajur');
 const sleepOverlay = document.getElementById('sleep-overlay');
 const zContainer = document.querySelector('.z-container');
+
+// Estados do Pet
+let status = {
+    fome: 100,
+    energia: 100,
+    limpeza: 100,
+    humor: 100
+};
 
 // Bloqueia menu de contexto em todo o app
 document.addEventListener('contextmenu', event => event.preventDefault());
@@ -38,6 +47,98 @@ function updateStatusBarColor() {
         metaThemeColor.setAttribute('content', roomColors[currentRoom]);
     }
 }
+
+function updateStatusUI() {
+    updateIconFill('fome', status.fome);
+    updateIconFill('energia', status.energia);
+    updateIconFill('limpeza', status.limpeza);
+    updateIconFill('humor', status.humor);
+    checkPetEmotions();
+}
+
+function checkPetEmotions() {
+    const threshold = 25;
+    const estaTriste = status.fome < threshold || status.energia < threshold || status.limpeza < threshold || status.humor < threshold;
+
+    // Lógica da Boca
+    if (estaTriste && !boca.classList.contains('boca-aberta')) {
+        boca.classList.add('sad-mouth');
+    } else {
+        boca.classList.remove('sad-mouth');
+    }
+
+    // Lógica dos Olhos (Pupila grande, 2 brilhos e tremor)
+    if (estaTriste) {
+        const sadGradient = `
+            radial-gradient(circle at 65% 35%, #fff 4px, transparent 2.5px),
+            radial-gradient(circle at 35% 65%, #fff 2px, transparent 1.5px),
+            radial-gradient(circle, #000 14px, #01a3d4 5px)
+        `;
+        olhoEsq.style.setProperty('--eye-gradient', sadGradient);
+        olhoDir.style.setProperty('--eye-gradient', sadGradient);
+        olhoEsq.classList.add('triste');
+        olhoDir.classList.add('triste');
+    } else {
+        olhoEsq.style.removeProperty('--eye-gradient');
+        olhoDir.style.removeProperty('--eye-gradient');
+        olhoEsq.classList.remove('triste');
+        olhoDir.classList.remove('triste');
+    }
+
+    // Lógica de Sujeira (Manchas no corpo)
+    if (status.limpeza <= 0) {
+        if (corpoMask.querySelectorAll('.mancha-sujeira').length === 0) {
+            gerarSujeira();
+        }
+    } else if (status.limpeza > 10) {
+        // Remove manchas gradualmente ou todas se estiver limpo
+        corpoMask.querySelectorAll('.mancha-sujeira').forEach(m => m.remove());
+    }
+}
+
+function gerarSujeira() {
+    for (let i = 0; i < 6; i++) {
+        const mancha = document.createElement('div');
+        mancha.classList.add('mancha-sujeira');
+        const tamanho = Math.random() * 40 + 20;
+        mancha.style.width = `${tamanho}px`;
+        mancha.style.height = `${tamanho * 0.8}px`;
+        mancha.style.left = `${Math.random() * 80 + 10}%`;
+        mancha.style.top = `${Math.random() * 60 + 20}%`;
+        mancha.style.transform = `rotate(${Math.random() * 360}deg)`;
+        corpoMask.appendChild(mancha);
+    }
+}
+
+function updateIconFill(id, value) {
+    const fillElement = document.getElementById(`fill-${id}`);
+    if (fillElement) {
+        const percentage = 100 - value;
+        fillElement.style.clipPath = `inset(${percentage}% 0% 0% 0%)`;
+    }
+}
+
+// Ciclo de vida: Diminui status com o tempo
+setInterval(() => {
+    // Fome diminui sempre
+    status.fome = Math.max(0, status.fome - 0.5);
+    
+    // Limpeza diminui se não estiver tomando banho
+    if (!estaChovendo) status.limpeza = Math.max(0, status.limpeza - 0.3);
+
+    // Energia diminui se acordado, aumenta se dormindo
+    if (estaDormindo) {
+        status.energia = Math.min(100, status.energia + 2);
+    } else {
+        status.energia = Math.max(0, status.energia - 0.4);
+    }
+
+    // Humor é a média dos outros, mas cai se algum estiver muito baixo
+    const media = (status.fome + status.energia + status.limpeza) / 3;
+    status.humor = Math.max(0, Math.min(100, media));
+
+    updateStatusUI();
+}, 3000);
 
 // Função para fazer o Lumo piscar
 function piscar() {
@@ -155,7 +256,10 @@ function drag(e) {
     if (draggingElement.id === 'sabonete') {
         verificarColisaoSabonete(clientX, clientY);
     } else if (draggingElement.id === 'maca') {
-        verificarColisaoMacaComBoca(clientX, clientY);
+        if (verificarColisaoMacaComBoca(clientX, clientY)) {
+            status.fome = Math.min(100, status.fome + 0.5);
+            updateStatusUI();
+        }
     }
 }
 
@@ -175,6 +279,8 @@ function verificarColisaoSabonete(x, y) {
             bolha.style.left = `${x - lumoRect.left - size / 2}px`;
             bolha.style.top = `${y - lumoRect.top - size / 2}px`;
             espumaContainer.appendChild(bolha);
+            status.limpeza = Math.min(100, status.limpeza + 0.2);
+            updateStatusUI();
         }
     }
 }
@@ -208,8 +314,10 @@ function verificarColisaoMacaComBoca(x, y) {
     if (x > bocaRect.left - padding && x < bocaRect.right + padding && 
         y > bocaRect.top - padding && y < bocaRect.bottom + padding) {
         boca.classList.add('boca-aberta');
+        return true;
     } else {
         boca.classList.remove('boca-aberta');
+        return false;
     }
 }
 
@@ -312,4 +420,5 @@ function handleEndDragRoom(endX) {
 }
 
 updateStatusBarColor(); // Define a cor inicial
+updateStatusUI(); // Inicializa os ícones cheios
 console.log("Lumo carregado! Aguardando assets para substituição.");
