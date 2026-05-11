@@ -7,24 +7,32 @@ const boca = document.getElementById('boca'); // Adicionado: Referência ao elem
 const olhosContainer = document.querySelector('.olhos-container');
 const espumaContainer = document.querySelector('.espuma-container');
 const mundo = document.getElementById('mundo');
+const abajur = document.getElementById('abajur');
+const sleepOverlay = document.getElementById('sleep-overlay');
+const zContainer = document.querySelector('.z-container');
 
-let currentRoom = 0; // 0: Banheiro, 1: Sala, 2: Cozinha
+// Bloqueia menu de contexto em todo o app
+document.addEventListener('contextmenu', event => event.preventDefault());
+
+let currentRoom = 0; // 0: Banheiro, 1: Sala, 2: Cozinha, 3: Quarto
 let startXRoom = 0;
 let isDraggingRoom = false;
 let draggingElement = null; // Armazena qual item está sendo arrastado
 
 let estaChovendo = false;
+let estaDormindo = false;
 let intervaloAgua, intervaloLimpeza;
+let intervalZ;
 
 // Função para fazer o Lumo piscar
 function piscar() {
-    if (estaChovendo) return; // Não pisca se já estiver de olhos fechados pela chuva
+    if (estaChovendo || estaDormindo) return; // Não pisca se já estiver de olhos fechados
 
     olhoEsq.classList.add('fechado');
     olhoDir.classList.add('fechado');
 
     setTimeout(() => {
-        if (estaChovendo) return; // Se começou a chover durante o piscar, mantém fechado
+        if (estaChovendo || estaDormindo) return; 
         
         olhoEsq.classList.remove('fechado');
         olhoDir.classList.remove('fechado');
@@ -57,8 +65,10 @@ document.querySelector('.chuveiro').addEventListener('click', () => {
         clearInterval(intervaloAgua);
         clearInterval(intervaloLimpeza);
         
-        olhoEsq.classList.remove('fechado');
-        olhoDir.classList.remove('fechado');
+        if (!estaDormindo) {
+            olhoEsq.classList.remove('fechado');
+            olhoDir.classList.remove('fechado');
+        }
     }
 });
 
@@ -116,6 +126,9 @@ function drag(e) {
     
     draggingElement.style.transform = `translate(${dx}px, ${dy}px)`;
 
+    // Faz o pet seguir o objeto com os olhos
+    moverOlhos(clientX, clientY);
+
     // Lógica de deixar espuma apenas para o sabonete
     if (draggingElement.id === 'sabonete') {
         verificarColisaoSabonete(clientX, clientY);
@@ -144,15 +157,65 @@ function verificarColisaoSabonete(x, y) {
     }
 }
 
+// Função para mover as pupilas seguindo o cursor/item
+function moverOlhos(x, y) {
+    const olhosRect = olhosContainer.getBoundingClientRect();
+    const centroX = olhosRect.left + olhosRect.width / 2;
+    const centroY = olhosRect.top + olhosRect.height / 2;
+
+    // Calcula o ângulo e a distância limitada para o movimento da pupila
+    const dx = x - centroX;
+    const dy = y - centroY;
+    const angulo = Math.atan2(dy, dx);
+    const dist = 6; // Deslocamento máximo em pixels para dentro do globo ocular
+
+    const moveX = Math.cos(angulo) * dist;
+    const moveY = Math.sin(angulo) * dist;
+
+    // Aplica as variáveis CSS que definiremos no style.css
+    olhoEsq.style.setProperty('--pupil-x', `${moveX}px`);
+    olhoEsq.style.setProperty('--pupil-y', `${moveY}px`);
+    olhoDir.style.setProperty('--pupil-x', `${moveX}px`);
+    olhoDir.style.setProperty('--pupil-y', `${moveY}px`);
+}
+
 // Nova função: Verifica colisão da maçã com a boca
 function verificarColisaoMacaComBoca(x, y) {
     const bocaRect = boca.getBoundingClientRect();
-    // Verifica se a maçã está sobre a boca
-    if (x > bocaRect.left && x < bocaRect.right && y > bocaRect.top && y < bocaRect.bottom) {
+    const padding = 50; // Aumenta a área de contato em 50px para facilitar a interação
+    if (x > bocaRect.left - padding && x < bocaRect.right + padding && 
+        y > bocaRect.top - padding && y < bocaRect.bottom + padding) {
         boca.classList.add('boca-aberta');
     } else {
         boca.classList.remove('boca-aberta');
     }
+}
+
+// Lógica do Abajur (Sono)
+abajur.addEventListener('click', () => {
+    estaDormindo = !estaDormindo;
+    
+    if (estaDormindo) {
+        sleepOverlay.classList.add('active');
+        olhoEsq.classList.add('fechado');
+        olhoDir.classList.add('fechado');
+        intervalZ = setInterval(criarZ, 1200);
+    } else {
+        sleepOverlay.classList.remove('active');
+        clearInterval(intervalZ);
+        if (!estaChovendo) {
+            olhoEsq.classList.remove('fechado');
+            olhoDir.classList.remove('fechado');
+        }
+    }
+});
+
+function criarZ() {
+    const z = document.createElement('div');
+    z.classList.add('z-particle');
+    z.innerText = 'Z';
+    zContainer.appendChild(z);
+    setTimeout(() => z.remove(), 2500);
 }
 
 document.addEventListener('mouseup', endDrag);
@@ -165,6 +228,12 @@ function endDrag() {
     // Garante que a boca feche se a maçã for solta
     boca.classList.remove('boca-aberta');
     
+    // Reseta a posição dos olhos para o centro
+    olhoEsq.style.setProperty('--pupil-x', '0px');
+    olhoEsq.style.setProperty('--pupil-y', '0px');
+    olhoDir.style.setProperty('--pupil-x', '0px');
+    olhoDir.style.setProperty('--pupil-y', '0px');
+
     draggingElement.style.transition = 'transform 0.3s ease-out';
     draggingElement.style.transform = 'translate(0, 0)'; // Volta à origem
     draggingElement.style.cursor = 'grab';
@@ -198,10 +267,10 @@ function handleEndDragRoom(endX) {
     isDraggingRoom = false;
     const diffX = startXRoom - endX;
 
-    if (diffX > 50 && currentRoom < 2) currentRoom++; // Arrastou para a esquerda -> Próximo cômodo
+    if (diffX > 50 && currentRoom < 3) currentRoom++; // Arrastou para a esquerda -> Próximo cômodo
     if (diffX < -50 && currentRoom > 0) currentRoom--; // Arrastou para a direita -> Cômodo anterior
 
-    mundo.style.left = `-${currentRoom * 360}px`;
+    mundo.style.left = `-${currentRoom * window.innerWidth}px`;
 }
 
 console.log("Lumo carregado! Aguardando assets para substituição.");

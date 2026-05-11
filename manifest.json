@@ -1,0 +1,17 @@
+{
+  "name": "Lumo Virtual Pet",
+  "short_name": "Lumo",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4ed401",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "assets/body.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

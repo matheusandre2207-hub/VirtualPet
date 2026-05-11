@@ -2,6 +2,11 @@
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
 }
 
 body {
@@ -14,8 +19,8 @@ body {
 }
 
 #game-container {
-    width: 360px; /* Proporção de celular */
-    height: 640px;
+    width: 100vw;
+    height: 100vh;
     position: relative;
     overflow: hidden;
     background-color: #fff;
@@ -26,7 +31,7 @@ body {
 /* Wrapper para deslizar entre os cômodos */
 #mundo {
     display: flex;
-    width: 300%; /* Três cômodos */
+    width: 400%; /* Quatro cômodos */
     height: 100%;
     position: absolute;
     left: 0;
@@ -36,7 +41,7 @@ body {
 /* Cenário */
 .cenario {
     position: relative;
-    width: 360px; /* Largura de um celular */
+    width: 100vw;
     height: 100%;
     flex-shrink: 0;
 }
@@ -44,7 +49,9 @@ body {
 .parede-fundo {
     height: 70%;
     background-color: #414141; /* parede */
-    position: relative;
+    position: absolute;
+    width: 100%;
+    z-index: 0;
     background-image: 
         linear-gradient(90deg, rgba(255, 255, 255, 0.07) 2px, transparent 2px),
         linear-gradient(90deg, rgba(255, 255, 255, 0.07) 2px, transparent 2px),
@@ -68,29 +75,30 @@ body {
 
 .chao {
     height: 30%;
-    width: 100%; /* Ocupa toda a largura do #mundo (os dois cômodos) */
+    width: 100%;
     background: radial-gradient(circle at 50% 0%, #ffffff 20%, #e0e0e0 100%);
     position: absolute;
     bottom: 0;
     left: 0;
     overflow: hidden;
     box-shadow: inset 0 15px 20px -15px rgba(0,0,0,0.5); /* Sombra de contato com a parede */
-    z-index: 0;
+    z-index: 1;
 }
 
 .chao::after {
     content: '';
     position: absolute;
-    top: 0;
-    left: -50%;
-    width: 200%;
+    top: -50px;
+    left: 0;
+    width: 100%;
     height: 1000px;
     background-image: 
         linear-gradient(rgba(29, 29, 29, 0.4) 2px, transparent 2px),
         linear-gradient(90deg, rgba(29, 29, 29, 0.4) 2px, transparent 2px);
     background-size: 60px 60px;
-    transform: perspective(200px) rotateX(55deg);
+    transform: perspective(400px) rotateX(60deg);
     transform-origin: top center;
+    pointer-events: none;
 }
 
 /* --- Decorações do Banheiro --- */
@@ -104,7 +112,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    z-index: 2;
+    z-index: 10;
     cursor: pointer;
 }
 
@@ -144,7 +152,8 @@ body {
     position: absolute;
     bottom: 30%; /* Exatamente onde a parede encontra o chão */
     left: -10px;
-    z-index: 2;
+    z-index: 10;
+    transform: translateZ(1px);
 }
 
 .pia {
@@ -168,7 +177,8 @@ body {
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
-    z-index: 2;
+    z-index: 10;
+    transform: translateZ(1px);
 }
 
 /* Toalha e Suporte */
@@ -182,7 +192,8 @@ body {
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
-    z-index: 2;
+    z-index: 10;
+    transform: translateZ(1px);
 }
 
 /* --- Decorações da Sala --- */
@@ -196,20 +207,22 @@ body {
     border: 4px solid #757575; /* Borda branca grossa */
     border-radius: 5px;
     box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    z-index: 2;
+    z-index: 10;
+    transform: translateZ(1px);
 }
 
 .rack {
     position: absolute;
     bottom: 30%; /* AJUSTE AQUI A POSIÇÃO VERTICAL (Ex: 28%, 32%, etc) */
     right: 20px;
-    width: 200px;
+    width: 50%;
     height: 200px;
     background-image: url('assets/rack.png');
     background-size: contain;
     background-repeat: no-repeat;
     background-position: bottom center;
-    z-index: 2;
+    z-index: 10;
+    transform: translateZ(1px);
 }
 
 .planta {
@@ -222,7 +235,8 @@ body {
     background-size: contain;
     background-repeat: no-repeat;
     background-position: bottom center;
-    z-index: 2;
+    z-index: 10;
+    transform: translateZ(1px);
 }
 
 /* --- Decorações da Cozinha --- */
@@ -236,7 +250,8 @@ body {
     background-size: contain;
     background-repeat: no-repeat;
     background-position: bottom center;
-    z-index: 2;
+    z-index: 10;
+    transform: translateZ(1px);
 }
 
 .fogao {
@@ -249,7 +264,8 @@ body {
     background-size: contain;
     background-repeat: no-repeat;
     background-position: bottom center;
-    z-index: 2;
+    z-index: 10;
+    transform: translateZ(1px);
 }
 
 .mesa {
@@ -261,7 +277,93 @@ body {
     background-color: #5d4037; /* Cor de madeira escura */
     border-bottom: 4px solid #3e2723; /* Sombra/detalhe na borda */
     box-shadow: 0 5px 10px rgba(0,0,0,0.3);
-    z-index: 15; /* Agora à frente do pet (10) */
+    z-index: 22; /* Agora à frente do pet (20) */
+    transform: translateZ(2px); /* Força para frente do chão 3D */
+}
+
+/* --- Decorações do Quarto --- */
+.cama {
+    position: absolute;
+    /* Ajuste manual de posição e tamanho abaixo */
+    bottom: 7%; 
+    left: 5%; /* Centralizado em relação ao pet, considerando a largura da cama */
+    width: 360px;
+    height: 200px;
+    background-image: url('assets/cama.png');
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: bottom center;
+    z-index: 10;
+    transform: translateZ(1px);
+
+}
+
+.comoda {
+    position: absolute;
+    bottom: 25%;
+    left: -35px;
+    width: 200px;
+    height: 160px;
+    background-image: url('assets/comoda.png'); /* Certifique-se de ter este asset ou use background-color */
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: bottom center;
+    z-index: 10;
+    transform: translateZ(1px);
+}
+
+.abajur {
+    position: absolute;
+    bottom: 44%;
+    left: 36px; /* Centralizado em relação à nova largura da cômoda */
+    width: 80px;
+    height: 100px;
+    background-image: url('assets/abajur.png'); /* Certifique-se de ter este asset */
+    background-size: contain;
+    background-repeat: no-repeat;
+    cursor: pointer;
+    z-index: 11;
+    transform: translateZ(1px);
+}
+
+#sleep-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 15, 0.7);
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+}
+
+#sleep-overlay.active {
+    opacity: 1;
+}
+
+.z-container {
+    position: absolute;
+    top: 400px; /* Posicionado exatamente sobre o corpo do pet */
+    left: 180px; /* Centralizado horizontalmente no pet */
+    pointer-events: none;
+    z-index: 110; /* Acima do sleep-overlay (100) */
+}
+
+.z-particle {
+    position: absolute;
+    color: #fff;
+    font-weight: bold;
+    font-size: 24px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    animation: sleep-z 2.5s linear forwards;
+}
+
+@keyframes sleep-z {
+    0% { transform: translate(0, 0) scale(0.5); opacity: 0; }
+    20% { opacity: 1; }
+    100% { transform: translate(40px, -80px) scale(1.5); opacity: 0; }
 }
 
 .maca-img {
@@ -342,7 +444,8 @@ body {
     mask-position: center;
     transform-origin: bottom center;
     animation: respirar 4s ease-in-out infinite;
-    z-index: 10;
+    z-index: 20;
+    transform: translateX(-50%) translateZ(1px);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -413,7 +516,7 @@ body {
     /* Camadas: Brilho, Pupila (10px) e Íris */
     border-radius: 50%;
     position: relative;
-    top: 0px;  /* Altere para mover verticalmente */
+    top: var(--pupil-y, 0px); /* Controlado via JS */
     transition: opacity 0.1s;
 }
 
@@ -422,11 +525,11 @@ body {
 }
 
 #olho-esq::after {
-    left: 3px; /* Move a íris esquerda para o centro */
+    left: calc(var(--pupil-x, 0px) + 3px); /* Mantém o offset original + movimento JS */
 }
 
 #olho-dir::after {
-    left: -3px; /* Move a íris direita para o centro */
+    left: calc(var(--pupil-x, 0px) - 3px); /* Mantém o offset original + movimento JS */
 }
 
 .boca {
