@@ -275,29 +275,35 @@ function checkPetEmotions() {
         olhoDir.classList.remove('triste');
     }
 
-    // Lógica de Sujeira (Manchas no corpo)
-    if (status.limpeza <= 0) {
-        if (corpoMask.querySelectorAll('.mancha-sujeira').length === 0) {
-            gerarSujeira();
+    // Lógica de Sujeira Dinâmica (Manchas no corpo)
+    // As manchas começam a surgir apenas abaixo de 35% de limpeza, progredindo até 14 manchas em 0%
+    const targetSpots = status.limpeza > 35 ? 0 : Math.floor((35 - status.limpeza) / 2.5);
+    let currentSpots = corpoMask.querySelectorAll('.mancha-sujeira');
+
+    if (currentSpots.length !== targetSpots) {
+        // Adiciona manchas se necessário
+        while (currentSpots.length < targetSpots) {
+            adicionarUmaMancha();
+            currentSpots = corpoMask.querySelectorAll('.mancha-sujeira');
         }
-    } else if (status.limpeza > 10) {
-        // Remove manchas gradualmente ou todas se estiver limpo
-        corpoMask.querySelectorAll('.mancha-sujeira').forEach(m => m.remove());
+        // Remove manchas se o pet estiver sendo limpo
+        while (currentSpots.length > targetSpots) {
+            currentSpots[currentSpots.length - 1].remove();
+            currentSpots = corpoMask.querySelectorAll('.mancha-sujeira');
+        }
     }
 }
 
-function gerarSujeira() {
-    for (let i = 0; i < 6; i++) {
-        const mancha = document.createElement('div');
-        mancha.classList.add('mancha-sujeira');
-        const tamanho = Math.random() * 40 + 20;
-        mancha.style.width = `${tamanho}px`;
-        mancha.style.height = `${tamanho * 0.8}px`;
-        mancha.style.left = `${Math.random() * 80 + 10}%`;
-        mancha.style.top = `${Math.random() * 60 + 20}%`;
-        mancha.style.transform = `rotate(${Math.random() * 360}deg)`;
-        corpoMask.appendChild(mancha);
-    }
+function adicionarUmaMancha() {
+    const mancha = document.createElement('div');
+    mancha.classList.add('mancha-sujeira');
+    const tamanho = Math.random() * 40 + 20;
+    mancha.style.width = `${tamanho}px`;
+    mancha.style.height = `${tamanho * 0.8}px`;
+    mancha.style.left = `${Math.random() * 80 + 10}%`;
+    mancha.style.top = `${Math.random() * 60 + 20}%`;
+    mancha.style.transform = `rotate(${Math.random() * 360}deg)`;
+    corpoMask.appendChild(mancha);
 }
 
 function updateIconFill(id, value) {
@@ -371,6 +377,11 @@ document.querySelector('.chuveiro').addEventListener('click', () => {
                     b.classList.add('limpando');
                     setTimeout(() => b.remove(), 600);
                 });
+            }
+            // A água do chuveiro limpa o pet gradualmente mesmo sem sabonete
+            if (status.limpeza < 100) {
+                status.limpeza = Math.min(100, status.limpeza + 0.3);
+                updateStatusUI();
             }
         }, 50); 
     } else {
