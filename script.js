@@ -276,19 +276,14 @@ function checkPetEmotions() {
     }
 
     // Lógica de Sujeira Dinâmica (Manchas no corpo)
-    // As manchas começam a surgir apenas abaixo de 35% de limpeza, progredindo até 14 manchas em 0%
+    // As manchas surgem abaixo de 35%, mas agora SÓ saem com o sabonete
     const targetSpots = status.limpeza > 35 ? 0 : Math.floor((35 - status.limpeza) / 2.5);
     let currentSpots = corpoMask.querySelectorAll('.mancha-sujeira');
 
-    if (currentSpots.length !== targetSpots) {
-        // Adiciona manchas se necessário
+    // Só adicionamos manchas se o número atual for menor que o alvo (sujeira acumulando)
+    if (currentSpots.length < targetSpots) {
         while (currentSpots.length < targetSpots) {
             adicionarUmaMancha();
-            currentSpots = corpoMask.querySelectorAll('.mancha-sujeira');
-        }
-        // Remove manchas se o pet estiver sendo limpo
-        while (currentSpots.length > targetSpots) {
-            currentSpots[currentSpots.length - 1].remove();
             currentSpots = corpoMask.querySelectorAll('.mancha-sujeira');
         }
     }
@@ -303,13 +298,18 @@ function adicionarUmaMancha() {
     mancha.style.left = `${Math.random() * 80 + 10}%`;
     mancha.style.top = `${Math.random() * 60 + 20}%`;
     mancha.style.transform = `rotate(${Math.random() * 360}deg)`;
+    mancha.dataset.health = 1.0; // 100% de opacidade/sujeira
     corpoMask.appendChild(mancha);
 }
 
 function updateIconFill(id, value) {
     const fillElement = document.getElementById(`fill-${id}`);
     if (fillElement) {
-        const percentage = 100 - value;
+        let displayValue = value;
+        if (id === 'limpeza') {
+            displayValue = calcularHigieneReal(value);
+        }
+        const percentage = 100 - displayValue;
         fillElement.style.clipPath = `inset(${percentage}% 0% 0% 0%)`;
     }
 }
@@ -485,6 +485,7 @@ function verificarColisaoSabonete(x, y) {
         const isOverColoredPart = pixel[3] > 10; // Verifica se o Alpha (transparência) é maior que 10
 
         if (isOverColoredPart) {
+            // 1. Cria bolhas
             const olhosRect = olhosContainer.getBoundingClientRect();
             const size = Math.random() * 15 + 10;
             const bolha = document.createElement('div');
@@ -494,10 +495,41 @@ function verificarColisaoSabonete(x, y) {
             bolha.style.left = `${x - lumoRect.left - size / 2}px`;
             bolha.style.top = `${y - lumoRect.top - size / 2}px`;
             espumaContainer.appendChild(bolha);
-            status.limpeza = Math.min(100, status.limpeza + 0.2);
+
+            // 2. Limpa manchas de sujeira (esfregada persistente)
+            const manchas = corpoMask.querySelectorAll('.mancha-sujeira');
+            manchas.forEach(mancha => {
+                const mRect = mancha.getBoundingClientRect();
+                // Se o sabonete está sobre a mancha
+                if (x > mRect.left && x < mRect.right && y > mRect.top && y < mRect.bottom) {
+                    let health = parseFloat(mancha.dataset.health);
+                    health -= 0.04; // Velocidade da limpeza ao esfregar
+                    mancha.dataset.health = health;
+                    mancha.style.opacity = health;
+                    mancha.style.transform = `rotate(${Math.random() * 360}deg) scale(${0.8 + health * 0.2})`;
+
+                    if (health <= 0) {
+                        mancha.remove();
+                        // Aumenta o status base quando uma mancha é removida
+                        status.limpeza = Math.min(100, status.limpeza + 5);
+                    }
+                }
+            });
+            
             updateStatusUI();
         }
     }
+}
+
+// Nova lógica: Higiene só é 100% se não houver manchas nem bolhas
+function calcularHigieneReal(valorBase) {
+    const temManchas = corpoMask.querySelectorAll('.mancha-sujeira').length > 0;
+    const temBolhas = document.querySelectorAll('.bolha').length > 0;
+
+    if (temManchas || temBolhas) {
+        return Math.min(valorBase, 95); // Trava em 95% enquanto houver sujeira ou sabão
+    }
+    return valorBase;
 }
 
 // Função para mover as pupilas seguindo o cursor/item
