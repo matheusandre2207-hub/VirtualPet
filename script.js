@@ -107,21 +107,41 @@ document.getElementById('next-food').addEventListener('click', (e) => {
     updateFoodUI();
 });
 
-// Troca de comida por deslize (Swipe) no seletor
-let foodStartX = 0;
-maca.addEventListener('touchstart', (e) => foodStartX = e.touches[0].clientX, {passive: true});
-maca.addEventListener('touchend', (e) => {
-    const diff = foodStartX - e.changedTouches[0].clientX;
-    if (Math.abs(diff) > 40 && !isDragging) {
-        currentFoodIndex = diff > 0 
-            ? (currentFoodIndex + 1) % foodList.length 
-            : (currentFoodIndex - 1 + foodList.length) % foodList.length;
-        updateFoodUI();
-    }
-}, {passive: true});
+function processarAlimentacao(elemento) {
+    const bocaRect = boca.getBoundingClientRect();
+    const elemRect = elemento.getBoundingClientRect();
+    
+    // Calcula o deslocamento necessário para levar o centro da comida ao centro da boca
+    const deltaX = (bocaRect.left + bocaRect.width / 2) - (elemRect.left + elemRect.width / 2);
+    const deltaY = (bocaRect.top + bocaRect.height / 2) - (elemRect.top + elemRect.height / 2);
+
+    // Obtemos a transformação atual (o translate que foi aplicado durante o drag)
+    const currentTransform = window.getComputedStyle(elemento).transform;
+    const matrix = new DOMMatrixReadOnly(currentTransform === 'none' ? '' : currentTransform);
+
+    // Transição suave: move para o centro da boca enquanto encolhe e desaparece
+    elemento.style.transition = 'transform 0.4s ease-in, opacity 0.4s ease-in';
+    elemento.style.transform = `translate(${matrix.m41 + deltaX}px, ${matrix.m42 + deltaY}px) scale(0.1)`;
+    elemento.style.opacity = '0';
+
+    setTimeout(() => {
+        status.fome = Math.min(100, status.fome + 10);
+        updateStatusUI();
+        elemento.style.display = 'none';
+        iniciarMastigacao();
+        
+        // Reseta o elemento para a próxima vez (invisível por enquanto)
+        setTimeout(() => {
+            elemento.style.transition = 'none';
+            elemento.style.transform = 'translate(0,0) scale(1)';
+            elemento.style.opacity = '1';
+        }, 1500);
+    }, 400);
+}
 
 function iniciarMastigacao() {
     estaMastigando = true;
+    boca.classList.remove('sad-mouth');
     let ciclos = 0;
     const interval = setInterval(() => {
         boca.classList.toggle('boca-aberta');
@@ -367,13 +387,7 @@ function drag(e) {
     if (draggingElement.id === 'sabonete') {
         verificarColisaoSabonete(clientX, clientY);
     } else if (draggingElement.id === 'maca') {
-        if (verificarColisaoMacaComBoca(clientX, clientY) && !estaMastigando) {
-            status.fome = Math.min(100, status.fome + 10);
-            draggingElement.style.display = 'none'; // Comida some
-            endDrag(); // Força o fim do drag
-            iniciarMastigacao();
-            updateStatusUI();
-        }
+        verificarColisaoMacaComBoca(clientX, clientY);
     }
 }
 
@@ -424,7 +438,7 @@ function moverOlhos(x, y) {
 // Nova função: Verifica colisão da maçã com a boca
 function verificarColisaoMacaComBoca(x, y) {
     const bocaRect = boca.getBoundingClientRect();
-    const padding = 50; // Aumenta a área de contato em 50px para facilitar a interação
+    const padding = 30; // Reduzido para evitar ativação imediata indesejada
     if (x > bocaRect.left - padding && x < bocaRect.right + padding && 
         y > bocaRect.top - padding && y < bocaRect.bottom + padding) {
         boca.classList.add('boca-aberta');
@@ -474,8 +488,46 @@ function criarZ() {
 document.addEventListener('mouseup', endDrag);
 document.addEventListener('touchend', endDrag);
 
-function endDrag() {
+function endDrag(e) {
     if (!isDragging) return;
+
+    const clientX = e && (e.type === 'touchend' ? e.changedTouches[0].clientX : e.clientX);
+    const clientY = e && (e.type === 'touchend' ? e.changedTouches[0].clientY : e.clientY);
+
+    // Lógica de comer: se soltar dentro da área da boca
+    if (draggingElement && draggingElement.id === 'maca' && !estaMastigando) {
+        if (verificarColisaoMacaComBoca(clientX, clientY)) {
+            const itemComida = draggingElement;
+            isDragging = false;
+            draggingElement = null;
+            processarAlimentacao(itemComida);
+
+            // Reseta a posição dos olhos para o centro ao comer
+            olhoEsq.style.setProperty('--pupil-x', '0px');
+            olhoEsq.style.setProperty('--pupil-y', '0px');
+            olhoDir.style.setProperty('--pupil-x', '0px');
+            olhoDir.style.setProperty('--pupil-y', '0px');
+            
+            return;
+        }
+    }
+
+    // Lógica de Swipe para trocar comida (detectada ao soltar o item)
+    if (draggingElement && draggingElement.id === 'maca' && e) {
+        const dx = clientX - startX;
+        const dy = clientY - startY;
+
+        // Se o movimento foi majoritariamente horizontal e longo o suficiente
+        if (Math.abs(dx) > 50 && Math.abs(dy) < 40) {
+            if (dx > 0) {
+                currentFoodIndex = (currentFoodIndex - 1 + foodList.length) % foodList.length;
+            } else {
+                currentFoodIndex = (currentFoodIndex + 1) % foodList.length;
+            }
+            updateFoodUI();
+        }
+    }
+
     isDragging = false;
     
     // Garante que a boca feche se a maçã for solta
