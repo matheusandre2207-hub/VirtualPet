@@ -13,6 +13,7 @@ const sleepOverlay = document.getElementById('sleep-overlay');
 const zContainer = document.querySelector('.z-container');
 const shopOverlay = document.getElementById('shop-overlay');
 const shopContainer = document.getElementById('shop-sections-container');
+const shopPanel = document.getElementById('shop-panel');
 const btnLoja = document.getElementById('btn-loja');
 const closeShop = document.getElementById('close-shop');
 
@@ -126,6 +127,12 @@ btnLoja.addEventListener('click', openShop);
 closeShop.addEventListener('click', () => shopOverlay.classList.add('hidden'));
 shopOverlay.addEventListener('click', (e) => { if(e.target === shopOverlay) shopOverlay.classList.add('hidden'); });
 
+// Bloqueia a propagação apenas do início e fim do toque para não mover o fundo.
+// Deixamos o 'touchmove' livre para que o navegador processe a rolagem nativa sem travas de JS.
+['touchstart', 'touchend', 'mousedown', 'mouseup'].forEach(evt => {
+    shopPanel.addEventListener(evt, e => e.stopPropagation(), { passive: true });
+});
+
 function openShop() {
     shopContainer.innerHTML = '';
     const config = shopConfig[currentRoom];
@@ -144,6 +151,8 @@ function openShop() {
             if (itemId === 'chuveiro') img.src = 'assets/suporte.png'; // Exemplo para o chuveiro
             img.style.filter = `hue-rotate(${hue}deg)`;
             
+            // Usamos apenas onclick. O navegador mobile é inteligente o suficiente para não disparar 
+            // o click se o usuário estiver realizando um movimento de scroll (pan-y).
             card.onclick = () => {
                 const target = document.querySelector(`.${itemId}`) || document.getElementById(itemId);
                 if (target) target.style.filter = `hue-rotate(${hue}deg)`;
@@ -166,10 +175,11 @@ function openShop() {
         const swatch = document.createElement('div');
         swatch.className = 'color-swatch';
         swatch.style.backgroundColor = color;
+
         card.onclick = () => {
-            const currentParede = document.querySelectorAll('.parede-fundo')[currentRoom];
-            currentParede.style.backgroundColor = color;
+            document.querySelectorAll('.parede-fundo')[currentRoom].style.backgroundColor = color;
         };
+
         card.appendChild(swatch);
         wallGrid.appendChild(card);
     });
@@ -187,10 +197,11 @@ function openShop() {
         swatch.className = 'color-swatch';
         swatch.style.backgroundColor = color;
         swatch.style.backgroundImage = "linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px)";
+        
         card.onclick = () => {
-            const currentChao = document.querySelectorAll('.chao')[currentRoom];
-            currentChao.style.background = `radial-gradient(circle at 50% 0%, ${color} 20%, #bababa 100%)`;
+            document.querySelectorAll('.chao')[currentRoom].style.background = `radial-gradient(circle at 50% 0%, ${color} 20%, #bababa 100%)`;
         };
+
         card.appendChild(swatch);
         floorGrid.appendChild(card);
     });
@@ -770,13 +781,14 @@ function endDrag(e) {
 
 // Lógica para trocar de cômodo arrastando a tela
 document.getElementById('game-container').addEventListener('mousedown', (e) => {
-    if (isDragging) return;
+    // Se clicar na loja ou estiver arrastando item, ignora troca de quarto
+    if (isDragging || e.target.closest('#shop-overlay')) return;
     startXRoom = e.clientX;
     isDraggingRoom = true;
 });
 
 document.getElementById('game-container').addEventListener('touchstart', (e) => {
-    if (isDragging) return;
+    if (isDragging || e.target.closest('#shop-overlay')) return;
     startXRoom = e.touches[0].clientX;
     isDraggingRoom = true;
 });
