@@ -107,6 +107,24 @@ document.getElementById('next-food').addEventListener('click', (e) => {
     updateFoodUI();
 });
 
+function getFoodColor(emoji) {
+    const colors = {
+        red: ['🍎', '🥓', '🍉', '🍒', '🍓', '🌶', '🥩', '🍖'],
+        orange: ['🍕', '🥨', '🌮', '🌯', '🍊', '🍑', '🥕', '🌭'],
+        yellow: ['🍟', '🧀', '🍌', '🍯', '🍍', '🌽', '🥚', '🥞', '🧇'],
+        brown: ['🍔', '🍞', '🥐', '🥯', '🥖', '🍠', '🍪', '🍩', '🍫', '🍮', '☕', '🌰', '🧅', '🥪', '🥙', '🥨'],
+        green: ['🥗', '🥝', '🍏', '🍐', '🥑', '🥒', '🥬', '🥦'],
+        white: ['🍿', '🥟', '🥠', '🥡', '🍘', '🍙', '🍚', '🦪', '🥛', '🥥', '🍦', '🍧', '🍨'],
+        pink: ['🍰', '🧁', '🍬', '🍭', '🍇', '🥮', '🍣', '🍤']
+    };
+    const hex = { red: '#ff3b30', orange: '#ff9500', yellow: '#ffcc00', brown: '#8b4513', green: '#4cd964', white: '#f2f2f7', pink: '#ff2d55' };
+    
+    for (const [name, emojis] of Object.entries(colors)) {
+        if (emojis.includes(emoji)) return hex[name];
+    }
+    return '#ffca28'; // Cor padrão (dourado) caso não encontre
+}
+
 function processarAlimentacao(elemento) {
     const bocaRect = boca.getBoundingClientRect();
     const elemRect = elemento.getBoundingClientRect();
@@ -119,6 +137,8 @@ function processarAlimentacao(elemento) {
     const currentTransform = window.getComputedStyle(elemento).transform;
     const matrix = new DOMMatrixReadOnly(currentTransform === 'none' ? '' : currentTransform);
 
+    const color = getFoodColor(elemento.innerText);
+
     // Transição suave: move para o centro da boca enquanto encolhe e desaparece
     elemento.style.transition = 'transform 0.4s ease-in, opacity 0.4s ease-in';
     elemento.style.transform = `translate(${matrix.m41 + deltaX}px, ${matrix.m42 + deltaY}px) scale(0.1)`;
@@ -128,7 +148,7 @@ function processarAlimentacao(elemento) {
         status.fome = Math.min(100, status.fome + 10);
         updateStatusUI();
         elemento.style.display = 'none';
-        iniciarMastigacao();
+        iniciarMastigacao(color);
         
         // Reseta o elemento para a próxima vez (invisível por enquanto)
         setTimeout(() => {
@@ -139,13 +159,13 @@ function processarAlimentacao(elemento) {
     }, 400);
 }
 
-function iniciarMastigacao() {
+function iniciarMastigacao(color) {
     estaMastigando = true;
     boca.classList.remove('sad-mouth');
     let ciclos = 0;
     const interval = setInterval(() => {
         boca.classList.toggle('boca-aberta');
-        criarParticulasComida();
+        criarParticulasComida(color);
         ciclos++;
         if (ciclos >= 6) {
             clearInterval(interval);
@@ -156,11 +176,12 @@ function iniciarMastigacao() {
     }, 250);
 }
 
-function criarParticulasComida() {
+function criarParticulasComida(color) {
     const bocaRect = boca.getBoundingClientRect();
     for (let i = 0; i < 3; i++) {
         const p = document.createElement('div');
         p.classList.add('particula-comida');
+        p.style.backgroundColor = color;
         p.style.left = `${bocaRect.left + 10}px`;
         p.style.top = `${bocaRect.top + 10}px`;
         p.style.setProperty('--dx', `${(Math.random() - 0.5) * 60}px`);
