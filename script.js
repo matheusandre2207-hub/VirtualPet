@@ -11,6 +11,10 @@ const mundo = document.getElementById('mundo');
 const abajur = document.getElementById('abajur');
 const sleepOverlay = document.getElementById('sleep-overlay');
 const zContainer = document.querySelector('.z-container');
+const shopOverlay = document.getElementById('shop-overlay');
+const shopContainer = document.getElementById('shop-sections-container');
+const btnLoja = document.getElementById('btn-loja');
+const closeShop = document.getElementById('close-shop');
 
 // Configuração para Detecção de Colisão por Pixel (Banho)
 const bodyCollisionCanvas = document.createElement('canvas');
@@ -103,6 +107,106 @@ function customizarPet(typeIdx, bodyIdx, noseIdx, irisIdx, patternIdx) {
     const pattern = bodyPatterns[patternIdx % bodyPatterns.length] || 'none';
     patternLayer.style.backgroundImage = pattern === 'none' ? 'none' : pattern;
     if (pattern !== 'none') patternLayer.style.backgroundSize = '40px 40px';
+}
+
+// --- Lógica da Loja ---
+
+const shopConfig = {
+    0: { name: "Banheiro", items: ["pia", "chuveiro", "sabonete"] },
+    1: { name: "Sala", items: ["tv", "rack", "planta"] },
+    2: { name: "Cozinha", items: ["geladeira", "fogao", "mesa"] },
+    3: { name: "Quarto", items: ["cama", "comoda", "abajur"] }
+};
+
+const hueFilters = [0, 45, 90, 150, 200, 260, 300];
+const wallColors = ['#414141', '#6d4c41', '#d6d6d6', '#4a5a7a', '#ff5733', '#3357ff', '#757575'];
+const floorColors = ['#ffffff', '#f0e68c', '#e0e0e0', '#ffdab9', '#b0c4de'];
+
+btnLoja.addEventListener('click', openShop);
+closeShop.addEventListener('click', () => shopOverlay.classList.add('hidden'));
+shopOverlay.addEventListener('click', (e) => { if(e.target === shopOverlay) shopOverlay.classList.add('hidden'); });
+
+function openShop() {
+    shopContainer.innerHTML = '';
+    const config = shopConfig[currentRoom];
+    
+    // 1. Seção de Móveis
+    config.items.forEach(itemId => {
+        const section = createShopSection(itemId.charAt(0).toUpperCase() + itemId.slice(1));
+        const grid = document.createElement('div');
+        grid.className = 'shop-grid';
+
+        hueFilters.forEach(hue => {
+            const card = document.createElement('div');
+            card.className = 'shop-item-card';
+            const img = document.createElement('img');
+            img.src = `assets/${itemId === 'chuveiro' ? 'pia' : itemId}.png`; // Fallback visual se não houver asset específico
+            if (itemId === 'chuveiro') img.src = 'assets/suporte.png'; // Exemplo para o chuveiro
+            img.style.filter = `hue-rotate(${hue}deg)`;
+            
+            card.onclick = () => {
+                const target = document.querySelector(`.${itemId}`) || document.getElementById(itemId);
+                if (target) target.style.filter = `hue-rotate(${hue}deg)`;
+            };
+            
+            card.appendChild(img);
+            grid.appendChild(card);
+        });
+        section.appendChild(grid);
+        shopContainer.appendChild(section);
+    });
+
+    // 2. Seção de Parede
+    const wallSection = createShopSection("Cor da Parede");
+    const wallGrid = document.createElement('div');
+    wallGrid.className = 'shop-grid';
+    wallColors.forEach(color => {
+        const card = document.createElement('div');
+        card.className = 'shop-item-card';
+        const swatch = document.createElement('div');
+        swatch.className = 'color-swatch';
+        swatch.style.backgroundColor = color;
+        card.onclick = () => {
+            const currentParede = document.querySelectorAll('.parede-fundo')[currentRoom];
+            currentParede.style.backgroundColor = color;
+        };
+        card.appendChild(swatch);
+        wallGrid.appendChild(card);
+    });
+    wallSection.appendChild(wallGrid);
+    shopContainer.appendChild(wallSection);
+
+    // 3. Seção de Piso
+    const floorSection = createShopSection("Estilo do Piso");
+    const floorGrid = document.createElement('div');
+    floorGrid.className = 'shop-grid';
+    floorColors.forEach(color => {
+        const card = document.createElement('div');
+        card.className = 'shop-item-card';
+        const swatch = document.createElement('div');
+        swatch.className = 'color-swatch';
+        swatch.style.backgroundColor = color;
+        swatch.style.backgroundImage = "linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px)";
+        card.onclick = () => {
+            const currentChao = document.querySelectorAll('.chao')[currentRoom];
+            currentChao.style.background = `radial-gradient(circle at 50% 0%, ${color} 20%, #bababa 100%)`;
+        };
+        card.appendChild(swatch);
+        floorGrid.appendChild(card);
+    });
+    floorSection.appendChild(floorGrid);
+    shopContainer.appendChild(floorSection);
+
+    shopOverlay.classList.remove('hidden');
+}
+
+function createShopSection(title) {
+    const div = document.createElement('div');
+    const h3 = document.createElement('h3');
+    h3.className = 'shop-section-title';
+    h3.innerText = title;
+    div.appendChild(h3);
+    return div;
 }
 
 // Bloqueia menu de contexto em todo o app
