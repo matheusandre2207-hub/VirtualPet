@@ -12,6 +12,19 @@ const abajur = document.getElementById('abajur');
 const sleepOverlay = document.getElementById('sleep-overlay');
 const zContainer = document.querySelector('.z-container');
 
+// Configuração para Detecção de Colisão por Pixel (Banho)
+const bodyCollisionCanvas = document.createElement('canvas');
+const bodyCollisionCtx = bodyCollisionCanvas.getContext('2d', { willReadFrequently: true });
+let bodyImgLoaded = false;
+const bodyImgForCollision = new Image();
+bodyImgForCollision.src = 'assets/body.png';
+bodyImgForCollision.onload = () => {
+    bodyCollisionCanvas.width = 260; // Largura base do pet
+    bodyCollisionCanvas.height = 220; // Altura base do pet
+    bodyCollisionCtx.drawImage(bodyImgForCollision, 0, 0, 260, 220);
+    bodyImgLoaded = true;
+};
+
 // Estados do Pet
 let status = {
     fome: 100,
@@ -412,12 +425,21 @@ function drag(e) {
 
 function verificarColisaoSabonete(x, y) {
     const lumoRect = lumo.getBoundingClientRect();
-    const olhosRect = olhosContainer.getBoundingClientRect();
 
-    // Verifica se o mouse está sobre o pet
-    if (x > lumoRect.left && x < lumoRect.right && y > lumoRect.top && y < lumoRect.bottom) {
-        // Verifica se NÃO está sobre os olhos
-        if (!(x > olhosRect.left && x < olhosRect.right && y > olhosRect.top && y < olhosRect.bottom)) {
+    if (!bodyImgLoaded) return;
+
+    // Mapeia a posição global do mouse/touch para a coordenada local do pet (0 a 260, 0 a 220)
+    const localX = (x - lumoRect.left) * (bodyCollisionCanvas.width / lumoRect.width);
+    const localY = (y - lumoRect.top) * (bodyCollisionCanvas.height / lumoRect.height);
+
+    // Verifica se está dentro dos limites do elemento
+    if (localX >= 0 && localX < bodyCollisionCanvas.width && localY >= 0 && localY < bodyCollisionCanvas.height) {
+        // Obtém os dados do pixel (RGBA) na posição atual
+        const pixel = bodyCollisionCtx.getImageData(Math.floor(localX), Math.floor(localY), 1, 1).data;
+        const isOverColoredPart = pixel[3] > 10; // Verifica se o Alpha (transparência) é maior que 10
+
+        if (isOverColoredPart) {
+            const olhosRect = olhosContainer.getBoundingClientRect();
             const size = Math.random() * 15 + 10;
             const bolha = document.createElement('div');
             bolha.classList.add('bolha');
