@@ -18,11 +18,27 @@ const bodyCollisionCtx = bodyCollisionCanvas.getContext('2d', { willReadFrequent
 let bodyImgLoaded = false;
 const bodyImgForCollision = new Image();
 bodyImgForCollision.src = 'assets/body.png';
-bodyImgForCollision.onload = () => {
-    bodyCollisionCanvas.width = 260; // Largura base do pet
-    bodyCollisionCanvas.height = 220; // Altura base do pet
-    bodyCollisionCtx.drawImage(bodyImgForCollision, 0, 0, 260, 220);
+
+function updateCollisionMap() {
+    const targetW = 260;
+    const targetH = 220;
+    const imgW = bodyImgForCollision.width;
+    const imgH = bodyImgForCollision.height;
+    const ratio = Math.min(targetW / imgW, targetH / imgH);
+    const drawW = imgW * ratio;
+    const drawH = imgH * ratio;
+    const x = (targetW - drawW) / 2;
+    const y = (targetH - drawH) / 2;
+
+    bodyCollisionCanvas.width = targetW;
+    bodyCollisionCanvas.height = targetH;
+    bodyCollisionCtx.clearRect(0, 0, targetW, targetH);
+    bodyCollisionCtx.drawImage(bodyImgForCollision, x, y, drawW, drawH);
     bodyImgLoaded = true;
+}
+
+bodyImgForCollision.onload = () => {
+    updateCollisionMap();
 };
 
 // Estados do Pet
@@ -34,6 +50,8 @@ let status = {
 };
 
 // Arrays de Customização (20 opções cada)
+const bodyTypes = ['assets/body.png', 'assets/body2.png'];
+
 const bodyColors = [
     '#4ed401', '#ff5733', '#3357ff', '#ff33a1', '#33fff6', 
     '#f6ff33', '#a133ff', '#ff8c33', '#33ff8c', '#8c33ff',
@@ -65,11 +83,21 @@ const bodyPatterns = [
     // Adicione aqui as outras 14 variações de padrões CSS
 ];
 
-function customizarPet(bodyIdx, noseIdx, irisIdx, patternIdx) {
+function customizarPet(typeIdx, bodyIdx, noseIdx, irisIdx, patternIdx) {
     const root = document.getElementById('lumo');
+    const bodyPath = bodyTypes[typeIdx % bodyTypes.length];
+    
+    root.style.setProperty('--body-image', `url('${bodyPath}')`);
     root.style.setProperty('--body-color', bodyColors[bodyIdx % 20]);
     root.style.setProperty('--nose-color', noseColors[noseIdx % 20]);
     root.style.setProperty('--iris-color', irisColors[irisIdx % 20]);
+
+    // Atualiza o mapa de colisão para o novo formato de corpo
+    bodyImgLoaded = false;
+    bodyImgForCollision.src = bodyPath;
+    bodyImgForCollision.onload = () => {
+        updateCollisionMap();
+    };
     
     const patternLayer = document.querySelector('.pet-pattern');
     const pattern = bodyPatterns[patternIdx % bodyPatterns.length] || 'none';
@@ -333,11 +361,18 @@ document.querySelector('.chuveiro').addEventListener('click', () => {
         
         // Começa a limpar a espuma
         intervaloLimpeza = setInterval(() => {
-            const bolhas = document.querySelectorAll('.bolha');
+            const bolhas = Array.from(document.querySelectorAll('.bolha:not(.limpando)'));
             if (bolhas.length > 0) {
-                bolhas[0].remove(); // Remove a bolha mais antiga
+                // Ordena por posição 'top' para limpar de cima para baixo
+                bolhas.sort((a, b) => parseFloat(a.style.top) - parseFloat(b.style.top));
+                
+                // Limpa as 2 bolhas mais altas de cada vez para um efeito mais fluido
+                bolhas.slice(0, 2).forEach(b => {
+                    b.classList.add('limpando');
+                    setTimeout(() => b.remove(), 600);
+                });
             }
-        }, 100);
+        }, 50); 
     } else {
         desligarChuveiro();
     }
@@ -631,6 +666,7 @@ updateStatusUI(); // Inicializa os ícones cheios
 
 // Exemplo: Customização Aleatória ao carregar
 customizarPet(
+    Math.floor(Math.random() * bodyTypes.length),
     Math.floor(Math.random() * 20),
     Math.floor(Math.random() * 20),
     Math.floor(Math.random() * 20),
