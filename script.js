@@ -147,15 +147,14 @@ function processarAlimentacao(elemento) {
     setTimeout(() => {
         status.fome = Math.min(100, status.fome + 10);
         updateStatusUI();
-        elemento.style.display = 'none';
-        iniciarMastigacao(color);
         
-        // Reseta o elemento para a próxima vez (invisível por enquanto)
-        setTimeout(() => {
-            elemento.style.transition = 'none';
-            elemento.style.transform = 'translate(0,0) scale(1)';
-            elemento.style.opacity = '1';
-        }, 1500);
+        // Reseta o elemento para a posição original no seletor imediatamente
+        // Isso evita o espaço vazio e simula a reposição da comida
+        elemento.style.transition = 'none';
+        elemento.style.transform = 'translate(0,0) scale(1)';
+        elemento.style.opacity = '1';
+
+        iniciarMastigacao(color);
     }, 400);
 }
 
@@ -171,7 +170,6 @@ function iniciarMastigacao(color) {
             clearInterval(interval);
             boca.classList.remove('boca-aberta');
             estaMastigando = false;
-            maca.style.display = 'flex'; // Comida reaparece
         }
     }, 250);
 }
