@@ -247,6 +247,26 @@ const foodList = "🍎🍕🍔🍟🌭🍿🥓🥚🧇🥞🍞🥐🥨🥯🥖�
 let currentFoodIndex = 0;
 let estaMastigando = false;
 
+const foodStats = {
+    '🍎': { fome: 8, energia: 2, humor: 5 },
+    '🍕': { fome: 15, energia: -2, humor: 12 },
+    '🍔': { fome: 18, energia: -5, humor: 15 },
+    '🍟': { fome: 12, energia: -3, humor: 10 },
+    '🌭': { fome: 14, energia: -2, humor: 8 },
+    '🍿': { fome: 5, energia: 0, humor: 7 },
+    '🥓': { fome: 12, energia: 2, humor: 6 },
+    '🥚': { fome: 10, energia: 5, humor: 3 },
+    '🍗': { fome: 13, energia: 5, humor: 5 },
+    '🥩': { fome: 20, energia: 3, humor: 5 },
+    '🥦': { fome: 6, energia: 15, humor: 2 },
+    '🥗': { fome: 8, energia: 12, humor: 4 },
+    '🍦': { fome: 5, energia: -5, humor: 20 },
+    '🍩': { fome: 10, energia: -8, humor: 18 },
+    '☕': { fome: 1, energia: 30, humor: 5 },
+    '🍬': { fome: 2, energia: -2, humor: 15 },
+    'default': { fome: 10, energia: 0, humor: 5 }
+};
+
 function updateFoodUI() {
     maca.innerText = foodList[currentFoodIndex];
 }
@@ -293,7 +313,9 @@ function processarAlimentacao(elemento) {
     const currentTransform = window.getComputedStyle(elemento).transform;
     const matrix = new DOMMatrixReadOnly(currentTransform === 'none' ? '' : currentTransform);
 
-    const color = getFoodColor(elemento.innerText);
+    const emoji = elemento.innerText;
+    const color = getFoodColor(emoji);
+    const stats = foodStats[emoji] || foodStats['default'];
 
     // Transição suave: move para o centro da boca enquanto encolhe e desaparece
     elemento.style.transition = 'transform 0.4s ease-in, opacity 0.4s ease-in';
@@ -301,7 +323,9 @@ function processarAlimentacao(elemento) {
     elemento.style.opacity = '0';
 
     setTimeout(() => {
-        status.fome = Math.min(100, status.fome + 10);
+        status.fome = Math.min(100, status.fome + stats.fome);
+        status.energia = Math.min(100, Math.max(0, status.energia + stats.energia));
+        status.humor = Math.min(100, Math.max(0, status.humor + stats.humor));
         updateStatusUI();
         
         // Reseta o elemento para a posição original no seletor imediatamente
@@ -444,9 +468,10 @@ setInterval(() => {
         status.energia = Math.max(0, status.energia - 0.4);
     }
 
-    // Humor é a média dos outros, mas cai se algum estiver muito baixo
-    const media = (status.fome + status.energia + status.limpeza) / 3;
-    status.humor = Math.max(0, Math.min(100, media));
+    // Humor cai gradualmente, e cai mais rápido se as necessidades básicas estiverem críticas
+    let humorDecay = 0.3;
+    if (status.fome < 20 || status.energia < 20 || status.limpeza < 20) humorDecay = 1.5;
+    status.humor = Math.max(0, status.humor - humorDecay);
 
     updateStatusUI();
 }, 3000);
