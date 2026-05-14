@@ -744,6 +744,7 @@ function loopFisicaBolinha() {
     // Para a física se a bola parar
     if (Math.abs(velocityY) < 0.5 && Math.abs(velocityX) < 0.5 && currentY > floorY - 5) {
         physicsActive = false;
+        resetarOlhos(); // Lumo para de olhar para a bolinha
         return;
     }
 
@@ -1005,6 +1006,10 @@ function handleEndDragRoom(endX) {
     if (previousRoom === 0 && currentRoom !== 0 && estaChovendo) {
         desligarChuveiro();
     }
+    // Reseta a bolinha se sair da sala (1)
+    if (previousRoom === 1 && currentRoom !== 1) {
+        resetBolinhaPosition();
+    }
 
     mundo.style.left = `-${currentRoom * window.innerWidth}px`;
     updateStatusBarColor();
@@ -1021,5 +1026,19 @@ customizarPet(
     Math.floor(Math.random() * 20),
     Math.floor(Math.random() * 4) // Sorteia entre os primeiros padrões implementados
 );
+
+// Função para resetar a posição da bolinha
+function resetBolinhaPosition() {
+    ballPosX = 0;
+    ballPosY = 0;
+    velocityX = 0;
+    velocityY = 0;
+    physicsActive = false;
+    bolinha.classList.remove('quicando');
+    bolinha.style.transition = 'none'; // Remove transições para resetar instantaneamente
+    bolinha.style.transform = 'translateX(-50%)'; // Posição inicial CSS
+    atualizarBolinha(window.innerWidth / 2, window.innerHeight * 0.95, ballPosX, ballPosY); // Atualiza escala e variáveis CSS
+    resetarOlhos();
+}
 
 console.log("Lumo carregado! Aguardando assets para substituição.");
