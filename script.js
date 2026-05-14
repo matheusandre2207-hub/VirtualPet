@@ -49,10 +49,10 @@ bodyImgForCollision.onload = () => {
 
 // Estados do Pet
 let status = {
-    fome: 100,
-    energia: 100,
-    limpeza: 100,
-    humor: 100
+    fome: 0,
+    energia: 0,
+    limpeza: 0,
+    humor: 0
 };
 
 // Arrays de Customização (20 opções cada)
