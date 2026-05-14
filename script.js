@@ -510,6 +510,9 @@ document.querySelector('.chuveiro').addEventListener('click', () => {
         
         // Começa a limpar a espuma
         intervaloLimpeza = setInterval(() => {
+            // Não limpa se o pet estiver dormindo (está no quarto) ou se não estivermos no banheiro
+            if (estaDormindo || currentRoom !== 0) return;
+
             const bolhas = Array.from(document.querySelectorAll('.bolha:not(.limpando)'));
             if (bolhas.length > 0) {
                 // Ordena por posição 'top' para limpar de cima para baixo
@@ -521,9 +524,15 @@ document.querySelector('.chuveiro').addEventListener('click', () => {
                     setTimeout(() => b.remove(), 600);
                 });
             }
-            // A água do chuveiro limpa o pet gradualmente mesmo sem sabonete
-            if (status.limpeza < 100) {
-                status.limpeza = Math.min(100, status.limpeza + 0.3);
+            
+            // A água do chuveiro limpa o pet gradualmente.
+            // Se houver manchas de sujeira, o chuveiro só limpa até 50% (limite da sujeira pesada).
+            // Isso obriga o jogador a usar o sabão para esfregar as manchas e ganhar os pontos restantes.
+            const temManchas = corpoMask.querySelectorAll('.mancha-sujeira').length > 0;
+            const limiteChuveiro = temManchas ? 50 : 100;
+
+            if (status.limpeza < limiteChuveiro) {
+                status.limpeza = Math.min(limiteChuveiro, status.limpeza + 0.5);
                 updateStatusUI();
             }
         }, 50); 
@@ -788,6 +797,9 @@ function verificarColisaoSabonete(x, y) {
             bolha.style.top = `${y - lumoRect.top - size / 2}px`;
             espumaContainer.appendChild(bolha);
 
+            // Ação de esfregar (criar bolhas) agora aumenta a limpeza organicamente
+            status.limpeza = Math.min(100, status.limpeza + 0.2);
+
             // 2. Limpa manchas de sujeira (esfregada persistente)
             const manchas = corpoMask.querySelectorAll('.mancha-sujeira');
             manchas.forEach(mancha => {
@@ -803,7 +815,7 @@ function verificarColisaoSabonete(x, y) {
                     if (health <= 0) {
                         mancha.remove();
                         // Aumenta o status base quando uma mancha é removida
-                        status.limpeza = Math.min(100, status.limpeza + 5);
+                        status.limpeza = Math.min(100, status.limpeza + 8);
                     }
                 }
             });
@@ -816,7 +828,7 @@ function verificarColisaoSabonete(x, y) {
 // Nova lógica: Higiene só é 100% se não houver manchas nem bolhas
 function calcularHigieneReal(valorBase) {
     const temManchas = corpoMask.querySelectorAll('.mancha-sujeira').length > 0;
-    const temBolhas = document.querySelectorAll('.bolha').length > 0;
+    const temBolhas = document.querySelectorAll('.bolha:not(.limpando)').length > 0;
 
     if (temManchas || temBolhas) {
         return Math.min(valorBase, 95); // Trava em 95% enquanto houver sujeira ou sabão
@@ -850,14 +862,33 @@ function moverOlhos(x, y) {
 function verificarColisaoMacaComBoca(x, y) {
     const bocaRect = boca.getBoundingClientRect();
     const padding = 30; // Reduzido para evitar ativação imediata indesejada
-    if (x > bocaRect.left - padding && x < bocaRect.right + padding && 
-        y > bocaRect.top - padding && y < bocaRect.bottom + padding) {
+    
+    const isNear = x > bocaRect.left - padding && x < bocaRect.right + padding && 
+                   y > bocaRect.top - padding && y < bocaRect.bottom + padding;
+
+    if (isNear) {
+        // Se o pet estiver cheio (fome >= 100), ele recusa a comida
+        if (status.fome >= 100) {
+            boca.classList.remove('boca-aberta');
+            
+            // Lógica de "olhar para o outro lado":
+            // Calculamos a direção oposta à posição da comida
+            const olhosRect = olhosContainer.getBoundingClientRect();
+            const centroX = olhosRect.left + olhosRect.width / 2;
+            const centroY = olhosRect.top + olhosRect.height / 2;
+            const dx = x - centroX;
+            const dy = y - centroY;
+            
+            moverOlhos(centroX - dx, centroY - dy);
+            return false;
+        }
+
         boca.classList.add('boca-aberta');
         return true;
-    } else {
-        boca.classList.remove('boca-aberta');
-        return false;
     }
+
+    boca.classList.remove('boca-aberta');
+    return false;
 }
 
 // Lógica do Abajur (Sono)
