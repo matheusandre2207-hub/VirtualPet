@@ -737,10 +737,57 @@ html, body {
     z-index: 10;
 }
 
+.olho-wrapper {
+    position: relative;
+    width: 40px;
+    height: 40px;
+}
+
+/* Olheiras (escurecimento abaixo dos olhos) */
+.olho-wrapper.sleepy::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 34px;
+    height: 10px;
+    background: rgba(147, 112, 219, 0.4); /* Roxo translúcido */
+    border-radius: 50%;
+    filter: blur(4px);
+    z-index: 1;
+    pointer-events: none;
+}
+
+.sobrancelha {
+    position: absolute;
+    left: 50%;
+    background-color: var(--nose-color);
+    z-index: 11;
+    transition: transform 0.2s ease, top 0.2s ease;
+    pointer-events: none;
+    
+    /* Controlado por variáveis CSS do JavaScript */
+    width: var(--sob-width);
+    height: var(--sob-height);
+    top: var(--sob-top);
+    border-radius: var(--sob-border-radius);
+    
+    transform: translateX(-50%) translate(var(--sob-x, 0px), var(--sob-y, 0px));
+}
+
+.olho.fechado + .sobrancelha {
+    top: var(--sob-closed-top);
+}
+
+#olho-esq.triste + #sob-esq { transform: translateX(-50%) translate(var(--sob-x, 0px), var(--sob-y, 0px)) rotate(var(--sob-sad-rotate)); }
+#olho-dir.triste + #sob-dir { transform: translateX(-50%) translate(var(--sob-x, 0px), var(--sob-y, 0px)) rotate(calc(var(--sob-sad-rotate) * -1)); }
+
 .olho {
     width: 40px;
     height: 40px;
-    background-color: #e2ffa8; /*branco dos olhos*/
+    background-color: var(--nose-color);
+    background-color: #ffffff; /*branco dos olhos*/
     border-radius: 50%;
     border: 1px solid #000;
     display: flex;
@@ -761,6 +808,29 @@ html, body {
     border-bottom: 4px solid #000;
     border-radius: 0 0 20px 20px;
     margin-top: 10px; /* Ajustado para não empurrar o rosto para baixo */
+}
+
+.olho.semi-fechado {
+    /* Removemos o achatamento para usar as pálpebras */
+}
+
+.palpebra {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 0%; /* Escondida por padrão */
+    background-color: var(--body-color);
+    z-index: 5;
+    transition: height 0.3s ease-out;
+}
+
+.palpebra.superior { top: 0; border-radius: 0 0 50% 50%; }
+.palpebra.inferior { bottom: 0; border-radius: 50% 50% 0 0; }
+
+/* Quando estiver com sono, as pálpebras descem/sobem 30% */
+.olho.semi-fechado .palpebra {
+    height: 30%;
+    border: 1px solid rgba(0,0,0,0.1);
 }
 
 .olho::after {

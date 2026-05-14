@@ -1,5 +1,7 @@
 const olhoEsq = document.getElementById('olho-esq');
 const olhoDir = document.getElementById('olho-dir');
+const sobEsq = document.getElementById('sob-esq');
+const sobDir = document.getElementById('sob-dir');
 const sabonete = document.getElementById('sabonete');
 const maca = document.getElementById('maca');
 const bolinha = document.getElementById('bolinha');
@@ -90,6 +92,13 @@ const bodyPatterns = [
     // Adicione aqui as outras 14 variações de padrões CSS
 ];
 
+const eyebrowTypes = [
+    { name: 'thick', width: '34px', height: '8px', top: '-14px', closedTop: '-6px', borderRadius: '100% 100% 0 0 / 180% 180% 0 0', sadRotate: '-15deg' },
+    { name: 'medium', width: '30px', height: '5px', top: '-10px', closedTop: '-4px', borderRadius: '100% 100% 0 0 / 150% 150% 0 0', sadRotate: '-12deg' },
+    { name: 'thin', width: '26px', height: '3px', top: '-8px', closedTop: '-2px', borderRadius: '100% 100% 0 0 / 120% 120% 0 0', sadRotate: '-10deg' },
+    { name: 'none', width: '0px', height: '0px', top: '0px', closedTop: '0px', borderRadius: '0', sadRotate: '0deg', display: 'none' }
+];
+
 function customizarPet(typeIdx, bodyIdx, noseIdx, irisIdx, patternIdx) {
     const root = document.getElementById('lumo');
     const bodyPath = bodyTypes[typeIdx % bodyTypes.length];
@@ -109,7 +118,31 @@ function customizarPet(typeIdx, bodyIdx, noseIdx, irisIdx, patternIdx) {
     const patternLayer = document.querySelector('.pet-pattern');
     const pattern = bodyPatterns[patternIdx % bodyPatterns.length] || 'none';
     patternLayer.style.backgroundImage = pattern === 'none' ? 'none' : pattern;
-    if (pattern !== 'none') patternLayer.style.backgroundSize = '40px 40px';
+    if (pattern !== 'none') patternLayer.style.backgroundSize = '40px 40px'; // Default pattern size
+}
+
+// Nova função para aplicar estilos de sobrancelha
+function applyEyebrowStyles(eyebrowTypeIdx) {
+    const eyebrowType = eyebrowTypes[eyebrowTypeIdx % eyebrowTypes.length];
+    
+    const applyToElement = (element) => {
+        element.style.setProperty('--sob-width', eyebrowType.width);
+        element.style.setProperty('--sob-height', eyebrowType.height);
+        element.style.setProperty('--sob-top', eyebrowType.top);
+        element.style.setProperty('--sob-closed-top', eyebrowType.closedTop);
+        element.style.setProperty('--sob-border-radius', eyebrowType.borderRadius);
+        element.style.setProperty('--sob-sad-rotate', eyebrowType.sadRotate);
+        element.style.display = eyebrowType.display || 'block';
+    };
+
+    applyToElement(sobEsq);
+    applyToElement(sobDir);
+}
+
+// Modifica a função customizarPet para incluir a customização da sobrancelha
+function customizarPetFull(typeIdx, bodyIdx, noseIdx, irisIdx, patternIdx, eyebrowTypeIdx) {
+    customizarPet(typeIdx, bodyIdx, noseIdx, irisIdx, patternIdx); // Chama a função original
+    applyEyebrowStyles(eyebrowTypeIdx); // Aplica os estilos da sobrancelha
 }
 
 // --- Lógica da Loja ---
@@ -248,6 +281,7 @@ const roomColors = {
 const foodList = "🍎🍕🍔🍟🌭🍿🥓🥚🧇🥞🍞🥐🥨🥯🥖🧀🥗🥙🥪🌮🌯🍖🍗🥩🍠🥟🥠🥡🍘🍙🍚🦪🍣🍤🥮🍝🍦🍧🍨🍩🍪🍰🧁🍫🍬🍭🍮🍯🥛☕🥝🥥🍇🍉🍊🍌🍏🍐🍑🍒🍓🌶🥑🥒🌰🧅🥕".match(/./gu);
 let currentFoodIndex = 0;
 let estaMastigando = false;
+let bocejou = false; // Controla se o pet já bocejou nesta "crise" de sono
 
 const foodStats = {
     '🍎': { fome: 8, energia: 2, humor: 5 },
@@ -389,12 +423,36 @@ function updateStatusUI() {
 
 function checkPetEmotions() {
     const threshold = 25;
-    const estaTriste = status.fome < threshold || status.energia < threshold || status.limpeza < threshold || status.humor < threshold;
+    const energyCritical = 10;
+    const estaComSono = status.energia < energyCritical && !estaDormindo;
+    const estaTriste = (status.fome < threshold || status.energia < threshold || status.limpeza < threshold || status.humor < threshold) && !estaDormindo;
+
+    // Lógica de Sono (Olhos semi-cerrados e Olheiras)
+    if (estaComSono) {
+        olhoEsq.classList.add('semi-fechado');
+        olhoDir.classList.add('semi-fechado');
+        document.querySelectorAll('.olho-wrapper').forEach(w => w.classList.add('sleepy'));
+        
+        // Bocejo: ocorre apenas uma vez quando entra no estado crítico
+        if (!bocejou && !estaMastigando && !boca.classList.contains('boca-aberta')) {
+            bocejou = true;
+            boca.classList.add('boca-aberta');
+            setTimeout(() => {
+                boca.classList.remove('boca-aberta');
+            }, 3000);
+        }
+    } else {
+        olhoEsq.classList.remove('semi-fechado');
+        olhoDir.classList.remove('semi-fechado');
+        document.querySelectorAll('.olho-wrapper').forEach(w => w.classList.remove('sleepy'));
+        // Reseta o bocejo se a energia subir ou se ele for dormir
+        if (status.energia >= energyCritical || estaDormindo) bocejou = false;
+    }
 
     // Lógica da Boca
-    if (estaTriste && !boca.classList.contains('boca-aberta')) {
+    if (estaTriste && !boca.classList.contains('boca-aberta') && !estaMastigando) {
         boca.classList.add('sad-mouth');
-    } else {
+    } else if (!estaTriste || boca.classList.contains('boca-aberta')) {
         boca.classList.remove('sad-mouth');
     }
 
@@ -856,6 +914,12 @@ function moverOlhos(x, y) {
     olhoEsq.style.setProperty('--pupil-y', `${moveY}px`);
     olhoDir.style.setProperty('--pupil-x', `${moveX}px`);
     olhoDir.style.setProperty('--pupil-y', `${moveY}px`);
+
+    // Movimento sutil das sobrancelhas (efeito de profundidade/paralaxe)
+    sobEsq.style.setProperty('--sob-x', `${moveX * 0.4}px`);
+    sobEsq.style.setProperty('--sob-y', `${moveY * 0.2}px`);
+    sobDir.style.setProperty('--sob-x', `${moveX * 0.4}px`);
+    sobDir.style.setProperty('--sob-y', `${moveY * 0.2}px`);
 }
 
 // Nova função: Verifica colisão da maçã com a boca
@@ -1058,12 +1122,13 @@ updateStatusBarColor(); // Define a cor inicial
 updateStatusUI(); // Inicializa os ícones cheios
 
 // Exemplo: Customização Aleatória ao carregar
-customizarPet(
+customizarPetFull(
     Math.floor(Math.random() * bodyTypes.length),
     Math.floor(Math.random() * 20),
     Math.floor(Math.random() * 20),
     Math.floor(Math.random() * 20),
-    Math.floor(Math.random() * 4) // Sorteia entre os primeiros padrões implementados
+    Math.floor(Math.random() * 4), // Sorteia entre os primeiros padrões implementados
+    Math.floor(Math.random() * eyebrowTypes.length) // Sorteia o tipo de sobrancelha
 );
 
 // Função para resetar a posição da bolinha
