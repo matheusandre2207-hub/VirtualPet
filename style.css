@@ -608,17 +608,24 @@ html, body {
     touch-action: none; /* Melhora arraste em dispositivos móveis */
 }
 
-/*O Pet)*/
-.pet {
+/* Wrapper para controlar posição global sem resetar animações */
+#lumo-wrapper {
     position: absolute;
-    bottom: 15%; /* Ajusta a posição vertical do pet para ficar acima do chão */
+    bottom: 15%;
     left: 50%;
     transform: translateX(-50%);
+    z-index: 20;
+    transition: transform 0.5s ease-out; /* Match com a transição do mundo */
+    pointer-events: none; /* Permite cliques nos filhos */
+}
+
+/*O Pet*/
+.pet {
     width: 260px;
     height: 220px;
     transform-origin: bottom center;
     animation: respirar 4s ease-in-out infinite;
-    z-index: 20; /* Agora atrás do sleep-overlay (100) e de itens como a mesa (22) */
+    pointer-events: auto;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -821,10 +828,10 @@ html, body {
 /* Animação de Respiração */
 @keyframes respirar {
     0%, 100% {
-        transform: translateX(-50%) scale(1);
+        transform: scale(1);
     }
     50% {
-        transform: translateX(-50%) scale(1.03, 0.97); /* Alarga levemente e achata */
+        transform: scale(1.03, 0.97); /* Alarga levemente e achata */
     }
 }
 

@@ -15,6 +15,7 @@ const zContainer = document.querySelector('.z-container');
 const shopOverlay = document.getElementById('shop-overlay');
 const shopContainer = document.getElementById('shop-sections-container');
 const shopPanel = document.getElementById('shop-panel');
+const lumoWrapper = document.getElementById('lumo-wrapper');
 const btnLoja = document.getElementById('btn-loja');
 const closeShop = document.getElementById('close-shop');
 
@@ -327,6 +328,7 @@ function processarAlimentacao(elemento) {
         status.fome = Math.min(100, status.fome + stats.fome);
         status.energia = Math.min(100, Math.max(0, status.energia + stats.energia));
         status.humor = Math.min(100, Math.max(0, status.humor + stats.humor));
+        resetarOlhos(); // Reseta o olhar assim que ele engole
         updateStatusUI();
         
         // Reseta o elemento para a posição original no seletor imediatamente
@@ -861,30 +863,35 @@ function verificarColisaoMacaComBoca(x, y) {
 // Lógica do Abajur (Sono)
 abajur.addEventListener('click', () => {
     estaDormindo = !estaDormindo;
-    const quarto = document.getElementById('quarto');
-    const container = document.getElementById('game-container');
     
     if (estaDormindo) {
         sleepOverlay.classList.add('active');
         olhoEsq.classList.add('fechado');
         olhoDir.classList.add('fechado');
         intervalZ = setInterval(criarZ, 1200);
-        
-        // Move o pet para dentro do quarto (anexa ao cenário)
-        quarto.appendChild(lumo);
     } else {
         sleepOverlay.classList.remove('active');
         clearInterval(intervalZ);
         
-        // Traz o pet de volta para o container global (ele volta a seguir você)
-        container.appendChild(lumo);
-
         if (!estaChovendo) {
             olhoEsq.classList.remove('fechado');
             olhoDir.classList.remove('fechado');
         }
     }
+    atualizarPosicaoPet();
 });
+
+function atualizarPosicaoPet() {
+    if (estaDormindo) {
+        // Se está dormindo, fixa a posição no quarto (Room 3)
+        // O offset é a diferença entre o quarto e o cômodo atual
+        const offset = (3 - currentRoom) * window.innerWidth;
+        lumoWrapper.style.transform = `translateX(calc(-50% + ${offset}px))`;
+    } else {
+        // Se está acordado, fica sempre centralizado na tela
+        lumoWrapper.style.transform = 'translateX(-50%)';
+    }
+}
 
 function criarZ() {
     const z = document.createElement('div');
@@ -1010,6 +1017,7 @@ function handleEndDragRoom(endX) {
     if (previousRoom === 1 && currentRoom !== 1) {
         resetBolinhaPosition();
     }
+    atualizarPosicaoPet();
 
     mundo.style.left = `-${currentRoom * window.innerWidth}px`;
     updateStatusBarColor();
