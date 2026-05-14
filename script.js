@@ -2,6 +2,7 @@ const olhoEsq = document.getElementById('olho-esq');
 const olhoDir = document.getElementById('olho-dir');
 const sabonete = document.getElementById('sabonete');
 const maca = document.getElementById('maca');
+const bolinha = document.getElementById('bolinha');
 const lumo = document.getElementById('lumo');
 const boca = document.getElementById('boca'); // Adicionado: Referência ao elemento da boca
 const olhosContainer = document.querySelector('.olhos-container');
@@ -261,7 +262,7 @@ const foodStats = {
     '🥦': { fome: 6, energia: 15, humor: 2 },
     '🥗': { fome: 8, energia: 12, humor: 4 },
     '🍦': { fome: 5, energia: -5, humor: 20 },
-    '🍩': { fome: 10, energia: -8, humor: 18 },
+    '🍩': { fome: 10, energia: -6, humor: 18 },
     '☕': { fome: 1, energia: 30, humor: 5 },
     '🍬': { fome: 2, energia: -2, humor: 15 },
     'default': { fome: 10, energia: 0, humor: 5 }
@@ -558,11 +559,17 @@ function criarGota() {
 // Lógica para arrastar o sabonete
 let isDragging = false;
 let startX, startY;
+let lastMouseX, lastMouseY, velocityX = 0, velocityY = 0;
+let ballPosX = 0, ballPosY = 0;
+let physicsActive = false;
+let lastTime;
 
 sabonete.addEventListener('mousedown', startDrag);
 sabonete.addEventListener('touchstart', startDrag, { passive: false });
 maca.addEventListener('mousedown', startDrag);
 maca.addEventListener('touchstart', startDrag, { passive: false });
+bolinha.addEventListener('mousedown', startDrag);
+bolinha.addEventListener('touchstart', startDrag, { passive: false });
 
 function startDrag(e) {
     if (estaMastigando && e.currentTarget.id === 'maca') return;
@@ -574,11 +581,20 @@ function startDrag(e) {
     const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
     const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
     
-    startX = clientX;
-    startY = clientY;
+    lastMouseX = clientX;
+    lastMouseY = clientY;
+    lastTime = performance.now();
+    velocityX = 0; velocityY = 0;
+
+    // Captura a posição atual do elemento para um arraste relativo (sem pulos)
+    const matrix = new DOMMatrixReadOnly(window.getComputedStyle(draggingElement).transform);
+    startX = clientX - matrix.m41;
+    startY = clientY - matrix.m42;
     
     draggingElement.style.transition = 'none';
     draggingElement.style.cursor = 'grabbing';
+    bolinha.classList.remove('quicando');
+    physicsActive = false; // Interrompe a física enquanto arrasta
 }
 
 document.addEventListener('mousemove', drag);
@@ -586,20 +602,40 @@ document.addEventListener('touchmove', drag, { passive: false });
 
 function drag(e) {
     if (!isDragging) return;
-    
-    // Evita rolar a tela no mobile durante o arraste
     if (e.cancelable) e.preventDefault();
 
     const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
     const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+    
+    // Calcula velocidade do arraste
+    const now = performance.now();
+    const dt = now - lastTime;
+    if (dt > 0) {
+        velocityX = (clientX - lastMouseX) / dt;
+        velocityY = (clientY - lastMouseY) / dt;
+    }
+    lastMouseX = clientX;
+    lastMouseY = clientY;
+    lastTime = now;
 
     const dx = clientX - startX;
     const dy = clientY - startY;
-    
-    draggingElement.style.transform = `translate(${dx}px, ${dy}px)`;
 
-    // Faz o pet seguir o objeto com os olhos
+    if (draggingElement.id === 'bolinha') {
+        // Limita horizontalmente pelas paredes da sala
+        const constrainedX = Math.max(20, Math.min(window.innerWidth - 20, clientX));
+        const finalDX = constrainedX - startX;
+        
+        ballPosX = finalDX;
+        ballPosY = dy;
+        
+        atualizarBolinha(constrainedX, clientY, ballPosX, ballPosY);
+        moverOlhos(constrainedX, clientY);
+        return;
+    }
+
     moverOlhos(clientX, clientY);
+    draggingElement.style.transform = `translate(${dx}px, ${dy}px)`;
 
     // Lógica de deixar espuma apenas para o sabonete
     if (draggingElement.id === 'sabonete') {
@@ -607,6 +643,119 @@ function drag(e) {
     } else if (draggingElement.id === 'maca') {
         verificarColisaoMacaComBoca(clientX, clientY);
     }
+}
+
+function atualizarBolinha(x, y, dx, dy, verificarColisao = true) {
+    const horizon = window.innerHeight * 0.7; // Onde a parede encontra o chão
+
+    // Profundidade: Só diminui a escala se estiver na área do chão
+    // Se estiver acima do horizonte (na parede), mantém a escala mínima de profundidade
+    let scale = 0.65;
+    if (y > horizon) {
+        const floorHeight = window.innerHeight * 0.3;
+        const ratio = (y - horizon) / floorHeight;
+        scale = 0.65 + (ratio * 0.45);
+    }
+
+    bolinha.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+    bolinha.style.zIndex = "25"; // Sempre à frente do pet (20)
+    bolinha.style.setProperty('--ball-scale', scale);
+    bolinha.style.setProperty('--ball-dx', `${dx}px`);
+    bolinha.style.setProperty('--ball-dy', `${dy}px`);
+}
+
+function aplicarElasticidade(dx, dy, scale) {
+    bolinha.style.setProperty('--ball-dx', `${dx}px`);
+    bolinha.style.setProperty('--ball-dy', `${dy}px`);
+    bolinha.style.setProperty('--ball-scale', scale);
+    bolinha.classList.add('quicando');
+    setTimeout(() => {
+        bolinha.classList.remove('quicando');
+    }, 400);
+}
+
+function realizarRicocheteBolinha(x, y) {
+    const lumoRect = lumo.getBoundingClientRect();
+    if (!bodyImgLoaded) return;
+
+    const localX = (x - lumoRect.left) * (bodyCollisionCanvas.width / lumoRect.width);
+    const localY = (y - lumoRect.top) * (bodyCollisionCanvas.height / lumoRect.height);
+
+    if (localX >= 0 && localX < bodyCollisionCanvas.width && localY >= 0 && localY < bodyCollisionCanvas.height) {
+        const pixel = bodyCollisionCtx.getImageData(Math.floor(localX), Math.floor(localY), 1, 1).data;
+        
+        if (pixel[3] > 10) { 
+            const hitHead = localY < bodyCollisionCanvas.height * 0.4;
+            velocityX = (x < lumoRect.left + lumoRect.width / 2) ? -15 : 15;
+            velocityY = hitHead ? -12 : -5;
+
+            status.humor = Math.min(100, status.humor + 8);
+            updateStatusUI();
+            if (!physicsActive) loopFisicaBolinha();
+            return true;
+        }
+    }
+    return false;
+}
+
+function loopFisicaBolinha() {
+    if (!physicsActive) return;
+
+    const gravity = 0.8;
+    const friction = 0.98;
+    const bounce = 0.7;
+    
+    velocityY += gravity;
+    ballPosX += velocityX;
+    ballPosY += velocityY;
+
+    // Limites de tela (Paredes)
+    const margin = 30;
+    const screenW = window.innerWidth;
+    const screenH = window.innerHeight;
+    const currentX = ballPosX + startX; // X absoluto
+    const currentY = ballPosY + startY; // Y absoluto
+
+    // Colisão Paredes Laterais
+    if (currentX < margin) {
+        ballPosX = margin - startX;
+        velocityX *= -bounce;
+    } else if (currentX > screenW - margin) {
+        ballPosX = (screenW - margin) - startX;
+        velocityX *= -bounce;
+    }
+
+    // Colisão Teto
+    if (currentY < margin) {
+        ballPosY = margin - startY;
+        velocityY *= -bounce;
+    }
+
+    // Colisão Chão
+    const floorY = screenH * 0.88;
+    if (currentY > floorY) {
+        ballPosY = floorY - startY;
+        velocityY *= -bounce;
+        velocityX *= friction; // Atrito no chão
+        
+        if (Math.abs(velocityY) > 2) aplicarElasticidade(ballPosX, ballPosY, parseFloat(bolinha.style.getPropertyValue('--ball-scale')));
+    }
+
+    // Para a física se a bola parar
+    if (Math.abs(velocityY) < 0.5 && Math.abs(velocityX) < 0.5 && currentY > floorY - 5) {
+        physicsActive = false;
+        return;
+    }
+
+    atualizarBolinha(currentX, currentY, ballPosX, ballPosY);
+    
+    // Enquanto voa, o pet segue com os olhos
+    moverOlhos(currentX, currentY);
+
+    // Verifica colisão com pet em tempo real durante o voo
+    realizarRicocheteBolinha(currentX, currentY);
+
+    requestAnimationFrame(loopFisicaBolinha);
 }
 
 function verificarColisaoSabonete(x, y) {
@@ -760,15 +909,28 @@ function endDrag(e) {
             isDragging = false;
             draggingElement = null;
             processarAlimentacao(itemComida);
-
-            // Reseta a posição dos olhos para o centro ao comer
-            olhoEsq.style.setProperty('--pupil-x', '0px');
-            olhoEsq.style.setProperty('--pupil-y', '0px');
-            olhoDir.style.setProperty('--pupil-x', '0px');
-            olhoDir.style.setProperty('--pupil-y', '0px');
             
             return;
         }
+    }
+
+    // Lógica de queda da bolinha
+    if (draggingElement && draggingElement.id === 'bolinha') {
+        const currentTransform = window.getComputedStyle(bolinha).transform;
+        const matrix = new DOMMatrixReadOnly(currentTransform);
+
+        // Resetar o olhar ao soltar a bola
+        resetarOlhos();
+
+        // Aplica o impulso inicial (multiplicador de força do lançamento)
+        velocityX *= 20;
+        velocityY *= 20;
+
+        physicsActive = true;
+        loopFisicaBolinha();
+
+        isDragging = false;
+        return;
     }
 
     // Lógica de Swipe para trocar comida (detectada ao soltar o item)
@@ -792,11 +954,7 @@ function endDrag(e) {
     // Garante que a boca feche se a maçã for solta
     boca.classList.remove('boca-aberta');
     
-    // Reseta a posição dos olhos para o centro
-    olhoEsq.style.setProperty('--pupil-x', '0px');
-    olhoEsq.style.setProperty('--pupil-y', '0px');
-    olhoDir.style.setProperty('--pupil-x', '0px');
-    olhoDir.style.setProperty('--pupil-y', '0px');
+    resetarOlhos();
 
     draggingElement.style.transition = 'transform 0.3s ease-out';
     draggingElement.style.transform = 'translate(0, 0)'; // Volta à origem
@@ -804,16 +962,23 @@ function endDrag(e) {
     draggingElement = null;
 }
 
+function resetarOlhos() {
+    olhoEsq.style.setProperty('--pupil-x', '0px');
+    olhoEsq.style.setProperty('--pupil-y', '0px');
+    olhoDir.style.setProperty('--pupil-x', '0px');
+    olhoDir.style.setProperty('--pupil-y', '0px');
+}
+
 // Lógica para trocar de cômodo arrastando a tela
 document.getElementById('game-container').addEventListener('mousedown', (e) => {
     // Se clicar na loja ou estiver arrastando item, ignora troca de quarto
-    if (isDragging || e.target.closest('#shop-overlay')) return;
+    if (isDragging || e.target.closest('#shop-overlay') || e.target.closest('.bolinha')) return;
     startXRoom = e.clientX;
     isDraggingRoom = true;
 });
 
 document.getElementById('game-container').addEventListener('touchstart', (e) => {
-    if (isDragging || e.target.closest('#shop-overlay')) return;
+    if (isDragging || e.target.closest('#shop-overlay') || e.target.closest('.bolinha')) return;
     startXRoom = e.touches[0].clientX;
     isDraggingRoom = true;
 });

@@ -384,6 +384,33 @@ html, body {
     transform: translateZ(1px);
 }
 
+.bolinha {
+    position: absolute;
+    bottom: 5%;
+    left: 50%;
+    width: 60px;
+    height: 60px;
+    background: radial-gradient(circle at 30% 30%, #ff5722, #bf360c);
+    border-radius: 50%;
+    z-index: 25;
+    cursor: grab;
+    touch-action: none;
+    box-shadow: 0 15px 15px rgba(0,0,0,0.3);
+    transform: translateX(-50%);
+    transform-origin: bottom center;
+    transition: none !important; /* Removemos qualquer transição para física pura via JS */
+    display: block;
+}
+
+@keyframes quicar {
+    0%, 100% { transform: translate(var(--ball-dx), var(--ball-dy)) scale(var(--ball-scale)); }
+    50% { transform: translate(var(--ball-dx), var(--ball-dy)) scale(calc(var(--ball-scale) * 1.1), calc(var(--ball-scale) * 0.9)); }
+}
+
+.quicando {
+    animation: quicar 0.3s ease-out !important;
+}
+
 /* --- Decorações da Cozinha --- */
 .geladeira {
     position: absolute;
