@@ -810,10 +810,6 @@ html, body {
     margin-top: 10px; /* Ajustado para não empurrar o rosto para baixo */
 }
 
-.olho.semi-fechado {
-    /* Removemos o achatamento para usar as pálpebras */
-}
-
 .palpebra {
     position: absolute;
     left: 0;
