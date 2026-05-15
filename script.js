@@ -19,6 +19,7 @@ const shopContainer = document.getElementById('shop-sections-container');
 const shopPanel = document.getElementById('shop-panel');
 const lumoWrapper = document.getElementById('lumo-wrapper');
 const btnLoja = document.getElementById('btn-loja');
+const btnGuardaRoupa = document.getElementById('guarda-roupas');
 const closeShop = document.getElementById('close-shop');
 
 // Configuração para Detecção de Colisão por Pixel (Banho)
@@ -64,6 +65,7 @@ let currentTshirt2Idx = -1;
 let currentTshirt3Idx = -1;
 let currentChainIdx = -1;
 let currentCapIdx = -1;
+let currentGlassIdx = -1;
 
 const tshirtOptions = [
     { name: "Nenhuma", color: "transparent", pattern: "none", remove: true, asset: 'tshirt.png' },
@@ -130,6 +132,11 @@ const capOptions = [
     { name: "Cinza", color: "#808080", asset: 'cap.png', pattern: 'none' },
     { name: "Roxo", color: "#800080", asset: 'cap.png', pattern: 'none' },
     { name: "Laranja", color: "#FFA500", asset: 'cap.png', pattern: 'none' }
+];
+
+const glassOptions = [
+    { name: "Nenhum", remove: true },
+    { name: "Óculos", asset: 'glass.png', noMask: true }
 ];
 
 const chainOptions = [
@@ -210,6 +217,7 @@ function updateAllClothes() {
     updateTshirt3Visibility();
     updateChainVisibility();
     updateCapVisibility();
+    updateGlassVisibility();
 }
 
 function updateTshirtVisibility() {
@@ -323,6 +331,18 @@ function updateCapVisibility() {
     }
 }
 
+function updateGlassVisibility() {
+    const glassEl = document.querySelector('.pet-glass');
+    // O óculos aparece em ambos os corpos se houver um selecionado
+    if (currentGlassIdx !== -1) {
+        const opt = glassOptions[currentGlassIdx];
+        glassEl.style.display = 'block';
+        glassEl.style.backgroundImage = `url('assets/${opt.asset}')`;
+    } else {
+        glassEl.style.display = 'none';
+    }
+}
+
 // Nova função para aplicar estilos de sobrancelha
 function applyEyebrowStyles(eyebrowTypeIdx) {
     const eyebrowType = eyebrowTypes[eyebrowTypeIdx % eyebrowTypes.length];
@@ -372,6 +392,7 @@ const wallPatterns = [
 ];
 
 btnLoja.addEventListener('click', openShop);
+btnGuardaRoupa.addEventListener('click', openWardrobe);
 closeShop.addEventListener('click', () => shopOverlay.classList.add('hidden'));
 shopOverlay.addEventListener('click', (e) => { if(e.target === shopOverlay) shopOverlay.classList.add('hidden'); });
 
@@ -383,6 +404,8 @@ shopOverlay.addEventListener('click', (e) => { if(e.target === shopOverlay) shop
 
 function openShop() {
     shopContainer.innerHTML = '';
+    document.querySelector('.shop-header h2').innerText = "Loja";
+    
     const config = shopConfig[currentRoom];
     
     // 1. Seção de Móveis
@@ -460,31 +483,9 @@ function openShop() {
     patternSection.appendChild(patternGrid);
     shopContainer.appendChild(patternSection);
 
-    // Só exibe as seções de roupas se o pet estiver usando o body.png (index 0) e estiver no quarto (3)
-    if (currentBodyTypeIdx === 0 && currentRoom === 3) {
-        // 4. Seção de Roupas (T-Shirt)
-        createClothingShopSection("T-Shirt 1", tshirtOptions, (val) => {
-            currentTshirtIdx = val;
-            if (val !== -1) { currentTshirt2Idx = -1; currentTshirt3Idx = -1; }
-        }, updateAllClothes);
-
-        // 5. Seção de Roupas (T-Shirt 2)
-        createClothingShopSection("T-Shirt 2", tshirtOptions2, (val) => {
-            currentTshirt2Idx = val;
-            if (val !== -1) { currentTshirtIdx = -1; currentTshirt3Idx = -1; }
-        }, updateAllClothes);
-
-        // 6. Seção de Roupas (T-Shirt 3)
-        createClothingShopSection("T-Shirt 3", tshirtOptions3, (val) => {
-            currentTshirt3Idx = val;
-            if (val !== -1) { currentTshirtIdx = -1; currentTshirt2Idx = -1; }
-        }, updateAllClothes);
-
-        // 7. Seção de Acessórios de Pescoço
-        createClothingShopSection("Acessórios de Pescoço", chainOptions, (val) => currentChainIdx = val, updateChainVisibility);
-
-        // 8. Seção de Bonés (Cap)
-        createClothingShopSection("Boné", capOptions, (val) => currentCapIdx = val, updateCapVisibility);
+    // Só exibe as seções de personalização se estiver no quarto (3)
+    if (currentRoom === 3) {
+        carregarSecoesRoupas();
     }
 
     // 9. Seção de Piso
@@ -510,6 +511,46 @@ function openShop() {
     shopContainer.appendChild(floorSection);
 
     shopOverlay.classList.remove('hidden');
+}
+
+function openWardrobe() {
+    shopContainer.innerHTML = '';
+    document.querySelector('.shop-header h2').innerText = "Guarda-Roupas";
+    
+    carregarSecoesRoupas();
+    
+    shopOverlay.classList.remove('hidden');
+}
+
+function carregarSecoesRoupas() {
+    if (currentBodyTypeIdx === 0) {
+        // Seção de Roupas (T-Shirt)
+        createClothingShopSection("T-Shirt 1", tshirtOptions, (val) => {
+            currentTshirtIdx = val;
+            if (val !== -1) { currentTshirt2Idx = -1; currentTshirt3Idx = -1; }
+        }, updateAllClothes);
+
+        // Seção de Roupas (T-Shirt 2)
+        createClothingShopSection("T-Shirt 2", tshirtOptions2, (val) => {
+            currentTshirt2Idx = val;
+            if (val !== -1) { currentTshirtIdx = -1; currentTshirt3Idx = -1; }
+        }, updateAllClothes);
+
+        // Seção de Roupas (T-Shirt 3)
+        createClothingShopSection("T-Shirt 3", tshirtOptions3, (val) => {
+            currentTshirt3Idx = val;
+            if (val !== -1) { currentTshirtIdx = -1; currentTshirt2Idx = -1; }
+        }, updateAllClothes);
+
+        // Seção de Acessórios de Pescoço
+        createClothingShopSection("Acessórios de Pescoço", chainOptions, (val) => currentChainIdx = val, updateChainVisibility);
+
+        // Seção de Bonés (Cap)
+        createClothingShopSection("Boné", capOptions, (val) => currentCapIdx = val, updateCapVisibility);
+    }
+    
+    // Seção de Óculos (Disponível para ambos os tipos de corpo)
+    createClothingShopSection("Óculos", glassOptions, (val) => currentGlassIdx = val, updateGlassVisibility);
 }
 
 // Helper function to create shop item cards for clothing
@@ -542,12 +583,14 @@ function createClothingShopSection(title, optionsArray, updateVarFunc, updateVis
             const sizeValue = opt.size || 'auto';
             swatch.style.backgroundSize = [...new Array(layerCount).fill(sizeValue), 'contain'].join(', ');
 
-            swatch.style.maskImage = `url('assets/${opt.asset}')`;
-            swatch.style.webkitMaskImage = `url('assets/${opt.asset}')`;
-            swatch.style.maskSize = "contain";
-            swatch.style.webkitMaskSize = "contain";
-            swatch.style.maskRepeat = "no-repeat";
-            swatch.style.webkitMaskRepeat = "no-repeat";
+            if (!opt.noMask) {
+                swatch.style.maskImage = `url('assets/${opt.asset}')`;
+                swatch.style.webkitMaskImage = `url('assets/${opt.asset}')`;
+                swatch.style.maskSize = "contain";
+                swatch.style.webkitMaskSize = "contain";
+                swatch.style.maskRepeat = "no-repeat";
+                swatch.style.webkitMaskRepeat = "no-repeat";
+            }
         }
 
         card.onclick = () => {
