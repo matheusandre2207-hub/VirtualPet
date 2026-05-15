@@ -687,6 +687,32 @@ html, body {
     opacity: 0.5;
 }
 
+/* Camada do Broto (Raro para body2) */
+.pet-broto {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1; /* Atrás das roupas, mas acima da pele */
+    display: none;
+    background-color: var(--body-color);
+    background-image: url('assets/broto.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-blend-mode: multiply;
+    -webkit-mask-image: url('assets/broto.png');
+    mask-image: url('assets/broto.png');
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+}
+
 /* Camada da Camiseta 1 (T-Shirt) */
 .pet-tshirt {
     position: absolute;
@@ -791,6 +817,32 @@ html, body {
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
+}
+
+/* Camada dos Headphones */
+.pet-headphones {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 16; /* Acima do boné e óculos */
+    display: none;
+    background-color: var(--headphones-color, #ffffff);
+    background-image: url('assets/fone.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-blend-mode: multiply;
+    -webkit-mask-image: url('assets/fone.png');
+    mask-image: url('assets/fone.png');
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
 }
 
 /* Camada do Boné (Cap) */

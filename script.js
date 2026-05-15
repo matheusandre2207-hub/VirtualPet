@@ -66,6 +66,8 @@ let currentTshirt3Idx = -1;
 let currentChainIdx = -1;
 let currentCapIdx = -1;
 let currentGlassIdx = -1;
+let currentHeadphonesIdx = -1;
+let currentHasBroto = false;
 
 const tshirtOptions = [
     { name: "Nenhuma", color: "transparent", pattern: "none", remove: true, asset: 'tshirt.png' },
@@ -140,8 +142,23 @@ const glassOptions = [
 ];
 
 const chainOptions = [
-    { name: "Nenhuma", remove: true, asset: 'corrente.png', pattern: 'none' },
-    { name: "Corrente", asset: 'corrente.png', color: '#ffffff', pattern: 'none' }
+    { name: "Nenhuma", remove: true },
+    { name: "Corrente 1", asset: 'corrente.png', noMask: true },
+    { name: "Corrente 2", asset: 'corrente2.png', noMask: true },
+    { name: "Corrente 3", asset: 'corrente3.png', noMask: true }
+];
+
+const headphonesOptions = [
+    { name: "Nenhum", remove: true },
+    { name: "Vermelho", color: "#FF0000", asset: 'fone.png' },
+    { name: "Azul", color: "#0000FF", asset: 'fone.png' },
+    { name: "Verde", color: "#00FF00", asset: 'fone.png' },
+    { name: "Amarelo", color: "#FFFF00", asset: 'fone.png' },
+    { name: "Preto", color: "#333333", asset: 'fone.png' },
+    { name: "Branco", color: "#FFFFFF", asset: 'fone.png' },
+    { name: "Rosa", color: "#FF69B4", asset: 'fone.png' },
+    { name: "Roxo", color: "#800080", asset: 'fone.png' },
+    { name: "Laranja", color: "#FFA500", asset: 'fone.png' }
 ];
 
 // Arrays de Customização (20 opções cada)
@@ -218,6 +235,8 @@ function updateAllClothes() {
     updateChainVisibility();
     updateCapVisibility();
     updateGlassVisibility();
+    updateHeadphonesVisibility();
+    updateBrotoVisibility();
 }
 
 function updateTshirtVisibility() {
@@ -343,6 +362,30 @@ function updateGlassVisibility() {
     }
 }
 
+function updateHeadphonesVisibility() {
+    const headphonesEl = document.querySelector('.pet-headphones');
+    // O fone aparece em ambos os corpos se houver um selecionado
+    if (currentHeadphonesIdx !== -1) {
+        const opt = headphonesOptions[currentHeadphonesIdx];
+        headphonesEl.style.display = 'block';
+        headphonesEl.style.setProperty('--headphones-color', opt.color);
+        headphonesEl.style.backgroundImage = `url('assets/${opt.asset}')`;
+        headphonesEl.style.backgroundBlendMode = 'multiply';
+    } else {
+        headphonesEl.style.display = 'none';
+    }
+}
+
+function updateBrotoVisibility() {
+    const brotoEl = document.querySelector('.pet-broto');
+    // O broto é exclusivo do body2 (index 1) e depende da característica sorteada
+    if (currentBodyTypeIdx === 1 && currentHasBroto) {
+        brotoEl.style.display = 'block';
+    } else {
+        brotoEl.style.display = 'none';
+    }
+}
+
 // Nova função para aplicar estilos de sobrancelha
 function applyEyebrowStyles(eyebrowTypeIdx) {
     const eyebrowType = eyebrowTypes[eyebrowTypeIdx % eyebrowTypes.length];
@@ -362,8 +405,9 @@ function applyEyebrowStyles(eyebrowTypeIdx) {
 }
 
 // Modifica a função customizarPet para incluir a customização da sobrancelha
-function customizarPetFull(typeIdx, bodyIdx, noseIdx, irisIdx, patternIdx, eyebrowTypeIdx) {
+function customizarPetFull(typeIdx, bodyIdx, noseIdx, irisIdx, patternIdx, eyebrowTypeIdx, brotoIdx) {
     customizarPet(typeIdx, bodyIdx, noseIdx, irisIdx, patternIdx); 
+    currentHasBroto = (brotoIdx === 1);
     updateAllClothes();
     applyEyebrowStyles(eyebrowTypeIdx); // Aplica os estilos da sobrancelha
 }
@@ -551,6 +595,9 @@ function carregarSecoesRoupas() {
     
     // Seção de Óculos (Disponível para ambos os tipos de corpo)
     createClothingShopSection("Óculos", glassOptions, (val) => currentGlassIdx = val, updateGlassVisibility);
+
+    // Seção de Acessórios de Cabeça (Headphones)
+    createClothingShopSection("Acessórios de Cabeça", headphonesOptions, (val) => currentHeadphonesIdx = val, updateHeadphonesVisibility);
 }
 
 // Helper function to create shop item cards for clothing
@@ -1495,7 +1542,8 @@ customizarPetFull(
     Math.floor(Math.random() * 20),
     Math.floor(Math.random() * 20),
     Math.floor(Math.random() * 4), // Sorteia entre os primeiros padrões implementados
-    Math.floor(Math.random() * eyebrowTypes.length) // Sorteia o tipo de sobrancelha
+    Math.floor(Math.random() * eyebrowTypes.length), // Sorteia o tipo de sobrancelha
+    Math.random() < 0.15 ? 1 : 0 // 15% de chance de ter o broto (raro)
 );
 
 // Função para resetar a posição da bolinha
