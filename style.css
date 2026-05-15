@@ -672,6 +672,123 @@ html, body {
     opacity: 0.5;
 }
 
+/* Camada da Camiseta 1 (T-Shirt) */
+.pet-tshirt {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2;
+    display: none;
+    background-color: var(--tshirt-color, #ffffff);
+    background-repeat: repeat, no-repeat;
+    background-position: center, center;
+    background-blend-mode: overlay, multiply;
+    -webkit-mask-image: url('assets/tshirt.png');
+    mask-image: url('assets/tshirt.png');
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+}
+
+/* Camada da Camiseta 2 (T-Shirt 2) */
+.pet-tshirt2 {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2; /* Acima do corpo, abaixo dos detalhes do rosto */
+    display: none; /* Escondida por padrão */
+    
+    background-color: var(--tshirt2-color, #ffffff);
+    background-repeat: repeat, no-repeat;
+    background-position: center, center;
+    background-blend-mode: overlay, multiply;
+
+    -webkit-mask-image: url('assets/tshirt2.png');
+    mask-image: url('assets/tshirt2.png');
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+}
+
+/* Camada da Camiseta 3 (T-Shirt 3) */
+.pet-tshirt3 {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2; /* Acima do corpo, abaixo dos detalhes do rosto */
+    display: none; /* Escondida por padrão */
+    
+    background-color: var(--tshirt3-color, #ffffff);
+    background-repeat: repeat, no-repeat;
+    background-position: center, center;
+    background-blend-mode: overlay, multiply;
+
+    -webkit-mask-image: url('assets/tshirt3.png');
+    mask-image: url('assets/tshirt3.png');
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+}
+
+/* Camada do Acessório de Pescoço (Corrente) */
+.pet-chain {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 3; /* Acima das tshirts (2) */
+    display: none;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+/* Camada do Boné (Cap) */
+.pet-cap {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 15; /* Acima dos olhos e sobrancelhas */
+    display: none; /* Escondido por padrão */
+    
+    background-color: var(--cap-color, #ffffff);
+    background-repeat: no-repeat; /* Boné geralmente não tem pattern repetido */
+    background-position: center;
+    background-blend-mode: multiply; /* Apenas cor, sem pattern por padrão */
+
+    -webkit-mask-image: url('assets/cap.png');
+    mask-image: url('assets/cap.png');
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+}
+
 /* Container de Espuma/Bolhas */
 .espuma-container {
     position: absolute;
@@ -764,7 +881,7 @@ html, body {
     left: 50%;
     background-color: var(--nose-color);
     z-index: 11;
-    transition: transform 0.2s ease, top 0.2s ease;
+    transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.5s ease;
     pointer-events: none;
     
     /* Controlado por variáveis CSS do JavaScript */
@@ -794,39 +911,39 @@ html, body {
     justify-content: center;
     align-items: center;
     overflow: hidden;
-    transition: all 0.15s ease-in-out;
+    position: relative; /* CRUCIAL: Define o limite para o corte das pálpebras absolute */
+    transition: height 0.15s ease-out, background-color 0.5s ease, border 0.5s ease, border-radius 0.5s ease, margin-top 0.5s ease;
 }
 
 .olho.triste {
     animation: tremer 0.3s ease-in-out infinite;
 }
 
-.olho.fechado {
-    height: 20px;
-    background-color: transparent;
-    border: none;
-    border-bottom: 4px solid #000;
-    border-radius: 0 0 20px 20px;
-    margin-top: 10px; /* Ajustado para não empurrar o rosto para baixo */
-}
-
 .palpebra {
     position: absolute;
     left: 0;
     width: 100%;
-    height: 0%; /* Escondida por padrão */
+    height: 51%; /* Altura fixa para cobrir metade do olho + pequena margem de segurança */
     background-color: var(--body-color);
     z-index: 5;
-    transition: height 0.3s ease-out;
+    /* Transição mais rápida e 'snappy' para parecer movimento muscular */
+    transition: transform 0.2s cubic-bezier(0.45, 0.05, 0.55, 0.95), background-color 0.5s ease;
 }
 
-.palpebra.superior { top: 0; border-radius: 0 0 50% 50%; }
-.palpebra.inferior { bottom: 0; border-radius: 50% 50% 0 0; }
+.palpebra.superior { top: 0; border-radius: 0; border-bottom: 1px solid #000; transform: translateY(-105%); }
+.palpebra.inferior { bottom: 0; border-radius: 0; border-top: 1px solid #000; transform: translateY(105%); }
 
-/* Quando estiver com sono, as pálpebras descem/sobem 30% */
-.olho.semi-fechado .palpebra {
-    height: 30%;
-    border: 1px solid rgba(0,0,0,0.1);
+.olho.semi-fechado .palpebra.superior {
+    transform: translateY(-15%); /* Desliza suavemente para baixo */
+}
+
+.olho.semi-fechado .palpebra.inferior {
+    transform: translateY(15%); /* Desliza suavemente para cima */
+}
+
+/* Ao piscar ou dormir, as pálpebras se movem para cobrir o olho totalmente de forma orgânica */
+.olho.fechado .palpebra {
+    transform: translateY(0) !important; /* Garante o encontro perfeito no centro */
 }
 
 .olho::after {
@@ -841,7 +958,7 @@ html, body {
     border-radius: 50%;
     position: relative;
     top: var(--pupil-y, 0px); /* Controlado via JS */
-    transition: opacity 0.1s;
+    transition: transform 0.2s ease-out; /* Removido opacity para evitar 'esmaecimento' */
 }
 
 @keyframes tremer {
@@ -849,10 +966,6 @@ html, body {
     25% { transform: translate(-1px, 1px); }
     50% { transform: translate(1px, -1px); }
     75% { transform: translate(-1px, -1px); }
-}
-
-.olho.fechado::after {
-    opacity: 0;
 }
 
 #olho-esq::after {
@@ -872,6 +985,7 @@ html, body {
     background-position: center;
     margin-top: -13px;
     z-index: 1;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.4s ease;
 }
 
 .boca.sad-mouth {

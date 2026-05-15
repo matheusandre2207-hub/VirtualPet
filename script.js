@@ -58,6 +58,85 @@ let status = {
     humor: 0
 };
 
+let currentBodyTypeIdx = 0;
+let currentTshirtIdx = -1; // -1 significa sem roupa
+let currentTshirt2Idx = -1;
+let currentTshirt3Idx = -1;
+let currentChainIdx = -1;
+let currentCapIdx = -1;
+
+const tshirtOptions = [
+    { name: "Nenhuma", color: "transparent", pattern: "none", remove: true, asset: 'tshirt.png' },
+    { name: "Básica", color: "#ffffff", pattern: "none", asset: 'tshirt.png' },
+    { name: "Noite", color: "#333333", pattern: "none", asset: 'tshirt.png' },
+    { name: "Vibrante", color: "#ff4444", pattern: "none", asset: 'tshirt.png' },
+    { name: "Listras", color: "#3357ff", pattern: "repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(255,255,255,0.3) 10px, rgba(255,255,255,0.3) 20px)", asset: 'tshirt.png' },
+    { name: "Poá", color: "#f6ff33", pattern: "radial-gradient(circle, rgba(0,0,0,0.1) 20%, transparent 20%)", size: "15px 15px", asset: 'tshirt.png' },
+    { name: "Xadrez Real", color: "#4ed401", pattern: "repeating-linear-gradient(0deg, transparent, transparent 12px, rgba(0,0,0,0.08) 12px, rgba(0,0,0,0.08) 24px), repeating-linear-gradient(90deg, transparent, transparent 12px, rgba(0,0,0,0.08) 12px, rgba(0,0,0,0.08) 24px)", asset: 'tshirt.png' },
+    { name: "Espacial", color: "#1a1a1a", pattern: "radial-gradient(circle, #fff 5%, transparent 5%)", size: "25px 25px", asset: 'tshirt.png' },
+    { name: "Arco-íris", color: "#fff", pattern: "linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8f00ff)", asset: 'tshirt.png' },
+    { name: "Militar", color: "#4b5320", pattern: "radial-gradient(circle at 10% 10%, rgba(107,142,35,0.5) 30%, transparent 30.1%), radial-gradient(circle at 30% 30%, rgba(85,107,47,0.5) 40%, transparent 40.1%), radial-gradient(circle at 50% 50%, rgba(61, 89, 21, 0.5) 50%, transparent 50.1%), radial-gradient(circle at 80% 10%, rgba(120, 134, 107, 0.5) 35%, transparent 35.1%), radial-gradient(circle at 10% 80%, rgba(107, 142, 35, 0.5) 45%, transparent 45.1%)", size: "60px 60px", asset: 'tshirt.png' },
+    { name: "Zebra", color: "#fff", pattern: "repeating-linear-gradient(45deg, #000, #000 5px, transparent 5px, transparent 15px)", size: "30px 30px", asset: 'tshirt.png' },
+    { name: "Galáxia", color: "#2d004d", pattern: "radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 40px), radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 30px)", size: "100px 100px", asset: 'tshirt.png' },
+    { name: "Dourada", color: "#ffd700", pattern: "linear-gradient(135deg, rgba(255,255,255,0.4) 0%, transparent 50%, rgba(0,0,0,0.1) 100%)", asset: 'tshirt.png' },
+    { name: "Céu", color: "#87ceeb", pattern: "radial-gradient(circle at 50% 50%, #fff 20%, transparent 25%)", size: "60px 60px", asset: 'tshirt.png' },
+    { name: "Candy", color: "#ffb6c1", pattern: "repeating-linear-gradient(-45deg, rgba(255,255,255,0.2), rgba(255,255,255,0.2) 10px, transparent 10px, transparent 20px)", asset: 'tshirt.png' }
+];
+
+const tshirtOptions2 = [
+    { name: "Nenhuma", color: "transparent", pattern: "none", remove: true, asset: 'tshirt2.png' },
+    { name: "Azul Marinho", color: "#000080", pattern: "none", asset: 'tshirt2.png' },
+    { name: "Verde Floresta", color: "#228B22", pattern: "none", asset: 'tshirt2.png' },
+    { name: "Roxo Profundo", color: "#4B0082", pattern: "none", asset: 'tshirt2.png' },
+    { name: "Laranja Queimado", color: "#CC5500", pattern: "none", asset: 'tshirt2.png' },
+    { name: "Listras Finas", color: "#87CEEB", pattern: "repeating-linear-gradient(90deg, transparent, transparent 5px, rgba(0,0,0,0.1) 5px, rgba(0,0,0,0.1) 10px)", asset: 'tshirt2.png' },
+    { name: "Quadriculado", color: "#FFD700", pattern: "repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 20px), repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 20px)", asset: 'tshirt2.png' },
+    { name: "Corações", color: "#FF69B4", pattern: "radial-gradient(circle at 50% 50%, #fff 10%, transparent 10%), radial-gradient(circle at 25% 25%, #fff 5%, transparent 5%), radial-gradient(circle at 75% 75%, #fff 5%, transparent 5%)", size: "20px 20px", asset: 'tshirt2.png' },
+    { name: "Ondas", color: "#00BFFF", pattern: "repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.2) 10px, rgba(255,255,255,0.2) 20px)", asset: 'tshirt2.png' },
+    { name: "Camuflagem", color: "#8B4513", pattern: "radial-gradient(circle at 10% 10%, rgba(139,69,19,0.5) 30%, transparent 30.1%), radial-gradient(circle at 90% 90%, rgba(160,82,45,0.5) 40%, transparent 40.1%), radial-gradient(circle at 50% 50%, rgba(101,67,33,0.5) 50%, transparent 50.1%)", size: "50px 50px", asset: 'tshirt2.png' },
+    { name: "Tijolinho", color: "#A0522D", pattern: "linear-gradient(90deg, rgba(255,255,255,0.1) 2px, transparent 2px), linear-gradient(90deg, rgba(255,255,255,0.1) 2px, transparent 2px), linear-gradient(rgba(255,255,255,0.1) 2px, transparent 2px)", size: "40px 20px", position: "0 0, 20px 10px, 0 0", asset: 'tshirt2.png' },
+    { name: "Escamas", color: "#6A5ACD", pattern: "radial-gradient(circle at 50% 0, rgba(255,255,255,0.2) 20%, transparent 20%), radial-gradient(circle at 0 50%, rgba(255,255,255,0.2) 20%, transparent 20%), radial-gradient(circle at 100% 50%, rgba(255,255,255,0.2) 20%, transparent 20%)", size: "30px 30px", asset: 'tshirt2.png' },
+    { name: "Estrelas Pequenas", color: "#4682B4", pattern: "radial-gradient(circle, #fff 2%, transparent 2%)", size: "10px 10px", asset: 'tshirt2.png' },
+    { name: "Tie-Dye", color: "#FFC0CB", pattern: "radial-gradient(circle at 20% 80%, #FF00FF 10%, transparent 10%), radial-gradient(circle at 80% 20%, #00FFFF 10%, transparent 10%), radial-gradient(circle at 50% 50%, #FFFF00 15%, transparent 15%)", size: "100px 100px", asset: 'tshirt2.png' },
+    { name: "Geométrico", color: "#808080", pattern: "linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.1) 75%), linear-gradient(-45deg, rgba(255,255,255,0.1) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.1) 75%)", size: "30px 30px", asset: 'tshirt2.png' }
+];
+
+const tshirtOptions3 = [
+    { name: "Nenhuma", color: "transparent", pattern: "none", remove: true, asset: 'tshirt3.png' },
+    { name: "Preto Sólido", color: "#000000", pattern: "none", asset: 'tshirt3.png' },
+    { name: "Branco Sólido", color: "#FFFFFF", pattern: "none", asset: 'tshirt3.png' },
+    { name: "Cinza Chumbo", color: "#4F4F4F", pattern: "none", asset: 'tshirt3.png' },
+    { name: "Vermelho Sangue", color: "#8B0000", pattern: "none", asset: 'tshirt3.png' },
+    { name: "Listras Verticais", color: "#00CED1", pattern: "repeating-linear-gradient(90deg, transparent, transparent 8px, rgba(0,0,0,0.2) 8px, rgba(0,0,0,0.2) 16px)", asset: 'tshirt3.png' },
+    { name: "Bolhas", color: "#ADD8E6", pattern: "radial-gradient(circle, rgba(255,255,255,0.3) 15%, transparent 15%)", size: "25px 25px", asset: 'tshirt3.png' },
+    { name: "Grade", color: "#D3D3D3", pattern: "linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px)", size: "20px 20px", asset: 'tshirt3.png' },
+    { name: "Fogo", color: "#FF4500", pattern: "radial-gradient(circle at 50% 0%, #FFD700 20%, transparent 20%), radial-gradient(circle at 20% 100%, #FF8C00 15%, transparent 15%)", size: "50px 50px", asset: 'tshirt3.png' },
+    { name: "Gelo", color: "#E0FFFF", pattern: "radial-gradient(circle at 50% 50%, #ADD8E6 10%, transparent 10%), radial-gradient(circle at 20% 80%, #B0E0E6 5%, transparent 5%)", size: "40px 40px", asset: 'tshirt3.png' },
+    { name: "Madeira", color: "#8B4513", pattern: "linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px)", size: "10px 10px", asset: 'tshirt3.png' },
+    { name: "Pixel", color: "#00FF00", pattern: "linear-gradient(90deg, rgba(0,0,0,0.2) 1px, transparent 1px), linear-gradient(rgba(0,0,0,0.2) 1px, transparent 1px)", size: "5px 5px", asset: 'tshirt3.png' },
+    { name: "Nuvens", color: "#F0F8FF", pattern: "radial-gradient(circle at 20% 20%, #fff 25%, transparent 25%), radial-gradient(circle at 70% 60%, #fff 30%, transparent 30%)", size: "80px 80px", asset: 'tshirt3.png' },
+    { name: "Diamante", color: "#B9F2FF", pattern: "linear-gradient(45deg, rgba(255,255,255,0.2) 25%, transparent 25%), linear-gradient(-45deg, rgba(255,255,255,0.2) 25%, transparent 25%)", size: "20px 20px", asset: 'tshirt3.png' },
+    { name: "Tecido", color: "#D2B48C", pattern: "linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px)", size: "2px 2px", asset: 'tshirt3.png' }
+];
+
+const capOptions = [
+    { name: "Nenhum", color: "transparent", remove: true, asset: 'cap.png', pattern: 'none' },
+    { name: "Vermelho", color: "#FF0000", asset: 'cap.png', pattern: 'none' },
+    { name: "Azul", color: "#0000FF", asset: 'cap.png', pattern: 'none' },
+    { name: "Verde", color: "#00FF00", asset: 'cap.png', pattern: 'none' },
+    { name: "Amarelo", color: "#FFFF00", asset: 'cap.png', pattern: 'none' },
+    { name: "Preto", color: "#000000", asset: 'cap.png', pattern: 'none' },
+    { name: "Branco", color: "#FFFFFF", asset: 'cap.png', pattern: 'none' },
+    { name: "Cinza", color: "#808080", asset: 'cap.png', pattern: 'none' },
+    { name: "Roxo", color: "#800080", asset: 'cap.png', pattern: 'none' },
+    { name: "Laranja", color: "#FFA500", asset: 'cap.png', pattern: 'none' }
+];
+
+const chainOptions = [
+    { name: "Nenhuma", remove: true, asset: 'corrente.png', pattern: 'none' },
+    { name: "Corrente", asset: 'corrente.png', color: '#ffffff', pattern: 'none' }
+];
+
 // Arrays de Customização (20 opções cada)
 const bodyTypes = ['assets/body.png', 'assets/body2.png'];
 
@@ -103,6 +182,8 @@ function customizarPet(typeIdx, bodyIdx, noseIdx, irisIdx, patternIdx) {
     const root = document.getElementById('lumo');
     const bodyPath = bodyTypes[typeIdx % bodyTypes.length];
     
+    currentBodyTypeIdx = typeIdx % bodyTypes.length;
+    
     root.style.setProperty('--body-image', `url('${bodyPath}')`);
     root.style.setProperty('--body-color', bodyColors[bodyIdx % 20]);
     root.style.setProperty('--nose-color', noseColors[noseIdx % 20]);
@@ -119,6 +200,127 @@ function customizarPet(typeIdx, bodyIdx, noseIdx, irisIdx, patternIdx) {
     const pattern = bodyPatterns[patternIdx % bodyPatterns.length] || 'none';
     patternLayer.style.backgroundImage = pattern === 'none' ? 'none' : pattern;
     if (pattern !== 'none') patternLayer.style.backgroundSize = '40px 40px'; // Default pattern size
+
+    updateAllClothes();
+}
+
+function updateAllClothes() {
+    updateTshirtVisibility();
+    updateTshirt2Visibility();
+    updateTshirt3Visibility();
+    updateChainVisibility();
+    updateCapVisibility();
+}
+
+function updateTshirtVisibility() {
+    const tshirtEl = document.querySelector('.pet-tshirt');
+    // A roupa só aparece se o corpo for o index 0 (body.png) e houver uma roupa selecionada
+    if (currentBodyTypeIdx === 0 && currentTshirtIdx !== -1) {
+        const opt = tshirtOptions[currentTshirtIdx];
+        tshirtEl.style.display = 'block';
+        tshirtEl.style.setProperty('--tshirt-color', opt.color);
+        
+        // Criamos a pilha de fundos: Estampa + Imagem da Roupa
+        const pattern = (opt.pattern && opt.pattern !== 'none') ? opt.pattern : 'linear-gradient(transparent, transparent)';
+        tshirtEl.style.backgroundImage = `${pattern}, url('assets/${opt.asset}')`;
+        
+        // Sincroniza os blend modes para que o 'multiply' sempre caia na camada da imagem (outline)
+        const layerCount = (pattern.match(/gradient/g) || []).length;
+        tshirtEl.style.backgroundBlendMode = [...new Array(layerCount).fill('overlay'), 'multiply'].join(', ');
+        
+        // Garante que o padrão e a imagem da roupa estejam alinhados
+        tshirtEl.style.backgroundRepeat = [...new Array(layerCount).fill('repeat'), 'no-repeat'].join(', ');
+        tshirtEl.style.backgroundPosition = [...new Array(layerCount).fill('center'), 'center'].join(', ');
+
+        // Aplica o tamanho correto para cada camada (padrões vs asset fixo)
+        const sizeValue = opt.size || 'auto';
+        tshirtEl.style.backgroundSize = [...new Array(layerCount).fill(sizeValue), 'contain'].join(', ');
+    } else {
+        tshirtEl.style.display = 'none';
+    }
+}
+
+function updateTshirt2Visibility() {
+    const tshirtEl = document.querySelector('.pet-tshirt2');
+    // A roupa só aparece se o corpo for o index 0 (body.png) e houver uma roupa selecionada
+    if (currentBodyTypeIdx === 0 && currentTshirt2Idx !== -1) {
+        const opt = tshirtOptions2[currentTshirt2Idx];
+        tshirtEl.style.display = 'block';
+        tshirtEl.style.setProperty('--tshirt2-color', opt.color);
+        
+        // Criamos a pilha de fundos: Estampa + Imagem da Roupa
+        const pattern = (opt.pattern && opt.pattern !== 'none') ? opt.pattern : 'linear-gradient(transparent, transparent)';
+        tshirtEl.style.backgroundImage = `${pattern}, url('assets/${opt.asset}')`;
+        
+        // Sincroniza os blend modes para que o 'multiply' sempre caia na camada da imagem (outline)
+        const layerCount = (pattern.match(/gradient/g) || []).length;
+        tshirtEl.style.backgroundBlendMode = [...new Array(layerCount).fill('overlay'), 'multiply'].join(', ');
+
+        // Garante que o padrão e a imagem da roupa estejam alinhados
+        tshirtEl.style.backgroundRepeat = [...new Array(layerCount).fill('repeat'), 'no-repeat'].join(', ');
+        tshirtEl.style.backgroundPosition = [...new Array(layerCount).fill('center'), 'center'].join(', ');
+
+        // Aplica o tamanho correto para cada camada (padrões vs asset fixo)
+        const sizeValue = opt.size || 'auto';
+        tshirtEl.style.backgroundSize = [...new Array(layerCount).fill(sizeValue), 'contain'].join(', ');
+    } else {
+        tshirtEl.style.display = 'none';
+    }
+}
+
+function updateTshirt3Visibility() {
+    const tshirtEl = document.querySelector('.pet-tshirt3');
+    // A roupa só aparece se o corpo for o index 0 (body.png) e houver uma roupa selecionada
+    if (currentBodyTypeIdx === 0 && currentTshirt3Idx !== -1) {
+        const opt = tshirtOptions3[currentTshirt3Idx];
+        tshirtEl.style.display = 'block';
+        tshirtEl.style.setProperty('--tshirt3-color', opt.color);
+        
+        // Criamos a pilha de fundos: Estampa + Imagem da Roupa
+        const pattern = (opt.pattern && opt.pattern !== 'none') ? opt.pattern : 'linear-gradient(transparent, transparent)';
+        tshirtEl.style.backgroundImage = `${pattern}, url('assets/${opt.asset}')`;
+        
+        // Sincroniza os blend modes para que o 'multiply' sempre caia na camada da imagem (outline)
+        const layerCount = (pattern.match(/gradient/g) || []).length;
+        tshirtEl.style.backgroundBlendMode = [...new Array(layerCount).fill('overlay'), 'multiply'].join(', ');
+
+        // Garante que o padrão e a imagem da roupa estejam alinhados
+        tshirtEl.style.backgroundRepeat = [...new Array(layerCount).fill('repeat'), 'no-repeat'].join(', ');
+        tshirtEl.style.backgroundPosition = [...new Array(layerCount).fill('center'), 'center'].join(', ');
+
+        // Aplica o tamanho correto para cada camada (padrões vs asset fixo)
+        const sizeValue = opt.size || 'auto';
+        tshirtEl.style.backgroundSize = [...new Array(layerCount).fill(sizeValue), 'contain'].join(', ');
+    } else {
+        tshirtEl.style.display = 'none';
+    }
+}
+
+function updateChainVisibility() {
+    const chainEl = document.querySelector('.pet-chain');
+    // Aparece se o corpo for o index 0 (body.png) e houver uma corrente selecionada
+    if (currentBodyTypeIdx === 0 && currentChainIdx !== -1) {
+        const opt = chainOptions[currentChainIdx];
+        chainEl.style.display = 'block';
+        chainEl.style.backgroundImage = `url('assets/${opt.asset}')`;
+    } else {
+        chainEl.style.display = 'none';
+    }
+}
+
+function updateCapVisibility() {
+    const capEl = document.querySelector('.pet-cap');
+    // O boné aparece se o corpo for o index 0 (body.png) e houver um boné selecionado
+    if (currentBodyTypeIdx === 0 && currentCapIdx !== -1) {
+        const opt = capOptions[currentCapIdx];
+        capEl.style.display = 'block';
+        capEl.style.setProperty('--cap-color', opt.color);
+        capEl.style.backgroundImage = `url('assets/${opt.asset}')`; // Boné geralmente não tem pattern
+        capEl.style.backgroundBlendMode = 'multiply'; // Apenas cor, sem pattern por padrão
+        capEl.style.backgroundSize = 'contain';
+    } else {
+        capEl.style.display = 'none';
+    }
 }
 
 // Nova função para aplicar estilos de sobrancelha
@@ -141,7 +343,8 @@ function applyEyebrowStyles(eyebrowTypeIdx) {
 
 // Modifica a função customizarPet para incluir a customização da sobrancelha
 function customizarPetFull(typeIdx, bodyIdx, noseIdx, irisIdx, patternIdx, eyebrowTypeIdx) {
-    customizarPet(typeIdx, bodyIdx, noseIdx, irisIdx, patternIdx); // Chama a função original
+    customizarPet(typeIdx, bodyIdx, noseIdx, irisIdx, patternIdx); 
+    updateAllClothes();
     applyEyebrowStyles(eyebrowTypeIdx); // Aplica os estilos da sobrancelha
 }
 
@@ -158,6 +361,16 @@ const hueFilters = [0, 45, 90, 150, 200, 260, 300];
 const wallColors = ['#414141', '#6d4c41', '#d6d6d6', '#4a5a7a', '#ff5733', '#3357ff', '#757575'];
 const floorColors = ['#ffffff', '#f0e68c', '#e0e0e0', '#ffdab9', '#b0c4de'];
 
+const wallPatterns = [
+    { name: "Liso", image: "none", size: "auto", position: "0 0" },
+    { name: "Tijolo", image: "linear-gradient(90deg, rgba(255,255,255,0.07) 2px, transparent 2px), linear-gradient(90deg, rgba(255,255,255,0.07) 2px, transparent 2px), linear-gradient(rgba(255,255,255,0.07) 2px, transparent 2px)", size: "80px 40px", position: "0 0, 40px 20px, 0 0" },
+    { name: "Listras V", image: "linear-gradient(90deg, rgba(0, 0, 0, 0.1) 2px, transparent 2px)", size: "40px 100%", position: "0 0" },
+    { name: "Listras H", image: "linear-gradient(rgba(0, 0, 0, 0.1) 2px, transparent 2px)", size: "100% 40px", position: "0 0" },
+    { name: "Azulejo", image: "linear-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.1) 1px, transparent 1px)", size: "30px 30px", position: "0 0" },
+    { name: "Pontos", image: "radial-gradient(rgba(255,255,255,0.1) 2px, transparent 2px)", size: "40px 40px", position: "0 0" },
+    { name: "Chevron", image: "linear-gradient(135deg, rgba(255,255,255,0.05) 25%, transparent 25%), linear-gradient(225deg, rgba(255,255,255,0.05) 25%, transparent 25%), linear-gradient(45deg, rgba(255,255,255,0.05) 25%, transparent 25%), linear-gradient(315deg, rgba(255,255,255,0.05) 25%, transparent 25%)", size: "40px 40px", position: "0 0" }
+];
+
 btnLoja.addEventListener('click', openShop);
 closeShop.addEventListener('click', () => shopOverlay.classList.add('hidden'));
 shopOverlay.addEventListener('click', (e) => { if(e.target === shopOverlay) shopOverlay.classList.add('hidden'); });
@@ -165,7 +378,7 @@ shopOverlay.addEventListener('click', (e) => { if(e.target === shopOverlay) shop
 // Bloqueia a propagação apenas do início e fim do toque para não mover o fundo.
 // Deixamos o 'touchmove' livre para que o navegador processe a rolagem nativa sem travas de JS.
 ['touchstart', 'touchend', 'mousedown', 'mouseup'].forEach(evt => {
-    shopPanel.addEventListener(evt, e => e.stopPropagation(), { passive: true });
+    shopPanel.addEventListener(evt, e => e.stopPropagation(), { passive: evt.includes('touch') });
 });
 
 function openShop() {
@@ -221,7 +434,60 @@ function openShop() {
     wallSection.appendChild(wallGrid);
     shopContainer.appendChild(wallSection);
 
-    // 3. Seção de Piso
+    // 3. Seção de Textura da Parede
+    const patternSection = createShopSection("Textura da Parede");
+    const patternGrid = document.createElement('div');
+    patternGrid.className = 'shop-grid';
+    wallPatterns.forEach(pattern => {
+        const card = document.createElement('div');
+        card.className = 'shop-item-card';
+        const swatch = document.createElement('div');
+        swatch.className = 'color-swatch';
+        swatch.style.backgroundColor = '#bbb'; // Cor base para o preview na loja
+        swatch.style.backgroundImage = pattern.image;
+        swatch.style.backgroundSize = pattern.size;
+        swatch.style.backgroundPosition = pattern.position;
+
+        card.onclick = () => {
+            const wall = document.querySelectorAll('.parede-fundo')[currentRoom];
+            wall.style.backgroundImage = pattern.image;
+            wall.style.backgroundSize = pattern.size;
+            wall.style.backgroundPosition = pattern.position;
+        };
+        card.appendChild(swatch);
+        patternGrid.appendChild(card);
+    });
+    patternSection.appendChild(patternGrid);
+    shopContainer.appendChild(patternSection);
+
+    // Só exibe as seções de roupas se o pet estiver usando o body.png (index 0)
+    if (currentBodyTypeIdx === 0) {
+        // 4. Seção de Roupas (T-Shirt)
+        createClothingShopSection("T-Shirt 1", tshirtOptions, (val) => {
+            currentTshirtIdx = val;
+            if (val !== -1) { currentTshirt2Idx = -1; currentTshirt3Idx = -1; }
+        }, updateAllClothes);
+
+        // 5. Seção de Roupas (T-Shirt 2)
+        createClothingShopSection("T-Shirt 2", tshirtOptions2, (val) => {
+            currentTshirt2Idx = val;
+            if (val !== -1) { currentTshirtIdx = -1; currentTshirt3Idx = -1; }
+        }, updateAllClothes);
+
+        // 6. Seção de Roupas (T-Shirt 3)
+        createClothingShopSection("T-Shirt 3", tshirtOptions3, (val) => {
+            currentTshirt3Idx = val;
+            if (val !== -1) { currentTshirtIdx = -1; currentTshirt2Idx = -1; }
+        }, updateAllClothes);
+
+        // 7. Seção de Acessórios de Pescoço
+        createClothingShopSection("Acessórios de Pescoço", chainOptions, (val) => currentChainIdx = val, updateChainVisibility);
+
+        // 8. Seção de Bonés (Cap)
+        createClothingShopSection("Boné", capOptions, (val) => currentCapIdx = val, updateCapVisibility);
+    }
+
+    // 9. Seção de Piso
     const floorSection = createShopSection("Estilo do Piso");
     const floorGrid = document.createElement('div');
     floorGrid.className = 'shop-grid';
@@ -244,6 +510,56 @@ function openShop() {
     shopContainer.appendChild(floorSection);
 
     shopOverlay.classList.remove('hidden');
+}
+
+// Helper function to create shop item cards for clothing
+function createClothingShopSection(title, optionsArray, updateVarFunc, updateVisibilityFunc) {
+    const section = createShopSection(title);
+    const grid = document.createElement('div');
+    grid.className = 'shop-grid';
+    
+    optionsArray.forEach((opt, index) => {
+        const card = document.createElement('div');
+        card.className = 'shop-item-card';
+        const swatch = document.createElement('div');
+        swatch.className = 'color-swatch';
+
+        if (opt.remove) {
+            swatch.innerHTML = '✕';
+            swatch.style.display = 'flex';
+            swatch.style.alignItems = 'center';
+            swatch.style.justifyContent = 'center';
+            swatch.style.background = '#eee';
+            swatch.style.color = '#999';
+            swatch.style.fontSize = '24px';
+        } else {
+            swatch.style.backgroundColor = opt.color;
+            const pattern = (opt.pattern && opt.pattern !== 'none') ? opt.pattern : 'linear-gradient(transparent, transparent)';
+            swatch.style.backgroundImage = `${pattern}, url('assets/${opt.asset}')`;
+            
+            const layerCount = (pattern.match(/gradient/g) || []).length;
+            swatch.style.backgroundBlendMode = [...new Array(layerCount).fill('overlay'), 'multiply'].join(', ');
+            const sizeValue = opt.size || 'auto';
+            swatch.style.backgroundSize = [...new Array(layerCount).fill(sizeValue), 'contain'].join(', ');
+
+            swatch.style.maskImage = `url('assets/${opt.asset}')`;
+            swatch.style.webkitMaskImage = `url('assets/${opt.asset}')`;
+            swatch.style.maskSize = "contain";
+            swatch.style.webkitMaskSize = "contain";
+            swatch.style.maskRepeat = "no-repeat";
+            swatch.style.webkitMaskRepeat = "no-repeat";
+        }
+
+        card.onclick = () => {
+            updateVarFunc(opt.remove ? -1 : index); // Atualiza a variável global corretamente via callback
+            updateVisibilityFunc();
+        };
+        card.appendChild(swatch);
+        grid.appendChild(card);
+    });
+
+    section.appendChild(grid);
+    shopContainer.appendChild(section);
 }
 
 function createShopSection(title) {
@@ -421,11 +737,19 @@ function updateStatusUI() {
     checkPetEmotions();
 }
 
+let estadoEmocionalAnterior = { triste: false, sono: false };
+
 function checkPetEmotions() {
     const threshold = 25;
     const energyCritical = 10;
     const estaComSono = status.energia < energyCritical && !estaDormindo;
     const estaTriste = (status.fome < threshold || status.energia < threshold || status.limpeza < threshold || status.humor < threshold) && !estaDormindo;
+
+    // Dispara um piscar de olhos se o estado emocional mudar, para suavizar a transição
+    if (estaTriste !== estadoEmocionalAnterior.triste || estaComSono !== estadoEmocionalAnterior.sono) {
+        piscar();
+        estadoEmocionalAnterior = { triste: estaTriste, sono: estaComSono };
+    }
 
     // Lógica de Sono (Olhos semi-cerrados e Olheiras)
     if (estaComSono) {
@@ -549,7 +873,7 @@ function piscar() {
         
         olhoEsq.classList.remove('fechado');
         olhoDir.classList.remove('fechado');
-    }, 150);
+    }, 180); // Ajustado levemente para casar com a nova transição CSS
 }
 
 // Pisca em intervalos aleatórios entre 2 e 5 segundos
