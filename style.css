@@ -260,6 +260,20 @@ html, body {
     transform: translateZ(1px);
 }
 
+/* Guarda-roupas no Quarto */
+.guarda-roupas {
+    position: absolute;
+    bottom: 29%; /* Mesma altura da geladeira */
+    right: -50px; /* Mesma posição horizontal da geladeira (parcialmente fora da tela à direita) */
+    width: 250px; /* Mesma largura da geladeira */
+    height: 320px; /* Mesma altura da geladeira */
+    background-image: url('assets/wardrobe.png'); /* Novo asset */
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: bottom center;
+    z-index: 10;
+    transform: translateZ(1px);
+}
 /* --- Menu da Loja Lateral --- */
 #shop-overlay {
     position: absolute;
@@ -493,10 +507,10 @@ html, body {
 
 .comoda {
     position: absolute;
-    bottom: 25%;
-    left: -35px;
-    width: 200px;
-    height: 160px;
+    bottom: 27%;
+    left: -20px;
+    width: 160px;
+    height: 130px;
     background-image: url('assets/comoda.png'); /* Certifique-se de ter este asset ou use background-color */
     background-size: contain;
     background-repeat: no-repeat;
@@ -507,11 +521,11 @@ html, body {
 
 .abajur {
     position: absolute;
-    bottom: 78%; /* Gruda exatamente no topo da cômoda */
+    bottom: 75%; /* Ajustado para manter colado com a nova altura */
     left: 50%;
     transform: translateX(-50%) translateZ(1px); /* Centraliza e mantém à frente do fundo */
-    width: 80px;
-    height: 100px;
+    width: 65px;
+    height: 85px;
     background-image: url('assets/abajur.png'); /* Certifique-se de ter este asset */
     background-size: contain;
     background-repeat: no-repeat;

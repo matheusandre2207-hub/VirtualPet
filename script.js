@@ -460,8 +460,8 @@ function openShop() {
     patternSection.appendChild(patternGrid);
     shopContainer.appendChild(patternSection);
 
-    // Só exibe as seções de roupas se o pet estiver usando o body.png (index 0)
-    if (currentBodyTypeIdx === 0) {
+    // Só exibe as seções de roupas se o pet estiver usando o body.png (index 0) e estiver no quarto (3)
+    if (currentBodyTypeIdx === 0 && currentRoom === 3) {
         // 4. Seção de Roupas (T-Shirt)
         createClothingShopSection("T-Shirt 1", tshirtOptions, (val) => {
             currentTshirtIdx = val;
