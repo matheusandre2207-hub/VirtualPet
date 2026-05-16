@@ -244,6 +244,7 @@ html, body {
     box-shadow: 0 5px 15px rgba(0,0,0,0.3);
     z-index: 10;
     transform: translateZ(1px);
+    cursor: pointer;
 }
 
 .rack {
@@ -259,6 +260,41 @@ html, body {
     z-index: 10;
     transform: translateZ(1px);
 }
+
+/* --- Overlay do Lumo Arcade --- */
+#arcade-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    z-index: 600; /* Acima da loja e UI */
+}
+
+#arcade-overlay.hidden {
+    display: none;
+}
+
+#arcade-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+/* Desabilita interações quando o Arcade está aberto */
+body.arcade-active #mundo,
+body.arcade-active #lumo-wrapper,
+body.arcade-active .status-container,
+body.arcade-active #shop-overlay {
+    pointer-events: none;
+}
+
+/* Garante que o próprio Arcade continue interativo */
+body.arcade-active #arcade-overlay {
+    pointer-events: all;
+}
+
 
 /* Guarda-roupas no Quarto */
 .guarda-roupas {

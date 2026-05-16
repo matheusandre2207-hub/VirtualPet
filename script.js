@@ -21,6 +21,10 @@ const lumoWrapper = document.getElementById('lumo-wrapper');
 const btnLoja = document.getElementById('btn-loja');
 const btnGuardaRoupa = document.getElementById('guarda-roupas');
 const closeShop = document.getElementById('close-shop');
+const tv = document.querySelector('.tv');
+const arcadeOverlay = document.getElementById('arcade-overlay');
+const arcadeFrame = document.getElementById('arcade-frame');
+let arcadeIsOpen = false; // Nova flag global para controlar o estado do Arcade
 
 // Configuração para Detecção de Colisão por Pixel (Banho)
 const bodyCollisionCanvas = document.createElement('canvas');
@@ -1673,5 +1677,24 @@ function resetBolinhaPosition() {
     atualizarBolinha(window.innerWidth / 2, window.innerHeight * 0.95, ballPosX, ballPosY); // Atualiza escala e variáveis CSS
     resetarOlhos();
 }
+
+// Lógica da TV (Lumo Arcade)
+tv.addEventListener('click', () => {
+    if (estaDormindo) return; // Não abre se o pet estiver dormindo
+    arcadeIsOpen = true;
+    arcadeOverlay.classList.remove('hidden');
+    arcadeFrame.src = 'LumoGames/index.html';
+    document.body.classList.add('arcade-active'); // Adiciona classe para desabilitar interações no corpo
+});
+
+// Listener para fechar o Arcade via mensagem do Iframe
+window.addEventListener('message', (e) => {
+    if (e.data === 'closeArcade') {
+        arcadeIsOpen = false;
+        arcadeOverlay.classList.add('hidden');
+        arcadeFrame.src = ''; // Limpa o iframe para economizar memória
+        document.body.classList.remove('arcade-active'); // Remove a classe para reabilitar interações
+    }
+});
 
 console.log("Lumo carregado! Aguardando assets para substituição.");

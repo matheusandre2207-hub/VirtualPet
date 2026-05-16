@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lumo Arcade - 12 Minigames</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <h1>🎮 Lumo Arcade</h1>
+        <p>Escolha um desafio!</p>
+        <button id="exit-portal">X</button>
+    </header>
+
+    <main class="grid-container">
+        <div class="game-card" data-game="slither">
+            <div class="icon">🐍</div>
+            <span>Lumo.io</span>
+        </div>
+        <div class="game-card" data-game="citybloxx">
+            <div class="icon">🏢</div>
+            <span>Lumo Tower</span>
+        </div>
+        <div class="game-card" data-game="snake">
+            <div class="icon">🍎</div>
+            <span>Cobrinha</span>
+        </div>
+
+        <div class="game-card" data-game="flappy">
+            <div class="icon">🕊️</div>
+            <span>Flappy Lumo</span>
+        </div>
+        <div class="game-card" data-game="match3">
+            <div class="icon">🍬</div>
+            <span>Lumo Crush</span>
+        </div>
+        <div class="game-card" data-game="slice">
+            <div class="icon">🍉</div>
+            <span>Lumo Slice</span>
+        </div>
+
+        <div class="game-card" data-game="dash">
+            <div class="icon">🏃</div>
+            <span>Lumo Dash</span>
+        </div>
+        <div class="game-card" data-game="catch">
+            <div class="icon">🧺</div>
+            <span>Catch Lumo</span>
+        </div>
+        <div class="game-card" data-game="memory">
+            <div class="icon">🃏</div>
+            <span>Memória</span>
+        </div>
+
+        <div class="game-card" data-game="bubbles">
+            <div class="icon">🫧</div>
+            <span>Bubble Pop</span>
+        </div>
+        <div class="game-card" data-game="jump">
+            <div class="icon">🦘</div>
+            <span>Lumo Jump</span>
+        </div>
+        <div class="game-card" data-game="simon">
+            <div class="icon">🎨</div>
+            <span>Lumo Simon</span>
+        </div>
+    </main>
+
+    <div id="game-overlay" class="hidden">
+        <button id="close-game">✖ Sair</button>
+        <div id="game-canvas-container">
+            </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
