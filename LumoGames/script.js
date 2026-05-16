@@ -25,15 +25,37 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Função utilitária para escurecer uma cor (centralizada para todos os jogos)
+    function darkenColor(color, percent) {
+        if (color.startsWith('hsl')) {
+            const parts = color.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+            if (parts) {
+                let h = parseInt(parts[1]);
+                let s = parseInt(parts[2]);
+                let l = parseInt(parts[3]);
+                l = Math.max(0, l - l * percent);
+                return `hsl(${h}, ${s}%, ${l}%)`;
+            }
+        }
+        if (color.startsWith('#')) {
+            let r = parseInt(color.slice(1, 3), 16);
+            let g = parseInt(color.slice(3, 5), 16);
+            let b = parseInt(color.slice(5, 7), 16);
+            r = Math.max(0, r - r * percent); g = Math.max(0, g - g * percent); b = Math.max(0, b - b * percent);
+            return `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+        }
+        return `rgba(0, 0, 0, 0.2)`; 
+    }
+
     // Mapeamento dos Jogos
     const games = {
         slither: (container) => initLumoIO(container),
         citybloxx: (container) => initLumoTower(container),
-        snake: () => "Iniciando Snake clássico...",
-        flappy: () => "Flappy Lumo: Toque para voar!",
-        match3: () => "Lumo Crush: Combine 3 itens!",
-        slice: () => "Lumo Slice: Use o dedo como espada!",
-        dash: () => "Lumo Dash: Corra e desvie!",
+        snake: (container) => initSnake(container),
+        flappy: (container) => initFlappy(container),
+        match3: (container) => initLumoCrush(container),
+        slice: (container) => initLumoSlice(container),
+        word: (container) => initLumoWord(container),
         catch: () => "Catch Lumo: Não deixe cair!",
         memory: () => "Jogo da Memória do Lumo...",
         bubbles: () => "Bubble Pop: Mire e estoure!",
@@ -95,28 +117,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let joystick = { x: JOYSTICK_BASE_X, y: JOYSTICK_BASE_Y, active: false, angle: 0 };
         let player, snakes, foods;
         let lastClickTime = 0;
-
-        // Função utilitária para escurecer uma cor (simplificada para hex e HSL)
-        function darkenColor(color, percent) {
-            if (color.startsWith('hsl')) {
-                const parts = color.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
-                if (parts) {
-                    let h = parseInt(parts[1]);
-                    let s = parseInt(parts[2]);
-                    let l = parseInt(parts[3]);
-                    l = Math.max(0, l - l * percent);
-                    return `hsl(${h}, ${s}%, ${l}%)`;
-                }
-            }
-            if (color.startsWith('#')) {
-                let r = parseInt(color.slice(1, 3), 16);
-                let g = parseInt(color.slice(3, 5), 16);
-                let b = parseInt(color.slice(5, 7), 16);
-                r = Math.max(0, r - r * percent); g = Math.max(0, g - g * percent); b = Math.max(0, b - b * percent);
-                return `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
-            }
-            return `rgba(0, 0, 0, 0.2)`; 
-        }
 
         const handleInput = (clientX, clientY) => {
             const now = Date.now();
@@ -780,5 +780,1182 @@ document.addEventListener('DOMContentLoaded', () => {
             update();
         }
         reset(); draw();
+    }
+
+    // --- MOTOR DO JOGO DA COBRINHA (GOOGLE STYLE) ---
+    function initSnake(container) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        container.appendChild(canvas);
+
+        const COLS = 17, ROWS = 15;
+        const CELL_SIZE = Math.min((canvas.width - 40) / COLS, (canvas.height - 120) / ROWS);
+        const BOARD_W = COLS * CELL_SIZE, BOARD_H = ROWS * CELL_SIZE;
+        const OFFSET_X = (canvas.width - BOARD_W) / 2, OFFSET_Y = (canvas.height - BOARD_H) / 2 + 30;
+
+        let snake, prevSnake, direction, inputBuffer, apple, score, gameState, lastTick, tickInterval, ripples;
+
+        function reset() {
+            snake = [{x: 8, y: 7}, {x: 7, y: 7}, {x: 6, y: 7}];
+            prevSnake = JSON.parse(JSON.stringify(snake));
+            direction = {x: 1, y: 0}; inputBuffer = []; score = 0;
+            gameState = 'playing'; lastTick = performance.now(); tickInterval = 150; ripples = [];
+            spawnApple();
+        }
+
+        function spawnApple() {
+            const empty = [];
+            for (let x = 0; x < COLS; x++) {
+                for (let y = 0; y < ROWS; y++) {
+                    if (!snake.some(s => s.x === x && s.y === y)) empty.push({x, y});
+                }
+            }
+            apple = empty[Math.floor(Math.random() * empty.length)] || {x: 0, y: 0};
+        }
+
+        const addDir = (d) => {
+            if (gameState !== 'playing') return;
+            const last = inputBuffer.length ? inputBuffer[inputBuffer.length-1] : direction;
+            // Impede 180 graus e limita o buffer a 2 comandos
+            if (d.x !== -last.x || d.y !== -last.y) {
+                if (inputBuffer.length < 2) inputBuffer.push(d);
+            }
+        };
+
+        window.addEventListener('keydown', e => {
+            if (e.key === 'ArrowUp') addDir({x: 0, y: -1});
+            if (e.key === 'ArrowDown') addDir({x: 0, y: 1});
+            if (e.key === 'ArrowLeft') addDir({x: -1, y: 0});
+            if (e.key === 'ArrowRight') addDir({x: 1, y: 0});
+        });
+
+        let tsX, tsY;
+        canvas.addEventListener('touchstart', e => { 
+            if (gameState === 'gameover') reset();
+            tsX = e.touches[0].clientX; tsY = e.touches[0].clientY; 
+        }, {passive: false});
+        canvas.addEventListener('touchend', e => {
+            const dx = e.changedTouches[0].clientX - tsX, dy = e.changedTouches[0].clientY - tsY;
+            if (Math.abs(dx) > Math.abs(dy)) { if (Math.abs(dx) > 30) addDir({x: Math.sign(dx), y: 0}); }
+            else { if (Math.abs(dy) > 30) addDir({x: 0, y: Math.sign(dy)}); }
+        });
+        canvas.addEventListener('mousedown', () => { if (gameState === 'gameover') reset(); });
+
+        function update(t) {
+            if (gameState !== 'playing' || t - lastTick < tickInterval) return false;
+            
+            prevSnake = JSON.parse(JSON.stringify(snake));
+            lastTick = t;
+
+            if (inputBuffer.length) direction = inputBuffer.shift();
+            const head = {x: snake[0].x + direction.x, y: snake[0].y + direction.y};
+            
+            if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS || snake.some(s => s.x === head.x && s.y === head.y)) {
+                gameState = 'gameover'; return;
+            }
+            
+            snake.unshift(head);
+            if (head.x === apple.x && head.y === apple.y) { 
+                score++; ripples.push(0); spawnApple(); 
+            } else snake.pop();
+            
+            ripples = ripples.map(r => r + 1).filter(r => r < snake.length);
+            return true;
+        }
+
+        function draw(t) {
+            update(t); // Atualiza a lógica
+            
+            // Cálculo do progresso entre um "tick" e outro (0 a 1)
+            const progress = Math.min(1, (t - lastTick) / tickInterval);
+
+            ctx.fillStyle = '#4a752c'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#aad751'; ctx.fillRect(OFFSET_X, OFFSET_Y, BOARD_W, BOARD_H);
+            ctx.fillStyle = '#a2d149';
+            for(let x=0; x<COLS; x++) for(let y=0; y<ROWS; y++) if((x+y)%2) ctx.fillRect(OFFSET_X+x*CELL_SIZE, OFFSET_Y+y*CELL_SIZE, CELL_SIZE, CELL_SIZE);
+            
+            // Maçã com brilho
+            ctx.shadowBlur = 10; ctx.shadowColor = 'rgba(231, 76, 60, 0.5)';
+            ctx.fillStyle = '#e74c3c'; ctx.beginPath();
+            ctx.arc(OFFSET_X+apple.x*CELL_SIZE+CELL_SIZE/2, OFFSET_Y+apple.y*CELL_SIZE+CELL_SIZE/2, CELL_SIZE/2.5, 0, Math.PI*2); ctx.fill();
+            ctx.shadowBlur = 0;
+
+            snake.forEach((s, i) => {
+                // Interpolação de posição entre o estado anterior e o atual
+                const prev = prevSnake[i] || snake[snake.length - 1];
+                const interpX = prev.x + (s.x - prev.x) * progress;
+                const interpY = prev.y + (s.y - prev.y) * progress;
+
+                // Ripple suave (onda de mastigação)
+                let rippleMod = 0;
+                ripples.forEach(rIdx => {
+                    const dist = Math.abs(i - (rIdx - 1 + progress));
+                    if (dist < 1.5) rippleMod = (1.5 - dist) * 8;
+                });
+
+                ctx.fillStyle = i === 0 ? '#4a752c' : '#527a32';
+                const x = OFFSET_X + interpX * CELL_SIZE, y = OFFSET_Y + interpY * CELL_SIZE;
+                
+                ctx.beginPath(); 
+                const size = CELL_SIZE - 4 + rippleMod;
+                if (ctx.roundRect) ctx.roundRect(x + (CELL_SIZE - size) / 2, y + (CELL_SIZE - size) / 2, size, size, i === 0 ? 12 : 6);
+                else ctx.fillRect(x + (CELL_SIZE - size) / 2, y + (CELL_SIZE - size) / 2, size, size);
+                ctx.fill();
+
+                if (i === 0) { // Cabeça e Olhos
+                    const dx = apple.x - interpX, dy = apple.y - interpY;
+                    const lookDist = Math.hypot(dx, dy);
+                    const lx = lookDist < 5 ? dx / lookDist : direction.x;
+                    const ly = lookDist < 5 ? dy / lookDist : direction.y;
+
+                    const ex = x + CELL_SIZE / 2 + direction.x * 8, ey = y + CELL_SIZE / 2 + direction.y * 8;
+                    const offX = direction.y * 7, offY = direction.x * 7;
+                    
+                    [[ex+offX, ey-offY], [ex-offX, ey+offY]].forEach(p => {
+                        if (gameState === 'gameover') {
+                            ctx.strokeStyle = 'white'; ctx.lineWidth = 3;
+                            ctx.beginPath(); ctx.moveTo(p[0]-5, p[1]-5); ctx.lineTo(p[0]+5, p[1]+5); ctx.stroke();
+                            ctx.beginPath(); ctx.moveTo(p[0]+5, p[1]-5); ctx.lineTo(p[0]-5, p[1]+5); ctx.stroke();
+                        } else {
+                            ctx.fillStyle = 'white'; ctx.beginPath(); ctx.arc(p[0], p[1], 4, 0, Math.PI*2); ctx.fill();
+                            ctx.fillStyle = 'black'; ctx.beginPath(); ctx.arc(p[0]+lx*2, p[1]+ly*2, 2, 0, Math.PI*2); ctx.fill();
+                        }
+                    });
+                }
+            });
+
+            ctx.fillStyle = 'white'; ctx.font = 'bold 24px Segoe UI'; ctx.textAlign = 'center';
+            ctx.fillText(`🍏 ${score}`, canvas.width/2, OFFSET_Y - 20);
+            if (gameState === 'gameover') {
+                ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0,0, canvas.width, canvas.height);
+                ctx.fillStyle = 'white'; ctx.fillText('FIM DE JOGO', canvas.width/2, canvas.height/2);
+            }
+            animationId = requestAnimationFrame(draw);
+        }
+        reset(); draw(0);
+    }
+
+    // --- MOTOR DO JOGO FLAPPY LUMO ---
+    function initFlappy(container) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        container.appendChild(canvas);
+
+        let bird, pipes, score, state, frames, flashAlpha;
+        const GRAVITY = 0.45; // Aceleração constante para baixo
+        const LIFT = -7.5;    // Impulso instantâneo para cima
+        const PIPE_SPEED = 3.2;
+        const PIPE_GAP = 180;
+        const PIPE_WIDTH = 75;
+
+        class Bird {
+            constructor() {
+                this.x = canvas.width / 4;
+                this.y = canvas.height / 2;
+                this.velocity = 0;
+                this.radius = 22;
+                this.angle = 0;
+                this.color = playerLumoColor;
+            }
+
+            flap() {
+                if (state === 'playing') {
+                    this.velocity = LIFT; // Vetor de força vertical positivo (instantâneo)
+                    this.angle = -25 * (Math.PI / 180); // Inclina a cabeça para cima imediatamente
+                } else if (state === 'start') {
+                    state = 'playing';
+                    this.velocity = LIFT;
+                } else if (state === 'gameover' && this.y >= canvas.height - this.radius - 40) {
+                    reset();
+                }
+            }
+
+            update() {
+                this.velocity += GRAVITY; // Gravidade progressiva
+                this.y += this.velocity;
+
+                // Colisão com o chão (Limite inferior)
+                if (this.y > canvas.height - this.radius - 40) {
+                    this.y = canvas.height - this.radius - 40;
+                    this.velocity = 0;
+                    if (state === 'playing') triggerGameOver();
+                }
+
+                if (this.y < this.radius) {
+                    this.y = this.radius;
+                    this.velocity = 0;
+                }
+
+                // Rotação dinâmica baseada no vetor de velocidade Y
+                if (state === 'playing' || state === 'gameover') {
+                    if (this.velocity > 3) {
+                        // Começa a girar agressivamente nariz para baixo na queda
+                        this.angle = Math.min(Math.PI / 2, this.angle + 0.1);
+                    }
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+
+                // Personagem (Lumo)
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Olhos
+                ctx.fillStyle = 'white';
+                ctx.beginPath(); ctx.arc(10, -8, 7, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(10, 8, 7, 0, Math.PI * 2); ctx.fill();
+                
+                if (state === 'gameover') {
+                    ctx.strokeStyle = '#555'; ctx.lineWidth = 2;
+                    [[7, -11, 13, -5], [13, -11, 7, -5], [7, 5, 13, 11], [13, 5, 7, 11]].forEach(p => {
+                        ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(p[2], p[3]); ctx.stroke();
+                    });
+                } else {
+                    ctx.fillStyle = 'black';
+                    ctx.beginPath(); ctx.arc(13, -8, 2.5, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(13, 8, 2.5, 0, Math.PI * 2); ctx.fill();
+                }
+                ctx.restore();
+            }
+        }
+
+        class Pipe {
+            constructor() {
+                this.width = PIPE_WIDTH;
+                this.x = canvas.width;
+                this.topHeight = Math.random() * (canvas.height - PIPE_GAP - 300) + 100;
+                this.passed = false;
+                this.color = `hsl(${Math.random() * 360}, 70%, 50%)`;
+            }
+
+            update() {
+                if (state === 'playing') this.x -= PIPE_SPEED;
+            }
+
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, 0, this.width, this.topHeight);
+                ctx.fillRect(this.x, this.topHeight + PIPE_GAP, this.width, canvas.height);
+                ctx.fillStyle = 'rgba(0,0,0,0.15)';
+                ctx.fillRect(this.x + this.width - 15, 0, 15, this.topHeight);
+                ctx.fillRect(this.x + this.width - 15, this.topHeight + PIPE_GAP, 15, canvas.height);
+            }
+
+            collide(bird) {
+                const hitRadius = bird.radius * 0.75; // Hitbox reduzida para ser justo
+                if (bird.x + hitRadius > this.x && bird.x - hitRadius < this.x + this.width) {
+                    if (bird.y - hitRadius < this.topHeight || bird.y + hitRadius > this.topHeight + PIPE_GAP) return true;
+                }
+                return false;
+            }
+        }
+
+        function triggerGameOver() {
+            state = 'gameover';
+            flashAlpha = 1.0;
+        }
+
+        function reset() {
+            bird = new Bird(); pipes = []; score = 0; state = 'start'; frames = 0; flashAlpha = 0;
+        }
+
+        const input = (e) => { if(e) e.preventDefault(); bird.flap(); };
+        canvas.addEventListener('mousedown', input);
+        canvas.addEventListener('touchstart', input, { passive: false });
+
+        function draw() {
+            const g = ctx.createLinearGradient(0,0,0, canvas.height);
+            g.addColorStop(0, '#4facfe'); g.addColorStop(1, '#00f2fe');
+            ctx.fillStyle = g; ctx.fillRect(0,0, canvas.width, canvas.height);
+
+            bird.update();
+            if (state === 'playing') {
+                if (frames++ % 90 === 0) pipes.push(new Pipe());
+                pipes.forEach((p, i) => {
+                    p.update();
+                    if (p.collide(bird)) triggerGameOver();
+                    if (!p.passed && bird.x > p.x + p.width) { score++; p.passed = true; }
+                    if (p.x + p.width < 0) pipes.splice(i, 1);
+                });
+            }
+
+            pipes.forEach(p => p.draw());
+            bird.draw();
+            
+            ctx.fillStyle = '#795548'; ctx.fillRect(0, canvas.height - 40, canvas.width, 40);
+            ctx.fillStyle = '#8bc34a'; ctx.fillRect(0, canvas.height - 40, canvas.width, 10);
+
+            ctx.fillStyle = 'white'; ctx.font = 'bold 60px Segoe UI'; ctx.textAlign = 'center';
+            ctx.shadowBlur = 4; ctx.shadowColor = 'black';
+            ctx.fillText(score, canvas.width/2, 100); ctx.shadowBlur = 0;
+
+            if (state === 'start') ctx.fillText('TOQUE PARA VOAR', canvas.width/2, canvas.height/2);
+            if (state === 'gameover') ctx.fillText('GAME OVER', canvas.width/2, canvas.height/2);
+
+            if (flashAlpha > 0) {
+                ctx.fillStyle = `rgba(255,255,255,${flashAlpha})`;
+                ctx.fillRect(0,0, canvas.width, canvas.height);
+                flashAlpha -= 0.1;
+            }
+            animationId = requestAnimationFrame(draw);
+        }
+        reset(); draw();
+    }
+
+    // --- MOTOR DO JOGO LUMO CRUSH (MATCH 3) ---
+    function initLumoCrush(container) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        container.appendChild(canvas);
+
+        const COLS = 9, ROWS = 12;
+        const CELL_SIZE = Math.min(canvas.width / (COLS + 1), (canvas.height - 200) / ROWS);
+        const BOARD_W = COLS * CELL_SIZE, BOARD_H = ROWS * CELL_SIZE;
+        const OFFSET_X = (canvas.width - BOARD_W) / 2, OFFSET_Y = 160;
+
+        const GEM_TYPES = [
+            { name: 'Ruby', color: 'rgba(231, 76, 60, 0.9)', light: '#ff7675', shape: 'octagon' },
+            { name: 'Sapphire', color: 'rgba(52, 152, 219, 0.9)', light: '#74b9ff', shape: 'diamond' },
+            { name: 'Emerald', color: 'rgba(46, 204, 113, 0.9)', light: '#55efc4', shape: 'emerald' },
+            { name: 'Amethyst', color: 'rgba(155, 89, 182, 0.8)', light: '#a29bfe', shape: 'triangle' },
+            { name: 'Topaz', color: 'rgba(241, 196, 15, 0.9)', light: '#ffeaa7', shape: 'hexagon' },
+            { name: 'Diamond', color: 'rgba(236, 240, 241, 0.5)', light: '#ffffff', shape: 'kite' },
+            { name: 'RoseQuartz', color: 'rgba(255, 184, 184, 0.7)', light: '#ffc9c9', shape: 'pentagon' },
+            { name: 'Jasper', color: 'rgba(150, 45, 45, 1)', light: '#c0392b', shape: 'square' },
+            { name: 'Pearl', color: 'rgba(254, 250, 241, 1)', light: '#ffffff', shape: 'round' },
+            { name: 'Agate', color: 'rgba(230, 126, 34, 1)', light: '#f39c12', shape: 'banded' }
+        ];
+
+        let board = [], score = 0, best = 0, selected = null, isAnimating = false, particles = [];
+        let timeLeft = 60, maxTime = 60; // Sistema de tempo
+
+        function createExplosion(x, y, color) {
+            // Adiciona tempo ao realizar um match
+            timeLeft = Math.min(maxTime, timeLeft + 3); // Pequeno bônus por peça
+
+            for (let i = 0; i < 15; i++) {
+                particles.push({
+                    x: x, y: y,
+                    vx: (Math.random() - 0.5) * 12,
+                    vy: (Math.random() - 0.5) * 12,
+                    life: 1.0,
+                    color: color,
+                    size: Math.random() * 5 + 2
+                });
+            }
+        }
+
+        function reset() {
+            score = 0; timeLeft = 60; board = []; particles = [];
+            for(let r=0; r<ROWS; r++) {
+                board[r] = [];
+                for(let c=0; c<COLS; c++) {
+                    let type;
+                    do { type = Math.floor(Math.random() * GEM_TYPES.length); } 
+                    while ((c > 1 && board[r][c-1].type === type && board[r][c-2].type === type) || 
+                           (r > 1 && board[r-1][c].type === type && board[r-2][c].type === type));
+                    board[r][c] = { 
+                        type, special: null, scale: 1,
+                        rx: c * CELL_SIZE, ry: r * CELL_SIZE
+                    };
+                }
+            }
+        }
+
+        function drawGem(ctx, gem, x, y, size) {
+            const info = GEM_TYPES[gem.type];
+            const cx = x + size/2, cy = y + size/2;
+            const r = (size/2) * 0.8 * gem.scale;
+
+            ctx.save();
+            if (gem.special === 'bomb') {
+                const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+                grad.addColorStop(0, '#fff'); grad.addColorStop(0.5, '#f1c40f'); grad.addColorStop(1, '#000');
+                ctx.fillStyle = grad;
+            } else {
+                ctx.fillStyle = info.color;
+            }
+
+            // Desenhar Caminho Vetorial Único por Tipo
+            ctx.beginPath();
+            switch(info.shape) {
+                case 'octagon':
+                    for(let i=0; i<8; i++) {
+                        const a = (i * 45) * Math.PI/180;
+                        ctx.lineTo(cx + Math.cos(a)*r, cy + Math.sin(a)*r);
+                    }
+                    break;
+                case 'diamond':
+                    ctx.moveTo(cx, cy-r); ctx.lineTo(cx+r*0.75, cy); ctx.lineTo(cx, cy+r); ctx.lineTo(cx-r*0.75, cy);
+                    break;
+                case 'emerald':
+                    const es = r * 0.6;
+                    ctx.moveTo(cx-es, cy-r); ctx.lineTo(cx+es, cy-r); ctx.lineTo(cx+r, cy-es); ctx.lineTo(cx+r, cy+es);
+                    ctx.lineTo(cx+es, cy+r); ctx.lineTo(cx-es, cy+r); ctx.lineTo(cx-r, cy+es); ctx.lineTo(cx-r, cy-es);
+                    break;
+                case 'triangle':
+                    ctx.moveTo(cx, cy-r*1.1); ctx.lineTo(cx+r, cy+r*0.8); ctx.lineTo(cx-r, cy+r*0.8);
+                    break;
+                case 'hexagon':
+                    for(let i=0; i<6; i++) {
+                        const a = (i * 60 + 30) * Math.PI/180;
+                        ctx.lineTo(cx + Math.cos(a)*r, cy + Math.sin(a)*r);
+                    }
+                    break;
+                case 'kite':
+                    ctx.moveTo(cx, cy-r*1.2); ctx.lineTo(cx+r*0.7, cy-r*0.2); ctx.lineTo(cx, cy+r); ctx.lineTo(cx-r*0.7, cy-r*0.2);
+                    break;
+                case 'pentagon':
+                    for(let i=0; i<5; i++) {
+                        const a = (i * 72 - 90) * Math.PI/180;
+                        ctx.lineTo(cx + Math.cos(a)*r, cy + Math.sin(a)*r);
+                    }
+                    break;
+                case 'square':
+                    ctx.rect(cx-r*0.75, cy-r*0.75, r*1.5, r*1.5);
+                    break;
+                case 'round':
+                    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                    break;
+                case 'banded':
+                    for(let i=0; i<6; i++) {
+                        const a = (i * 60) * Math.PI/180;
+                        ctx.lineTo(cx + Math.cos(a)*r, cy + Math.sin(a)*r);
+                    }
+                    break;
+            }
+            ctx.closePath();
+            ctx.fill();
+
+            // Clipping para garantir que detalhes internos não transbordem
+            ctx.save();
+            ctx.clip();
+
+            if (info.shape === 'round') {
+                const pGrad = ctx.createRadialGradient(cx - r/3, cy - r/3, r/10, cx, cy, r);
+                pGrad.addColorStop(0, '#fff');
+                pGrad.addColorStop(0.3, info.color);
+                pGrad.addColorStop(1, '#dcdde1');
+                ctx.fillStyle = pGrad; ctx.fill();
+            } else if (info.shape === 'banded') {
+                ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                for(let j=-r; j<r; j+=6) {
+                    ctx.beginPath(); ctx.moveTo(cx-r, cy+j); ctx.lineTo(cx+r, cy+j); ctx.stroke();
+                }
+            } else {
+                ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                ctx.lineWidth = 1;
+                const sides = (info.shape === 'octagon' ? 8 : (info.shape === 'triangle' ? 3 : (info.shape === 'pentagon' ? 5 : 4)));
+                for(let i=0; i<sides; i++) {
+                    const a = (i * (360/sides)) * Math.PI/180;
+                    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a)*r, cy + Math.sin(a)*r); ctx.stroke();
+                }
+                const shine = ctx.createRadialGradient(cx - r/3, cy - r/3, 0, cx - r/3, cy - r/3, r);
+                shine.addColorStop(0, 'rgba(255,255,255,0.4)'); shine.addColorStop(1, 'transparent');
+                ctx.fillStyle = shine; ctx.fill();
+            }
+
+            // Brilhinho (Sparkle) Suave e Orgânico
+            const t = Date.now() * 0.0012;
+            const seed = gem.rx * 0.13 + gem.ry * 0.17;
+            const sparkleChance = Math.sin(t * 0.8 + seed) * Math.cos(t * 1.3 + seed * 2);
+            if (sparkleChance > 0.88) {
+                ctx.save();
+                ctx.globalAlpha = (sparkleChance - 0.88) * 8;
+                ctx.translate(cx + Math.cos(seed)*r*0.4, cy + Math.sin(seed*1.5)*r*0.4);
+                const sSize = r * 0.45;
+                ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 1.2;
+                ctx.beginPath(); ctx.moveTo(-sSize, 0); ctx.lineTo(sSize, 0); ctx.moveTo(0, -sSize); ctx.lineTo(0, sSize); ctx.stroke();
+                ctx.restore();
+            }
+
+            ctx.restore(); // Remove o clip para os efeitos de poder (que podem brilhar fora)
+
+            // Efeitos de Poder
+            if (gem.special === 'striped-h') {
+                ctx.strokeStyle = 'white'; ctx.lineWidth = 3;
+                ctx.shadowBlur = 10; ctx.shadowColor = 'white';
+                ctx.beginPath(); ctx.moveTo(cx-r, cy); ctx.lineTo(cx+r, cy); ctx.stroke();
+            } else if (gem.special === 'striped-v') {
+                ctx.strokeStyle = 'white'; ctx.lineWidth = 3;
+                ctx.shadowBlur = 10; ctx.shadowColor = 'white';
+                ctx.beginPath(); ctx.moveTo(cx, cy-r); ctx.lineTo(cx, cy+r); ctx.stroke();
+            } else if (gem.special === 'wrapped') {
+                ctx.shadowBlur = 15; ctx.shadowColor = info.light;
+                ctx.strokeStyle = 'white'; ctx.lineWidth = 2; ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        function checkMatches() {
+            let toRemove = new Set();
+            let specialsToCreate = [];
+
+            // Horizontal
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS - 2; c++) {
+                    let matchLen = 1;
+                    while (c + matchLen < COLS && board[r][c + matchLen].type === board[r][c].type) matchLen++;
+                    if (matchLen >= 3) {
+                        for (let i = 0; i < matchLen; i++) toRemove.add(`${r},${c+i}`);
+                        if (matchLen === 4) {
+                            specialsToCreate.push({r, c: c+1, type: board[r][c].type, s: 'striped-h'});
+                            timeLeft = Math.min(maxTime, timeLeft + 20); // Bonus match 4
+                        }
+                        if (matchLen >= 5) specialsToCreate.push({r, c: c+2, type: board[r][c].type, s: 'bomb'});
+                        c += matchLen - 1;
+                    }
+                }
+            }
+
+            // Vertical
+            for (let c = 0; c < COLS; c++) {
+                for (let r = 0; r < ROWS - 2; r++) {
+                    let matchLen = 1;
+                    while (r + matchLen < ROWS && board[r + matchLen][c].type === board[r][c].type) matchLen++;
+                    if (matchLen >= 3) {
+                        for (let i = 0; i < matchLen; i++) toRemove.add(`${r+i},${c}`);
+                        if (matchLen === 4) {
+                            specialsToCreate.push({r: r+1, c, type: board[r][c].type, s: 'striped-v'});
+                            timeLeft = Math.min(maxTime, timeLeft + 20); // Bonus match 4
+                        }
+                        if (matchLen >= 5 && !specialsToCreate.some(s => s.s === 'bomb')) specialsToCreate.push({r: r+2, c, type: board[r][c].type, s: 'bomb'});
+                        r += matchLen - 1;
+                    }
+                }
+            }
+
+            if (toRemove.size > 0) {
+                // Adiciona 20s base por cada grupo de match detectado
+                timeLeft = Math.min(maxTime, timeLeft + 20);
+                toRemove.forEach(pos => {
+                    const [r, c] = pos.split(',').map(Number);
+                    if (board[r][c]) {
+                        createExplosion(OFFSET_X + c * CELL_SIZE + CELL_SIZE/2, OFFSET_Y + r * CELL_SIZE + CELL_SIZE/2, GEM_TYPES[board[r][c].type].color);
+                        board[r][c] = null;
+                    }
+                    score += 10;
+                });
+                specialsToCreate.forEach(s => {
+                    board[s.r][s.c] = { 
+                        type: s.type, special: s.s, scale: 1,
+                        rx: s.c * CELL_SIZE, ry: s.r * CELL_SIZE
+                    };
+                });
+                setTimeout(refillBoard, 300);
+                return true;
+            }
+            return false;
+        }
+
+        function refillBoard() {
+            for (let c = 0; c < COLS; c++) {
+                let emptySlots = 0;
+                for (let r = ROWS - 1; r >= 0; r--) {
+                    if (board[r][c] === null) emptySlots++;
+                    else if (emptySlots > 0) {
+                        board[r + emptySlots][c] = board[r][c];
+                        board[r][c] = null;
+                    }
+                }
+                for (let r = 0; r < emptySlots; r++) {
+                    board[r][c] = { 
+                        type: Math.floor(Math.random() * GEM_TYPES.length), 
+                        special: null, scale: 1,
+                        rx: c * CELL_SIZE, ry: (r - emptySlots) * CELL_SIZE
+                    };
+                }
+            }
+            setTimeout(() => { if (!checkMatches()) isAnimating = false; }, 400);
+        }
+
+        function swapGems(r1, c1, r2, c2) {
+            isAnimating = true;
+            const temp = board[r1][c1];
+            board[r1][c1] = board[r2][c2];
+            board[r2][c2] = temp;
+
+            if (!checkMatches()) {
+                // Reverte se não houver match
+                setTimeout(() => {
+                    const back = board[r1][c1];
+                    board[r1][c1] = board[r2][c2];
+                    board[r2][c2] = back;
+                    isAnimating = false;
+                }, 300);
+            }
+        }
+
+        let dragStartPos = null;
+        function handleStart(clientX, clientY) {
+            if (isAnimating || timeLeft <= 0) {
+                if (timeLeft <= 0 && !isAnimating) {
+                    const btnX = canvas.width / 2;
+                    const btnY = canvas.height / 2 + 105;
+                    if (Math.abs(clientX - btnX) < 80 && Math.abs(clientY - btnY) < 25) {
+                        reset();
+                    }
+                }
+                return;
+            }
+            const c = Math.floor((clientX - OFFSET_X) / CELL_SIZE);
+            const r = Math.floor((clientY - OFFSET_Y) / CELL_SIZE);
+            if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
+            selected = { r, c };
+            dragStartPos = { r, c };
+        }
+
+        function handleMove(clientX, clientY) {
+            if (!dragStartPos || isAnimating || timeLeft <= 0) return;
+            const c = Math.floor((clientX - OFFSET_X) / CELL_SIZE);
+            const r = Math.floor((clientY - OFFSET_Y) / CELL_SIZE);
+            if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
+
+            if (r !== dragStartPos.r || c !== dragStartPos.c) {
+                const dist = Math.abs(r - dragStartPos.r) + Math.abs(c - dragStartPos.c);
+                if (dist === 1) {
+                    swapGems(dragStartPos.r, dragStartPos.c, r, c);
+                    dragStartPos = null;
+                    selected = null;
+                }
+            }
+        }
+
+        function handleEnd() { dragStartPos = null; }
+
+        canvas.addEventListener('mousedown', e => handleStart(e.clientX, e.clientY));
+        window.addEventListener('mousemove', e => handleMove(e.clientX, e.clientY));
+        window.addEventListener('mouseup', handleEnd);
+
+        canvas.addEventListener('touchstart', e => { handleStart(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, { passive: false });
+        canvas.addEventListener('touchmove', e => { handleMove(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, { passive: false });
+        canvas.addEventListener('touchend', handleEnd);
+
+        function draw() {
+            // Lógica de tempo "secando"
+            if (!isAnimating && timeLeft > 0) {
+                timeLeft -= 0.016; // Redução por frame
+                if (timeLeft < 0) {
+                    timeLeft = 0;
+                }
+            }
+
+            // Fundo Sophisticated Lounge
+            const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            sky.addColorStop(0, '#2c3e50'); sky.addColorStop(1, '#000000');
+            ctx.fillStyle = sky; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Textura sutil de fundo
+            ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+            for(let i=0; i<canvas.width; i+=40) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+            }
+
+            // Brilho de Luminária
+            const lamp = ctx.createRadialGradient(canvas.width, 0, 0, canvas.width, 0, 400);
+            lamp.addColorStop(0, 'rgba(241, 196, 15, 0.1)'); lamp.addColorStop(1, 'transparent');
+            ctx.fillStyle = lamp; ctx.fillRect(0,0, canvas.width, canvas.height);
+
+            // HUD
+            ctx.fillStyle = 'white'; ctx.textAlign = 'center';
+            ctx.font = '14px Segoe UI'; ctx.globalAlpha = 0.7;
+            ctx.fillText('SCORE', canvas.width/4, 60);
+            ctx.fillText('TIME', canvas.width/2, 60);
+            ctx.fillText('BEST', canvas.width * 0.75, 60);
+            
+            if (score > best) best = score;
+
+            ctx.globalAlpha = 1.0; ctx.font = 'bold 28px Segoe UI';
+            ctx.fillText(score, canvas.width/4, 95);
+            ctx.fillText(Math.ceil(timeLeft) + 's', canvas.width/2, 95);
+            ctx.fillText(best, canvas.width * 0.75, 95);
+
+            // Progress Bar
+            const pbW = 200, pbH = 10;
+            const pbX = canvas.width / 2 - pbW / 2;
+            const pbY = 120;
+
+            // Fundo da barra (vazia)
+            ctx.beginPath();
+            ctx.fillStyle = 'rgba(255,255,255,0.1)';
+            ctx.roundRect(pbX, pbY, pbW, pbH, 5);
+            ctx.fill();
+
+            // Barra Amarela (Preenchimento)
+            const progress = Math.max(0, timeLeft / maxTime);
+            if (progress > 0) {
+                ctx.beginPath();
+                ctx.fillStyle = '#f1c40f';
+                ctx.roundRect(pbX, pbY, pbW * progress, pbH, 5);
+                ctx.fill();
+            }
+
+            // Tabuleiro (Vidro flutuante)
+            ctx.fillStyle = 'rgba(255,255,255,0.05)';
+            ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(OFFSET_X - 10, OFFSET_Y - 10, BOARD_W + 20, BOARD_H + 20, 15);
+            ctx.fill(); ctx.stroke();
+
+            // Joias
+            for(let r=0; r<ROWS; r++) {
+                for(let c=0; c<COLS; c++) {
+                    const gem = board[r][c];
+                    if (gem) {
+                        // Interpolação suave de posição (Swaps e Quedas)
+                        const targetX = c * CELL_SIZE;
+                        const targetY = r * CELL_SIZE;
+                        gem.rx += (targetX - gem.rx) * 0.2;
+                        gem.ry += (targetY - gem.ry) * 0.2;
+                        
+                        const x = OFFSET_X + gem.rx;
+                        const y = OFFSET_Y + gem.ry;
+                        
+                        if (selected && selected.r === r && selected.c === c) {
+                            ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                            ctx.beginPath(); ctx.roundRect(x+2, y+2, CELL_SIZE-4, CELL_SIZE-4, 8); ctx.fill();
+                        }
+                        drawGem(ctx, gem, x, y, CELL_SIZE);
+                    }
+                }
+            }
+
+            // Sistema de Partículas (Explosões Neon)
+            particles = particles.filter(p => {
+                p.x += p.vx; p.y += p.vy;
+                p.vy += 0.4; // Gravidade sutil
+                p.life -= 0.04;
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.beginPath(); 
+                ctx.arc(p.x, p.y, Math.max(0, p.size * p.life), 0, Math.PI * 2); 
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+                return p.life > 0;
+            });
+
+            if (timeLeft <= 0 && !isAnimating) {
+                ctx.fillStyle = 'rgba(0,0,0,0.8)'; ctx.fillRect(0,0, canvas.width, canvas.height);
+                ctx.fillStyle = 'white'; ctx.font = 'bold 40px Segoe UI';
+                ctx.fillText('FIM DE JOGO', canvas.width/2, canvas.height/2);
+                ctx.font = '20px Segoe UI'; ctx.fillText(`Pontuação: ${score}`, canvas.width/2, canvas.height/2 + 50);
+                
+                ctx.fillStyle = '#4a90e2';
+                ctx.roundRect(canvas.width/2 - 80, canvas.height/2 + 80, 160, 50, 10); ctx.fill();
+                ctx.fillStyle = 'white'; ctx.fillText('REPETIR ↻', canvas.width/2, canvas.height/2 + 112);
+            }
+
+            animationId = requestAnimationFrame(draw);
+        }
+        reset(); draw();
+    }
+
+    // --- MOTOR DO JOGO LUMO SLICE (SUIIKA CLONE) ---
+    function initLumoSlice(container) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        container.appendChild(canvas);
+
+        const FRUIT_TYPES = [
+            { name: 'Morango', radius: 15, color: '#ff3b30', score: 2 },
+            { name: 'Cereja', radius: 22, color: '#ff2d55', score: 4 },
+            { name: 'Uva', radius: 30, color: '#af52de', score: 8 },
+            { name: 'Tangerina', radius: 40, color: '#ff9500', score: 16 },
+            { name: 'Caqui', radius: 50, color: '#ff6b3d', score: 32 },
+            { name: 'Maçã', radius: 62, color: '#e74c3c', score: 64 },
+            { name: 'Pera', radius: 75, color: '#c5e1a5', score: 128 },
+            { name: 'Pêssego', radius: 90, color: '#ffab91', score: 256 },
+            { name: 'Abacaxi', radius: 105, color: '#f1c40f', score: 512 },
+            { name: 'Melão', radius: 125, color: '#9ccc65', score: 1024 },
+            { name: 'Lumo-Melancia', radius: 150, color: '#2ecc71', score: 2048 }
+        ];
+
+        const POT_W = 340;
+        const POT_H = 450;
+        const POT_X = (canvas.width - POT_W) / 2;
+        const POT_Y = canvas.height - POT_H - 40;
+        const LIMIT_Y = POT_Y - 20;
+
+        let fruits = [], particles = [], score = 0, nextFruitIdx = 0;
+        let currentX = canvas.width / 2;
+        let isGameOver = false, isTouching = false;
+        let gameOverTimer = 0;
+        let canDrop = true;
+
+        function spawnFruit() {
+            nextFruitIdx = Math.floor(Math.random() * 5); // Apenas as 5 primeiras caem
+        }
+
+        class Fruit {
+            constructor(x, y, typeIdx, isStatic = false) {
+                this.x = x; this.y = y; this.typeIdx = typeIdx;
+                this.radius = FRUIT_TYPES[typeIdx].radius;
+                this.color = FRUIT_TYPES[typeIdx].color;
+                this.vx = 0; this.vy = 0;
+                this.isStatic = isStatic;
+                this.popScale = 1.0;
+                this.fusionCooldown = false;
+            }
+
+            update() {
+                if (this.isStatic) return;
+                this.vy += 0.45; // Gravidade
+                this.x += this.vx; this.y += this.vy;
+                this.vx *= 0.98; // Atrito
+                this.vy *= 0.98;
+
+                // Colisão com Paredes do Pote
+                if (this.x - this.radius < POT_X) {
+                    this.x = POT_X + this.radius; this.vx *= -0.3;
+                } else if (this.x + this.radius > POT_X + POT_W) {
+                    this.x = POT_X + POT_W - this.radius; this.vx *= -0.3;
+                }
+                if (this.y + this.radius > POT_Y + POT_H) {
+                    this.y = POT_Y + POT_H - this.radius; this.vy *= -0.3;
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.scale(this.popScale, this.popScale);
+                
+                // Estilo Lumo: Gradiente radial para volume
+                const grad = ctx.createRadialGradient(-this.radius/3, -this.radius/3, 0, 0, 0, this.radius);
+                grad.addColorStop(0, '#fff'); grad.addColorStop(0.2, this.color); grad.addColorStop(1, darkenColor(this.color, 0.4));
+                
+                ctx.fillStyle = grad;
+                ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI * 2); ctx.fill();
+                
+                // Brilho de superfície
+                ctx.globalAlpha = 0.3;
+                ctx.fillStyle = 'white';
+                ctx.beginPath(); ctx.ellipse(-this.radius/2.5, -this.radius/2.5, this.radius/4, this.radius/6, Math.PI/4, 0, Math.PI*2); ctx.fill();
+                ctx.restore();
+
+                if (this.popScale > 1.0) this.popScale -= 0.05;
+            }
+        }
+
+        function createSplash(x, y, color) {
+            for (let i = 0; i < 12; i++) {
+                particles.push({
+                    x, y, vx: (Math.random() - 0.5) * 10, vy: (Math.random() - 0.5) * 10,
+                    life: 1.0, color, size: Math.random() * 6 + 2
+                });
+            }
+        }
+
+        function resolveCollisions() {
+            for (let i = 0; i < fruits.length; i++) {
+                for (let j = i + 1; j < fruits.length; j++) {
+                    let a = fruits[i], b = fruits[j];
+                    if (a.isStatic || b.isStatic) continue;
+
+                    let dx = b.x - a.x, dy = b.y - a.y;
+                    let dist = Math.hypot(dx, dy);
+                    let minDist = a.radius + b.radius;
+
+                    if (dist < minDist) {
+                        // Fusão!
+                        if (a.typeIdx === b.typeIdx && a.typeIdx < FRUIT_TYPES.length - 1 && !a.fusionCooldown && !b.fusionCooldown) {
+                            const midX = (a.x + b.x) / 2, midY = (a.y + b.y) / 2;
+                            createSplash(midX, midY, a.color);
+                            score += FRUIT_TYPES[a.typeIdx].score;
+                            
+                            fruits.splice(j, 1);
+                            fruits.splice(i, 1);
+                            
+                            let evolved = new Fruit(midX, midY, a.typeIdx + 1);
+                            evolved.popScale = 1.4;
+                            fruits.push(evolved);
+                            
+                            // Impulso radial para as outras frutas (impacto na grade)
+                            fruits.forEach(f => {
+                                let d = Math.hypot(f.x - midX, f.y - midY);
+                                if (d < 150 && f !== evolved) {
+                                    let ang = Math.atan2(f.y - midY, f.x - midX);
+                                    f.vx += Math.cos(ang) * 5; f.vy += Math.sin(ang) * 5;
+                                }
+                            });
+                            return; // Processa uma fusão por frame para estabilidade
+                        }
+
+                        // Resolução física (Elastic Collision)
+                        let overlap = minDist - dist;
+                        let nx = dx / dist, ny = dy / dist;
+                        a.x -= nx * overlap / 2; a.y -= ny * overlap / 2;
+                        b.x += nx * overlap / 2; b.y += ny * overlap / 2;
+
+                        let vRelative = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+                        if (vRelative < 0) {
+                            let impulse = -(1.3 * vRelative) / 2;
+                            a.vx -= impulse * nx; a.vy -= impulse * ny;
+                            b.vx += impulse * nx; b.vy += impulse * ny;
+                        }
+                    }
+                }
+            }
+        }
+
+        function handleStart(clientX) {
+            if (isGameOver) { reset(); return; }
+            isTouching = true;
+            currentX = Math.max(POT_X + 20, Math.min(POT_X + POT_W - 20, clientX));
+        }
+
+        function handleMove(clientX) {
+            if (!isTouching || isGameOver) return;
+            currentX = Math.max(POT_X + 20, Math.min(POT_X + POT_W - 20, clientX));
+        }
+
+        function handleEnd() {
+            if (!isTouching || isGameOver || !canDrop) return;
+            isTouching = false;
+            canDrop = false;
+            
+            let f = new Fruit(currentX, LIMIT_Y - 50, nextFruitIdx);
+            fruits.push(f);
+            
+            spawnFruit();
+            setTimeout(() => canDrop = true, 600);
+        }
+
+        canvas.addEventListener('mousedown', e => handleStart(e.clientX));
+        window.addEventListener('mousemove', e => handleMove(e.clientX));
+        window.addEventListener('mouseup', handleEnd);
+        canvas.addEventListener('touchstart', e => { handleStart(e.touches[0].clientX); e.preventDefault(); }, {passive:false});
+        canvas.addEventListener('touchmove', e => { handleMove(e.touches[0].clientX); e.preventDefault(); }, {passive:false});
+        canvas.addEventListener('touchend', handleEnd);
+
+        function reset() {
+            fruits = []; particles = []; score = 0; isGameOver = false; gameOverTimer = 0; canDrop = true; spawnFruit();
+        }
+
+        function draw() {
+            // Fundo
+            ctx.fillStyle = '#f5f6fa'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Linha de Limite
+            ctx.strokeStyle = '#e74c3c'; ctx.setLineDash([10, 10]); ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(POT_X, LIMIT_Y); ctx.lineTo(POT_X + POT_W, LIMIT_Y); ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Pote (Transparente Sophisticado)
+            ctx.fillStyle = 'rgba(255,255,255,0.6)';
+            ctx.strokeStyle = '#2f3640'; ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.moveTo(POT_X, POT_Y); ctx.lineTo(POT_X, POT_Y + POT_H);
+            ctx.lineTo(POT_X + POT_W, POT_Y + POT_H); ctx.lineTo(POT_X + POT_W, POT_Y);
+            ctx.stroke(); ctx.fill();
+
+            // Fruta em espera
+            if (canDrop && !isGameOver) {
+                let preview = new Fruit(currentX, LIMIT_Y - 50, nextFruitIdx, true);
+                preview.draw();
+                ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.beginPath();
+                ctx.moveTo(currentX, LIMIT_Y - 50); ctx.lineTo(currentX, POT_Y + POT_H); ctx.stroke();
+            }
+
+            // Partículas
+            particles = particles.filter(p => {
+                p.x += p.vx; p.y += p.vy; p.vy += 0.2; p.life -= 0.02;
+                ctx.globalAlpha = p.life; ctx.fillStyle = p.color;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+                return p.life > 0;
+            });
+            ctx.globalAlpha = 1;
+
+            // Lógica Física
+            let touchingLimit = false;
+            fruits.forEach(f => {
+                f.update();
+                f.draw();
+                // Check Game Over (acima da linha por tempo)
+                if (f.y - f.radius < LIMIT_Y && f.vy < 1) touchingLimit = true;
+            });
+            resolveCollisions();
+
+            if (touchingLimit && fruits.length > 5) {
+                gameOverTimer += 0.016;
+                if (gameOverTimer > 3) isGameOver = true;
+                // Alerta visual
+                ctx.fillStyle = `rgba(231, 76, 60, ${Math.abs(Math.sin(Date.now()/200)) * 0.3})`;
+                ctx.fillRect(POT_X, LIMIT_Y, POT_W, 10);
+            } else {
+                gameOverTimer = 0;
+            }
+
+            // UI
+            ctx.fillStyle = '#2f3640'; ctx.font = 'bold 30px Segoe UI'; ctx.textAlign = 'center';
+            ctx.fillText(score, canvas.width/2, 60);
+
+            if (isGameOver) {
+                ctx.fillStyle = 'rgba(0,0,0,0.85)'; ctx.fillRect(0,0, canvas.width, canvas.height);
+                ctx.fillStyle = 'white'; ctx.fillText('POTE CHEIO!', canvas.width/2, canvas.height/2 - 20);
+                ctx.font = '20px Segoe UI'; ctx.fillText(`Pontuação final: ${score}`, canvas.width/2, canvas.height/2 + 30);
+                ctx.fillStyle = '#4a90e2'; ctx.fillRect(canvas.width/2 - 80, canvas.height/2 + 70, 160, 50);
+                ctx.fillStyle = 'white'; ctx.fillText('REPETIR ↻', canvas.width/2, canvas.height/2 + 102);
+            }
+
+            animationId = requestAnimationFrame(draw);
+        }
+        spawnFruit(); draw();
+    }
+
+    // --- MOTOR DO JOGO LUMO WORD (CAÇA-PALAVRAS) ---
+    function initLumoWord(container) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        container.appendChild(canvas);
+
+        let level = 1, gridSize = 8, grid = [], words = [], foundWords = [], selection = null, score = 0;
+        const VOCABULARY = ["LUMO", "AMIGO", "CASA", "PET", "DOCE", "BOLA", "SOL", "LUA", "VIDA", "NUVEM", "BANHO", "FOME", "SONO", "JOGO", "RISO", "ESTRELA", "COZINHA", "QUARTO", "SALA", "FLOR", "BRINCAR", "FELIZ"];
+
+        function setupLevel() {
+            gridSize = Math.min(14, 7 + level);
+            const wordCount = Math.min(6, 2 + level);
+            words = []; foundWords = [];
+            
+            const available = [...VOCABULARY].filter(w => w.length <= gridSize);
+            for(let i=0; i<wordCount && available.length > 0; i++) {
+                const idx = Math.floor(Math.random() * available.length);
+                words.push(available.splice(idx, 1)[0]);
+            }
+
+            grid = Array(gridSize).fill().map(() => Array(gridSize).fill(null));
+            words.forEach(word => {
+                let placed = false, attempts = 0;
+                const dirs = [[1,0], [0,1], [1,1], [1,-1]];
+                if (level > 2) dirs.push([-1, 0], [0, -1]); // Inicia palavras invertidas após level 2
+
+                while(!placed && attempts < 150) {
+                    const d = dirs[Math.floor(Math.random()*dirs.length)];
+                    const r = Math.floor(Math.random()*gridSize), c = Math.floor(Math.random()*gridSize);
+                    if (canPlace(word, r, c, d)) {
+                        for(let i=0; i<word.length; i++) grid[r + d[1]*i][c + d[0]*i] = word[i];
+                        placed = true;
+                    }
+                    attempts++;
+                }
+            });
+
+            const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            for(let r=0; r<gridSize; r++) {
+                for(let c=0; c<gridSize; c++) {
+                    if(!grid[r][c]) grid[r][c] = letters[Math.floor(Math.random()*letters.length)];
+                }
+            }
+        }
+
+        function canPlace(word, r, c, d) {
+            for(let i=0; i<word.length; i++) {
+                const nr = r + d[1]*i, nc = c + d[0]*i;
+                if(nr < 0 || nr >= gridSize || nc < 0 || nc >= gridSize) return false;
+                if(grid[nr][nc] && grid[nr][nc] !== word[i]) return false;
+            }
+            return true;
+        }
+
+        function getCell(x, y) {
+            const availableH = canvas.height - 200;
+            const cellSize = Math.max(20, Math.min((canvas.width - 40) / gridSize, availableH / gridSize));
+            const offsetX = (canvas.width - cellSize * gridSize) / 2;
+            const offsetY = 100 + (availableH - cellSize * gridSize) / 2;
+
+            const c = Math.floor((x - offsetX) / cellSize), r = Math.floor((y - offsetY) / cellSize);
+            return (r >= 0 && r < gridSize && c >= 0 && c < gridSize) ? {r, c} : null;
+        }
+
+        const handleStart = (x, y) => { const cell = getCell(x, y); if(cell) selection = { start: cell, end: cell }; };
+        const handleMove = (x, y) => { if(selection) { const cell = getCell(x, y); if(cell) selection.end = cell; } };
+        const handleEnd = () => {
+            if(selection) {
+                const s = selection.start, e = selection.end;
+                const dc = e.c - s.c, dr = e.r - s.r, dist = Math.max(Math.abs(dc), Math.abs(dr));
+                if (dist > 0 && (Math.abs(dc) === Math.abs(dr) || dc === 0 || dr === 0)) {
+                    const sc = dc === 0 ? 0 : dc / Math.abs(dc), sr = dr === 0 ? 0 : dr / Math.abs(dr);
+                    let selWord = ""; let cells = [];
+                    for(let i=0; i<=dist; i++) { const r = s.r + sr*i, c = s.c + sc*i; selWord += grid[r][c]; cells.push({r, c}); }
+                    const revWord = selWord.split('').reverse().join('');
+                    const match = words.find(w => (w === selWord || w === revWord) && !foundWords.some(f => f.word === w));
+                    if (match) {
+                        foundWords.push({word: match, cells}); score += 100 * level;
+                        if(foundWords.length === words.length) { level++; setTimeout(setupLevel, 800); }
+                    }
+                }
+                selection = null;
+            }
+        };
+
+        canvas.addEventListener('mousedown', e => handleStart(e.clientX, e.clientY));
+        window.addEventListener('mousemove', e => handleMove(e.clientX, e.clientY));
+        window.addEventListener('mouseup', handleEnd);
+        canvas.addEventListener('touchstart', e => { handleStart(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, {passive:false});
+        canvas.addEventListener('touchmove', e => { handleMove(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, {passive:false});
+        canvas.addEventListener('touchend', handleEnd);
+
+        function draw() {
+            ctx.fillStyle = '#1e272e'; ctx.fillRect(0,0,canvas.width, canvas.height);
+            const availableH = canvas.height - 200;
+            const cellSize = Math.max(20, Math.min((canvas.width - 40) / gridSize, availableH / gridSize));
+            const offsetX = (canvas.width - cellSize * gridSize) / 2;
+            const offsetY = 100 + (availableH - cellSize * gridSize) / 2;
+
+            ctx.lineCap = 'round';
+            foundWords.forEach(f => {
+                ctx.strokeStyle = 'rgba(46, 204, 113, 0.4)'; ctx.lineWidth = cellSize * 0.7; ctx.beginPath();
+                ctx.moveTo(offsetX + f.cells[0].c*cellSize + cellSize/2, offsetY + f.cells[0].r*cellSize + cellSize/2);
+                ctx.lineTo(offsetX + f.cells[f.cells.length-1].c*cellSize + cellSize/2, offsetY + f.cells[f.cells.length-1].r*cellSize + cellSize/2);
+                ctx.stroke();
+            });
+
+            if(selection) {
+                ctx.strokeStyle = 'rgba(52, 152, 219, 0.4)'; ctx.lineWidth = cellSize * 0.7; ctx.beginPath();
+                ctx.moveTo(offsetX + selection.start.c*cellSize + cellSize/2, offsetY + selection.start.r*cellSize + cellSize/2);
+                ctx.lineTo(offsetX + selection.end.c*cellSize + cellSize/2, offsetY + selection.end.r*cellSize + cellSize/2);
+                ctx.stroke();
+            }
+
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = `bold ${cellSize * 0.5}px Segoe UI`;
+            for(let r=0; r<gridSize; r++) {
+                for(let c=0; c<gridSize; c++) {
+                    ctx.fillStyle = 'white'; ctx.fillText(grid[r][c], offsetX + c*cellSize + cellSize/2, offsetY + r*cellSize + cellSize/2);
+                }
+            }
+
+            ctx.fillStyle = '#f1c40f'; ctx.font = 'bold 24px Segoe UI';
+            ctx.fillText(`LUMO WORD`, canvas.width/2, 40);
+            ctx.fillStyle = 'white'; ctx.font = '16px Segoe UI';
+            ctx.fillText(`Nível: ${level}  -  Score: ${score}`, canvas.width/2, 80);
+            
+            ctx.font = '14px Segoe UI';
+            let wordY = canvas.height - 60;
+            const wordListStr = words.map(w => foundWords.some(f => f.word === w) ? `✓ ${w}` : w).join("  ");
+            ctx.fillStyle = 'rgba(255,255,255,0.7)';
+            ctx.fillText(wordListStr, canvas.width/2, wordY);
+
+            animationId = requestAnimationFrame(draw);
+        }
+
+        setupLevel();
+        draw();
     }
 });
