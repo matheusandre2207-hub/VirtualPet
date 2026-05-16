@@ -331,11 +331,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 ctx.arc(this.x - cam.x, this.y - cam.y, this.radius, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // Olhos
-                ctx.fillStyle = 'white';
-                const eyeX = this.x - cam.x + Math.cos(this.angle) * 5;
-                const eyeY = this.y - cam.y + Math.sin(this.angle) * 5;
-                ctx.beginPath(); ctx.arc(eyeX, eyeY, 4, 0, Math.PI*2); ctx.fill();
+                // Olhos dinâmicos que seguem a comida
+                let nearestFood = null;
+                let minDist = 300; // Raio de visão para os olhos se moverem
+                for (const f of foods) {
+                    const d = Math.hypot(f.x - this.x, f.y - this.y);
+                    if (d < minDist) {
+                        minDist = d;
+                        nearestFood = f;
+                    }
+                }
+                // Se não houver comida perto, olha para frente
+                const lookAngle = nearestFood ? Math.atan2(nearestFood.y - this.y, nearestFood.x - this.x) : this.angle;
+
+                const eyeSpacing = 0.8; // Ângulo de abertura dos olhos
+                const eyeDist = this.radius * 0.5; // Distância do centro da cabeça
+                
+                [-1, 1].forEach(side => {
+                    const ex = this.x - cam.x + Math.cos(this.angle + side * eyeSpacing) * eyeDist;
+                    const ey = this.y - cam.y + Math.sin(this.angle + side * eyeSpacing) * eyeDist;
+                    
+                    ctx.fillStyle = 'white';
+                    ctx.beginPath();
+                    ctx.arc(ex, ey, 4, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    const px = ex + Math.cos(lookAngle) * 1.5;
+                    const py = ey + Math.sin(lookAngle) * 1.5;
+                    ctx.fillStyle = 'black';
+                    ctx.beginPath();
+                    ctx.arc(px, py, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                });
             }
         }
 
