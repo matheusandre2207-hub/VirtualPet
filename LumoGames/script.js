@@ -74,7 +74,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const WORLD_SIZE = 3000;
         const SEGMENT_DISTANCE = 5; // Distância fixa entre pontos do rastro para efeito de corda
+        const JOYSTICK_RADIUS = 60;
+        const JOYSTICK_BASE_X = canvas.width / 2;
+        const JOYSTICK_BASE_Y = canvas.height - 100;
+
         let mouse = { x: canvas.width / 2, y: canvas.height / 2, pressed: false, isDoubleHold: false };
+        let joystick = { x: JOYSTICK_BASE_X, y: JOYSTICK_BASE_Y, active: false, angle: 0 };
         let player, snakes, foods;
         let lastClickTime = 0;
 
@@ -97,27 +102,61 @@ document.addEventListener('DOMContentLoaded', () => {
             return false;
         };
 
+        const updateJoystick = (clientX, clientY) => {
+            const dx = clientX - JOYSTICK_BASE_X;
+            const dy = clientY - JOYSTICK_BASE_Y;
+            const dist = Math.hypot(dx, dy);
+            
+            if (dist > 0) {
+                joystick.angle = Math.atan2(dy, dx);
+                joystick.active = true;
+                const limit = Math.min(dist, JOYSTICK_RADIUS);
+                joystick.x = JOYSTICK_BASE_X + Math.cos(joystick.angle) * limit;
+                joystick.y = JOYSTICK_BASE_Y + Math.sin(joystick.angle) * limit;
+            }
+        };
+
+        const resetJoystick = () => {
+            joystick.active = false;
+            joystick.x = JOYSTICK_BASE_X;
+            joystick.y = JOYSTICK_BASE_Y;
+        };
+
         canvas.addEventListener('mousemove', e => { 
-            mouse.x = e.clientX; 
-            mouse.y = e.clientY; 
+            if (mouse.pressed) updateJoystick(e.clientX, e.clientY);
         });
+
         canvas.addEventListener('mousedown', e => { 
-            mouse.x = e.clientX; 
-            mouse.y = e.clientY; 
-            if (!handleInput(e.clientX, e.clientY)) mouse.pressed = true; 
+            if (!handleInput(e.clientX, e.clientY)) {
+                mouse.pressed = true;
+                updateJoystick(e.clientX, e.clientY);
+            }
         });
-        window.addEventListener('mouseup', () => { mouse.pressed = false; mouse.isDoubleHold = false; });
+
+        window.addEventListener('mouseup', () => { 
+            mouse.pressed = false; 
+            mouse.isDoubleHold = false; 
+            resetJoystick();
+        });
+
         canvas.addEventListener('touchstart', e => {
             const touch = e.touches[0];
-            mouse.x = touch.clientX; 
-            mouse.y = touch.clientY;
             if (handleInput(touch.clientX, touch.clientY)) e.preventDefault();
-            else { mouse.pressed = true; e.preventDefault(); }
+            else { 
+                mouse.pressed = true; 
+                updateJoystick(touch.clientX, touch.clientY);
+                e.preventDefault(); 
+            }
         }, {passive: false});
-        window.addEventListener('touchend', () => { mouse.pressed = false; mouse.isDoubleHold = false; });
+
+        window.addEventListener('touchend', () => { 
+            mouse.pressed = false; 
+            mouse.isDoubleHold = false; 
+            resetJoystick();
+        });
+
         canvas.addEventListener('touchmove', e => { 
-            mouse.x = e.touches[0].clientX; 
-            mouse.y = e.touches[0].clientY; 
+            if (mouse.pressed) updateJoystick(e.touches[0].clientX, e.touches[0].clientY);
             e.preventDefault(); 
         }, {passive: false});
 
@@ -163,7 +202,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 1. Controle de Movimentação 360°
                 let targetAngle = this.angle;
                 if (!this.isBot) {
-                    targetAngle = Math.atan2(mouse.y - canvas.height/2, mouse.x - canvas.width/2);
+                    if (joystick.active) {
+                        targetAngle = joystick.angle;
+                    } else {
+                        targetAngle = this.angle;
+                    }
                 } else {
                     targetAngle = this.updateAI(foods, snakes);
                 }
@@ -378,6 +421,18 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             ctx.restore();
+
+            // Desenhar Analógico (HUD)
+            ctx.globalAlpha = 0.5;
+            ctx.beginPath();
+            ctx.arc(JOYSTICK_BASE_X, JOYSTICK_BASE_Y, JOYSTICK_RADIUS, 0, Math.PI * 2);
+            ctx.fillStyle = '#444';
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(joystick.x, joystick.y, 30, 0, Math.PI * 2);
+            ctx.fillStyle = '#888';
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
 
             // HUD Simples
             ctx.fillStyle = "white";
