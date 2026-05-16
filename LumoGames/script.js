@@ -97,17 +97,17 @@ document.addEventListener('DOMContentLoaded', () => {
             return false;
         };
 
-        window.addEventListener('mousemove', e => { 
+        canvas.addEventListener('mousemove', e => { 
             mouse.x = e.clientX; 
             mouse.y = e.clientY; 
         });
-        window.addEventListener('mousedown', e => { 
+        canvas.addEventListener('mousedown', e => { 
             mouse.x = e.clientX; 
             mouse.y = e.clientY; 
             if (!handleInput(e.clientX, e.clientY)) mouse.pressed = true; 
         });
         window.addEventListener('mouseup', () => { mouse.pressed = false; mouse.isDoubleHold = false; });
-        window.addEventListener('touchstart', e => {
+        canvas.addEventListener('touchstart', e => {
             const touch = e.touches[0];
             mouse.x = touch.clientX; 
             mouse.y = touch.clientY;
@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
             else { mouse.pressed = true; e.preventDefault(); }
         }, {passive: false});
         window.addEventListener('touchend', () => { mouse.pressed = false; mouse.isDoubleHold = false; });
-        window.addEventListener('touchmove', e => { 
+        canvas.addEventListener('touchmove', e => { 
             mouse.x = e.touches[0].clientX; 
             mouse.y = e.touches[0].clientY; 
             e.preventDefault(); 
