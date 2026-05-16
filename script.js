@@ -1684,6 +1684,21 @@ tv.addEventListener('click', () => {
     arcadeIsOpen = true;
     arcadeOverlay.classList.remove('hidden');
     arcadeFrame.src = 'LumoGames/index.html';
+
+    // Envia a customização atual do Lumo para o jogo no iframe
+    arcadeFrame.onload = () => { // Espera o iframe carregar
+        const lumoElement = document.getElementById('lumo');
+        const lumoStyle = window.getComputedStyle(lumoElement);
+        const lumoColor = lumoStyle.getPropertyValue('--body-color').trim();
+        
+        const lumoPatternElement = lumoElement.querySelector('.pet-pattern');
+        const lumoPatternStyle = window.getComputedStyle(lumoPatternElement);
+        const lumoPatternImage = lumoPatternStyle.backgroundImage;
+        const hasLumoDots = lumoPatternImage.includes('radial-gradient') && lumoPatternImage.includes('circle');
+
+        // Envia a cor e se o Lumo tem um padrão de pontos para o iframe
+        arcadeFrame.contentWindow.postMessage({ type: 'lumoCustomization', color: lumoColor, hasDots: hasLumoDots }, '*');
+    };
     document.body.classList.add('arcade-active'); // Adiciona classe para desabilitar interações no corpo
 });
 
