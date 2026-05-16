@@ -64,6 +64,8 @@ let currentTshirtIdx = -1; // -1 significa sem roupa
 let currentTshirt2Idx = -1;
 let currentTshirt3Idx = -1;
 let currentChainIdx = -1;
+let currentMoletomIdx = -1;
+let currentMoletom2Idx = -1;
 let currentCapIdx = -1;
 let currentGlassIdx = -1;
 let currentHeadphonesIdx = -1;
@@ -121,6 +123,48 @@ const tshirtOptions3 = [
     { name: "Nuvens", color: "#F0F8FF", pattern: "radial-gradient(circle at 20% 20%, #fff 25%, transparent 25%), radial-gradient(circle at 70% 60%, #fff 30%, transparent 30%)", size: "80px 80px", asset: 'tshirt3.png' },
     { name: "Diamante", color: "#B9F2FF", pattern: "linear-gradient(45deg, rgba(255,255,255,0.2) 25%, transparent 25%), linear-gradient(-45deg, rgba(255,255,255,0.2) 25%, transparent 25%)", size: "20px 20px", asset: 'tshirt3.png' },
     { name: "Tecido", color: "#D2B48C", pattern: "linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px)", size: "2px 2px", asset: 'tshirt3.png' }
+];
+
+const moletomOptions = [
+    { name: "Nenhum", remove: true },
+    { name: "Vermelho", color: "#FF0000", asset: 'moletom.png' },
+    { name: "Vermelho C", color: "#FF0000", asset: 'moletomC.png' },
+    { name: "Azul", color: "#0000FF", asset: 'moletom.png' },
+    { name: "Azul C", color: "#0000FF", asset: 'moletomC.png' },
+    { name: "Verde", color: "#00FF00", asset: 'moletom.png' },
+    { name: "Verde C", color: "#00FF00", asset: 'moletomC.png' },
+    { name: "Amarelo", color: "#FFFF00", asset: 'moletom.png' },
+    { name: "Amarelo C", color: "#FFFF00", asset: 'moletomC.png' },
+    { name: "Preto", color: "#333333", asset: 'moletom.png' },
+    { name: "Preto C", color: "#333333", asset: 'moletomC.png' },
+    { name: "Branco", color: "#FFFFFF", asset: 'moletom.png' },
+    { name: "Branco C", color: "#FFFFFF", asset: 'moletomC.png' },
+    { name: "Rosa", color: "#FF69B4", asset: 'moletom.png' },
+    { name: "Rosa C", color: "#FF69B4", asset: 'moletomC.png' },
+    { name: "Roxo", color: "#800080", asset: 'moletom.png' },
+    { name: "Roxo C", color: "#800080", asset: 'moletomC.png' },
+    { name: "Laranja", color: "#FFA500", asset: 'moletom.png' },
+    { name: "Laranja C", color: "#FFA500", asset: 'moletomC.png' }
+];
+
+const moletom2Options = [
+    { name: "Nenhum", remove: true },
+    { name: "Original", hue: 0, asset: 'moletom2.png' },
+    { name: "Original C", hue: 0, asset: 'moletom2C.png' },
+    { name: "Tropical", hue: 45, asset: 'moletom2.png' },
+    { name: "Tropical C", hue: 45, asset: 'moletom2C.png' },
+    { name: "Oceano", hue: 90, asset: 'moletom2.png' },
+    { name: "Oceano C", hue: 90, asset: 'moletom2C.png' },
+    { name: "Noite", hue: 150, asset: 'moletom2.png' },
+    { name: "Noite C", hue: 150, asset: 'moletom2C.png' },
+    { name: "Ametista", hue: 200, asset: 'moletom2.png' },
+    { name: "Ametista C", hue: 200, asset: 'moletom2C.png' },
+    { name: "Doce", hue: 250, asset: 'moletom2.png' },
+    { name: "Doce C", hue: 250, asset: 'moletom2C.png' },
+    { name: "Fogo", hue: 300, asset: 'moletom2.png' },
+    { name: "Fogo C", hue: 300, asset: 'moletom2C.png' },
+    { name: "Neon", hue: 330, asset: 'moletom2.png' },
+    { name: "Neon C", hue: 330, asset: 'moletom2C.png' }
 ];
 
 const capOptions = [
@@ -232,6 +276,8 @@ function updateAllClothes() {
     updateTshirtVisibility();
     updateTshirt2Visibility();
     updateTshirt3Visibility();
+    updateMoletomVisibility();
+    updateMoletom2Visibility();
     updateChainVisibility();
     updateCapVisibility();
     updateGlassVisibility();
@@ -320,6 +366,49 @@ function updateTshirt3Visibility() {
         tshirtEl.style.backgroundSize = [...new Array(layerCount).fill(sizeValue), 'contain'].join(', ');
     } else {
         tshirtEl.style.display = 'none';
+    }
+}
+
+function updateMoletomVisibility() {
+    const moletomEl = document.querySelector('.pet-moletom');
+    if (currentBodyTypeIdx === 0 && currentMoletomIdx !== -1) {
+        const opt = moletomOptions[currentMoletomIdx];
+        moletomEl.style.display = 'block';
+        moletomEl.style.setProperty('--moletom-color', opt.color);
+        moletomEl.style.backgroundImage = `url('assets/${opt.asset}')`;
+        moletomEl.style.webkitMaskImage = `url('assets/${opt.asset}')`;
+        moletomEl.style.maskImage = `url('assets/${opt.asset}')`;
+        moletomEl.style.backgroundBlendMode = 'multiply';
+
+        // Variação C fica acima dos olhos, óculos, pescoço e boné
+        if (opt.asset.includes('C.png')) {
+            moletomEl.style.zIndex = '16';
+        } else {
+            moletomEl.style.zIndex = '2';
+        }
+    } else {
+        moletomEl.style.display = 'none';
+    }
+}
+
+function updateMoletom2Visibility() {
+    const moletomEl = document.querySelector('.pet-moletom2');
+    if (currentBodyTypeIdx === 0 && currentMoletom2Idx !== -1) {
+        const opt = moletom2Options[currentMoletom2Idx];
+        moletomEl.style.display = 'block';
+        moletomEl.style.backgroundImage = `url('assets/${opt.asset}')`;
+        moletomEl.style.webkitMaskImage = `url('assets/${opt.asset}')`;
+        moletomEl.style.maskImage = `url('assets/${opt.asset}')`;
+        moletomEl.style.filter = `hue-rotate(${opt.hue}deg)`;
+
+        // Variação C fica acima dos olhos, óculos, pescoço e boné
+        if (opt.asset.includes('C.png')) {
+            moletomEl.style.zIndex = '16';
+        } else {
+            moletomEl.style.zIndex = '2';
+        }
+    } else {
+        moletomEl.style.display = 'none';
     }
 }
 
@@ -571,19 +660,31 @@ function carregarSecoesRoupas() {
         // Seção de Roupas (T-Shirt)
         createClothingShopSection("T-Shirt 1", tshirtOptions, (val) => {
             currentTshirtIdx = val;
-            if (val !== -1) { currentTshirt2Idx = -1; currentTshirt3Idx = -1; }
+            if (val !== -1) { currentTshirt2Idx = -1; currentTshirt3Idx = -1; currentMoletomIdx = -1; currentMoletom2Idx = -1; }
         }, updateAllClothes);
 
         // Seção de Roupas (T-Shirt 2)
         createClothingShopSection("T-Shirt 2", tshirtOptions2, (val) => {
             currentTshirt2Idx = val;
-            if (val !== -1) { currentTshirtIdx = -1; currentTshirt3Idx = -1; }
+            if (val !== -1) { currentTshirtIdx = -1; currentTshirt3Idx = -1; currentMoletomIdx = -1; currentMoletom2Idx = -1; }
         }, updateAllClothes);
 
         // Seção de Roupas (T-Shirt 3)
         createClothingShopSection("T-Shirt 3", tshirtOptions3, (val) => {
             currentTshirt3Idx = val;
-            if (val !== -1) { currentTshirtIdx = -1; currentTshirt2Idx = -1; }
+            if (val !== -1) { currentTshirtIdx = -1; currentTshirt2Idx = -1; currentMoletomIdx = -1; currentMoletom2Idx = -1; }
+        }, updateAllClothes);
+
+        // Seção de Moletom
+        createClothingShopSection("Moletom", moletomOptions, (val) => {
+            currentMoletomIdx = val;
+            if (val !== -1) { currentTshirtIdx = -1; currentTshirt2Idx = -1; currentTshirt3Idx = -1; currentMoletom2Idx = -1; }
+        }, updateAllClothes);
+
+        // Seção de Moletom Colorido
+        createClothingShopSection("Moletom Colorido", moletom2Options, (val) => {
+            currentMoletom2Idx = val;
+            if (val !== -1) { currentTshirtIdx = -1; currentTshirt2Idx = -1; currentTshirt3Idx = -1; currentMoletomIdx = -1; }
         }, updateAllClothes);
 
         // Seção de Acessórios de Pescoço
@@ -621,6 +722,7 @@ function createClothingShopSection(title, optionsArray, updateVarFunc, updateVis
             swatch.style.color = '#999';
             swatch.style.fontSize = '24px';
         } else {
+            if (opt.hue !== undefined) swatch.style.filter = `hue-rotate(${opt.hue}deg)`;
             swatch.style.backgroundColor = opt.color;
             const pattern = (opt.pattern && opt.pattern !== 'none') ? opt.pattern : 'linear-gradient(transparent, transparent)';
             swatch.style.backgroundImage = `${pattern}, url('assets/${opt.asset}')`;
@@ -1528,12 +1630,24 @@ function handleEndDragRoom(endX) {
     }
     atualizarPosicaoPet();
 
+    // Esconde roupas se entrar no banheiro (0)
+    if (currentRoom === 0) {
+        lumo.classList.add('hide-clothes');
+    } else {
+        lumo.classList.remove('hide-clothes');
+    }
+
     mundo.style.left = `-${currentRoom * window.innerWidth}px`;
     updateStatusBarColor();
 }
 
 updateStatusBarColor(); // Define a cor inicial
 updateStatusUI(); // Inicializa os ícones cheios
+
+// Verifica se começa no banheiro para aplicar o estado das roupas
+if (currentRoom === 0) {
+    lumo.classList.add('hide-clothes');
+}
 
 // Exemplo: Customização Aleatória ao carregar
 customizarPetFull(

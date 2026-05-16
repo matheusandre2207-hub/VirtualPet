@@ -711,6 +711,22 @@ html, body {
     mask-repeat: no-repeat;
     -webkit-mask-position: center;
     mask-position: center;
+    transition: opacity 0.5s ease-in-out;
+}
+
+/* Esconder roupas no banheiro de forma suave */
+.pet.hide-clothes .pet-broto,
+.pet.hide-clothes .pet-tshirt,
+.pet.hide-clothes .pet-tshirt2,
+.pet.hide-clothes .pet-tshirt3,
+.pet.hide-clothes .pet-chain,
+.pet.hide-clothes .pet-moletom,
+.pet.hide-clothes .pet-moletom2,
+.pet.hide-clothes .pet-glass,
+.pet.hide-clothes .pet-headphones,
+.pet.hide-clothes .pet-cap {
+    opacity: 0 !important;
+    pointer-events: none;
 }
 
 /* Camada da Camiseta 1 (T-Shirt) */
@@ -735,6 +751,7 @@ html, body {
     mask-repeat: no-repeat;
     -webkit-mask-position: center;
     mask-position: center;
+    transition: opacity 0.5s ease-in-out;
 }
 
 /* Camada da Camiseta 2 (T-Shirt 2) */
@@ -761,6 +778,7 @@ html, body {
     mask-repeat: no-repeat;
     -webkit-mask-position: center;
     mask-position: center;
+    transition: opacity 0.5s ease-in-out;
 }
 
 /* Camada da Camiseta 3 (T-Shirt 3) */
@@ -787,6 +805,7 @@ html, body {
     mask-repeat: no-repeat;
     -webkit-mask-position: center;
     mask-position: center;
+    transition: opacity 0.5s ease-in-out;
 }
 
 /* Camada do Acessório de Pescoço (Corrente) */
@@ -802,6 +821,43 @@ html, body {
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
+    transition: opacity 0.5s ease-in-out;
+}
+
+/* Camadas de Moletom */
+.pet-moletom, .pet-moletom2 {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2; /* Mesma camada das t-shirts */
+    display: none;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    transition: opacity 0.5s ease-in-out;
+}
+
+.pet-moletom {
+    background-blend-mode: multiply;
+    background-color: var(--moletom-color, #ffffff);
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+}
+
+.pet-moletom2 {
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
 }
 
 /* Camada dos Óculos */
@@ -817,6 +873,7 @@ html, body {
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
+    transition: opacity 0.5s ease-in-out;
 }
 
 /* Camada dos Headphones */
@@ -843,6 +900,7 @@ html, body {
     mask-repeat: no-repeat;
     -webkit-mask-position: center;
     mask-position: center;
+    transition: opacity 0.5s ease-in-out;
 }
 
 /* Camada do Boné (Cap) */
@@ -869,6 +927,7 @@ html, body {
     mask-repeat: no-repeat;
     -webkit-mask-position: center;
     mask-position: center;
+    transition: opacity 0.5s ease-in-out;
 }
 
 /* Container de Espuma/Bolhas */
