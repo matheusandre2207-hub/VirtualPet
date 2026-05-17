@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
         match3: (container) => initLumoCrush(container),
         slice: (container) => initLumoSlice(container),
         word: (container) => initLumoWord(container),
-        catch: () => "Catch Lumo: Não deixe cair!",
+        galaxy: (container) => initLumoGalaxy(container),
         memory: () => "Jogo da Memória do Lumo...",
         bubbles: () => "Bubble Pop: Mire e estoure!",
         jump: () => "Lumo Jump: Suba sem parar!",
@@ -1781,23 +1781,26 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             ctx.globalAlpha = 1;
 
-            // Lógica Física
+            // Lógica Física e Check de Game Over
+            if (!isGameOver) {
+                fruits.forEach(f => f.update());
+                resolveCollisions();
+            }
+
             let touchingLimit = false;
             fruits.forEach(f => {
-                f.update();
                 f.draw();
-                // Check Game Over (acima da linha por tempo)
-                if (f.y - f.radius < LIMIT_Y && f.vy < 1) touchingLimit = true;
+                // Check Game Over: se a fruta estiver acima da linha e quase parada
+                if (f.y - f.radius < LIMIT_Y && Math.abs(f.vy) < 1.5) touchingLimit = true;
             });
-            resolveCollisions();
 
-            if (touchingLimit && fruits.length > 5) {
+            if (!isGameOver && touchingLimit && fruits.length > 2) {
                 gameOverTimer += 0.016;
-                if (gameOverTimer > 3) isGameOver = true;
+                if (gameOverTimer > 2) isGameOver = true;
                 // Alerta visual
                 ctx.fillStyle = `rgba(231, 76, 60, ${Math.abs(Math.sin(Date.now()/200)) * 0.3})`;
                 ctx.fillRect(POT_X, LIMIT_Y, POT_W, 10);
-            } else {
+            } else if (!isGameOver) {
                 gameOverTimer = 0;
             }
 
@@ -1957,5 +1960,368 @@ document.addEventListener('DOMContentLoaded', () => {
 
         setupLevel();
         draw();
+    }
+
+    // --- MOTOR DO JOGO LUMO GALAXY (.IO SPACE STYLE) ---
+    function initLumoGalaxy(container) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        container.appendChild(canvas);
+
+        const WORLD_SIZE = 50000;
+        const JOYSTICK_RADIUS = 60;
+        const JOYSTICK_BASE_X = canvas.width / 2;
+        const JOYSTICK_BASE_Y = canvas.height - 100;
+
+        let joystick = { x: JOYSTICK_BASE_X, y: JOYSTICK_BASE_Y, active: false, angle: 0, pressed: false };
+        let player, entities, foods;
+
+        const handleRestart = (clientX, clientY) => {
+            if (player && !player.alive) {
+                const btnX = canvas.width / 2;
+                const btnY = canvas.height / 2 + 60;
+                if (Math.abs(clientX - btnX) < 80 && Math.abs(clientY - btnY) < 25) {
+                    reset();
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        const updateJoystick = (clientX, clientY) => {
+            const dx = clientX - JOYSTICK_BASE_X;
+            const dy = clientY - JOYSTICK_BASE_Y;
+            const dist = Math.hypot(dx, dy);
+            if (dist > 0) {
+                joystick.angle = Math.atan2(dy, dx);
+                joystick.active = true;
+                const limit = Math.min(dist, JOYSTICK_RADIUS);
+                joystick.x = JOYSTICK_BASE_X + Math.cos(joystick.angle) * limit;
+                joystick.y = JOYSTICK_BASE_Y + Math.sin(joystick.angle) * limit;
+            }
+        };
+
+        const resetJoystick = () => { joystick.active = false; joystick.x = JOYSTICK_BASE_X; joystick.y = JOYSTICK_BASE_Y; };
+
+        canvas.addEventListener('mousedown', e => { 
+            if (!handleRestart(e.clientX, e.clientY)) {
+                joystick.pressed = true; 
+                updateJoystick(e.clientX, e.clientY); 
+            }
+        });
+        window.addEventListener('mousemove', e => { if (joystick.pressed) updateJoystick(e.clientX, e.clientY); });
+        window.addEventListener('mouseup', () => { joystick.pressed = false; resetJoystick(); });
+        canvas.addEventListener('touchstart', e => { 
+            const touch = e.touches[0];
+            if (!handleRestart(touch.clientX, touch.clientY)) {
+                joystick.pressed = true; 
+                updateJoystick(touch.clientX, touch.clientY); 
+            }
+            e.preventDefault(); 
+        }, {passive: false});
+        canvas.addEventListener('touchmove', e => { if (joystick.pressed) updateJoystick(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, {passive: false});
+        canvas.addEventListener('touchend', () => { joystick.pressed = false; resetJoystick(); });
+
+        class Galaxy {
+            constructor(x, y, color, isBot = false) {
+                this.x = x; this.y = y; this.color = color; this.isBot = isBot;
+                this.radius = isBot ? 15 + Math.random() * 30 : 18;
+                this.angle = Math.random() * Math.PI * 2;
+                this.speed = 2;
+                this.alive = true;
+                this.planets = [];
+                this.color = '#ff4757'; // Começa como Anã Vermelha
+                this.isVisible = false; // Flag para otimização
+            }
+
+            addPlanet() {
+                const minOrbit = this.radius * 2.5 + 40; 
+                const types = ['rocky', 'gaseous', 'icy'];
+                this.planets.push({
+                    dist: minOrbit + this.planets.length * 35 + Math.random() * 20,
+                    angle: Math.random() * Math.PI * 2,
+                    speed: (0.005 + Math.random() * 0.015) * (Math.random() > 0.5 ? 1 : -1),
+                    size: 2 + Math.random() * 5,
+                    color: `hsl(${Math.random() * 360}, 50%, ${50 + Math.random() * 30}%)`,
+                    type: types[Math.floor(Math.random() * types.length)]
+                });
+            }
+
+            update(foods, entities) {
+                if (!this.alive) return;
+                let targetAngle = this.angle;
+                if (!this.isBot) { if (joystick.active) targetAngle = joystick.angle; }
+                else { targetAngle = this.updateAI(foods, entities); }
+
+                // Evolução Estelar (Mudança de Cor baseada no Raio)
+                if (this.radius < 35) this.color = '#ff4757';      // Anã Vermelha
+                else if (this.radius < 70) this.color = '#ffeb3b'; // Estrela Amarela
+                else if (this.radius < 110) this.color = '#fdfdfd'; // Estrela Branca
+                else this.color = '#4facfe';                      // Gigante Azul
+
+                // Atualiza as órbitas dos planetas
+                this.planets.forEach(p => p.angle += p.speed);
+                
+                // Ganha planetas conforme cresce
+                const targetCount = Math.floor(Math.max(0, this.radius - 20) / 15);
+                if (this.planets.length < targetCount) this.addPlanet();
+                
+                // Empurra planetas para fora para manter distância segura da estrela
+                this.planets.forEach(p => {
+                    const safeZone = this.radius * 2.2 + 20;
+                    if (p.dist < safeZone) p.dist += 2;
+                });
+
+                // Agilidade baseada no tamanho (menores viram mais rápido)
+                const agility = Math.max(0.02, 0.15 / (1 + this.radius * 0.01));
+                let diff = targetAngle - this.angle;
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                while (diff > Math.PI) diff -= Math.PI * 2;
+                this.angle += diff * agility;
+
+                this.speed = Math.max(0.5, 6 / (1 + this.radius * 0.015));
+                this.x += Math.cos(this.angle) * this.speed;
+                this.y += Math.sin(this.angle) * this.speed;
+                this.x = Math.max(0, Math.min(WORLD_SIZE, this.x));
+                this.y = Math.max(0, Math.min(WORLD_SIZE, this.y));
+            }
+
+            updateAI(foods, entities) {
+                let threat = null, prey = null;
+                let dThreatSq = 800 * 800, dPreySq = 1200 * 1200;
+
+                entities.forEach(other => {
+                    if (other === this || !other.alive) return;
+                    const dx = other.x - this.x;
+                    const dy = other.y - this.y;
+                    const distSq = dx * dx + dy * dy;
+                    
+                    if (distSq > 2000 * 2000) return; // Fora do radar de IA
+
+                    // Fuga: Prioridade máxima
+                    if (other.radius > this.radius * 1.15) { 
+                        if (distSq < dThreatSq) { dThreatSq = distSq; threat = other; } 
+                    }
+                    // Caça: Apenas se não houver ameaça imediata
+                    else if (this.radius > other.radius * 1.25) { 
+                        if (distSq < dPreySq) { dPreySq = distSq; prey = other; } 
+                    }
+                });
+
+                if (threat) return Math.atan2(this.y - threat.y, this.x - threat.x);
+                if (prey) return Math.atan2(prey.y - this.y, prey.x - this.x);
+                
+                // Se estiver grande, foca menos em comida e mais em exploração/caça
+                let food = null, dFoodSq = 600 * 600;
+                const step = this.radius > 60 ? 100 : 40; 
+                for(let i=0; i<foods.length; i+=step) {
+                    const f = foods[i];
+                    const dx = f.x - this.x;
+                    const dy = f.y - this.y;
+                    const distSq = dx * dx + dy * dy;
+                    if (distSq < dFoodSq) { dFoodSq = distSq; food = f; }
+                }
+                
+                // Se não houver nada, mantém o curso ou vira levemente para explorar
+                if (!food && Math.random() > 0.95) return this.angle + (Math.random() - 0.5);
+                return food ? Math.atan2(food.y - this.y, food.x - this.x) : this.angle;
+            }
+
+            draw(ctx, cam) {
+                ctx.save();
+                ctx.translate(this.x - cam.x, this.y - cam.y);
+                
+                // 1. Desenha o Brilho (Glow) por baixo
+                const glowSize = this.radius * 2.8;
+                const glowGrad = ctx.createRadialGradient(0, 0, this.radius, 0, 0, glowSize);
+                glowGrad.addColorStop(0, this.color);
+                glowGrad.addColorStop(1, 'transparent');
+                ctx.fillStyle = glowGrad;
+                ctx.beginPath(); ctx.arc(0, 0, glowSize, 0, Math.PI * 2); ctx.fill();
+
+                // 2. Desenha o Núcleo Estelar por cima
+                const sunSize = this.radius * 1.8;
+                const sunGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, sunSize);
+                const coreColor = this.color === '#ff4757' ? '#ff9f43' : '#fff';
+                sunGrad.addColorStop(0, '#fff'); sunGrad.addColorStop(0.3, coreColor);
+                sunGrad.addColorStop(0.7, this.color); sunGrad.addColorStop(1, darkenColor(this.color, 0.5));
+                ctx.fillStyle = sunGrad;
+                ctx.beginPath(); ctx.arc(0, 0, sunSize, 0, Math.PI * 2); ctx.fill();
+
+                // 3. Desenha Órbitas e Planetas
+                this.planets.forEach(p => {
+                    // Linha da Órbita
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath(); ctx.arc(0, 0, p.dist, 0, Math.PI * 2); ctx.stroke();
+
+                    const px = Math.cos(p.angle) * p.dist;
+                    const py = Math.sin(p.angle) * p.dist;
+
+                    // Corpo do planeta e pequeno brilho reflexivo
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath(); ctx.arc(px, py, p.size, 0, Math.PI * 2); ctx.fill();
+
+                    // Padrões do planeta
+                    ctx.save();
+                    ctx.clip();
+                    if (p.type === 'gaseous') {
+                        ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+                        ctx.lineWidth = p.size / 2;
+                        ctx.beginPath();
+                        ctx.moveTo(-p.size, -p.size/3); ctx.lineTo(p.size, -p.size/3);
+                        ctx.moveTo(-p.size, p.size/3); ctx.lineTo(p.size, p.size/3);
+                        ctx.stroke();
+                    } else if (p.type === 'rocky') {
+                        ctx.fillStyle = 'rgba(0,0,0,0.15)';
+                        ctx.beginPath(); ctx.arc(p.size/3, -p.size/4, p.size/3, 0, Math.PI*2); ctx.fill();
+                        ctx.beginPath(); ctx.arc(-p.size/4, p.size/3, p.size/4, 0, Math.PI*2); ctx.fill();
+                    } else if (p.type === 'icy') {
+                        const iceGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, p.size);
+                        iceGrad.addColorStop(0, 'rgba(255,255,255,0.4)');
+                        iceGrad.addColorStop(1, 'transparent');
+                        ctx.fillStyle = iceGrad; ctx.fill();
+                    }
+                    ctx.restore();
+
+                    // Brilho reflexivo
+                    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                    ctx.beginPath(); ctx.arc(px - p.size*0.3, py - p.size*0.3, p.size*0.4, 0, Math.PI * 2); ctx.fill();
+                });
+
+                ctx.restore(); ctx.globalAlpha = 1;
+            }
+        }
+
+        function reset() {
+            player = new Galaxy(WORLD_SIZE/2, WORLD_SIZE/2, playerLumoColor);
+            entities = [player];
+            for(let i=0; i<400; i++) entities.push(new Galaxy(Math.random()*WORLD_SIZE, Math.random()*WORLD_SIZE, '#ff4757', true));
+            foods = [];
+            for(let i=0; i<40000; i++) foods.push({x: Math.random()*WORLD_SIZE, y: Math.random()*WORLD_SIZE, color: '#fff', id: Math.random()});
+        }
+
+        function gameLoop() {
+            ctx.fillStyle = '#010816'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            const zoom = Math.max(0.08, 0.8 / (1 + (player.radius - 18) * 0.015));
+            const cam = { x: player.x - (canvas.width/2)/zoom, y: player.y - (canvas.height/2)/zoom, zoom };
+            ctx.save(); ctx.scale(cam.zoom, cam.zoom);
+
+            // Malha Quadriculada (Grid) no fundo
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1 / cam.zoom;
+            ctx.beginPath();
+            for(let i=0; i<=WORLD_SIZE; i+=100) {
+                ctx.moveTo(i - cam.x, -cam.y); ctx.lineTo(i - cam.x, WORLD_SIZE - cam.y);
+                ctx.moveTo(-cam.x, i - cam.y); ctx.lineTo(WORLD_SIZE - cam.x, i - cam.y);
+            }
+            ctx.stroke();
+
+            // Bordas Visíveis do Universo
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.lineWidth = 20 / cam.zoom;
+            ctx.strokeRect(-cam.x, -cam.y, WORLD_SIZE, WORLD_SIZE);
+
+            // Estrelas fixas no fundo
+            const viewW = canvas.width / cam.zoom;
+            const viewH = canvas.height / cam.zoom;
+            ctx.fillStyle = 'white';
+            for(let i=0; i<400; i++) {
+                const x = (Math.sin(i*99) * 0.5 + 0.5) * WORLD_SIZE, y = (Math.cos(i*88) * 0.5 + 0.5) * WORLD_SIZE;
+                if (x < cam.x || x > cam.x + viewW || y < cam.y || y > cam.y + viewH) continue;
+                ctx.globalAlpha = 0.15; ctx.fillRect(x - cam.x, y - cam.y, 2, 2);
+            }
+            ctx.globalAlpha = 1;
+
+            // Otimização: Filtra apenas entidades visíveis para processar comida e colisão
+            const activeEntities = entities.filter(e => {
+                e.isVisible = (e.x > cam.x - e.radius * 10 && e.x < cam.x + viewW + e.radius * 10 &&
+                               e.y > cam.y - e.radius * 10 && e.y < cam.y + viewH + e.radius * 10);
+                return e.alive && (e === player || e.isVisible);
+            });
+            
+            foods.forEach((f) => {
+                const isVisible = f.x > cam.x - 20 && f.x < cam.x + viewW + 20 && f.y > cam.y - 20 && f.y < cam.y + viewH + 20;
+                
+                // Lógica de Atração (Magnetismo) e Consumo para entidades ativas
+                activeEntities.forEach(e => {
+                    const dx = e.x - f.x;
+                    const dy = e.y - f.y;
+                    if (Math.abs(dx) < e.radius * 8 && Math.abs(dy) < e.radius * 8) {
+                        const d = Math.sqrt(dx*dx + dy*dy);
+                        // Atração Gravitacional
+                        if (d < e.radius * 6) {
+                            const pull = (1 - d / (e.radius * 6)) * 4;
+                            f.x += (dx / d) * pull;
+                            f.y += (dy / d) * pull;
+                        }
+                        // Consumo
+                        if (d < e.radius * 1.2) {
+                            f.x = Math.random() * WORLD_SIZE;
+                            f.y = Math.random() * WORLD_SIZE;
+                            e.radius += 0.4;
+                        }
+                    }
+                });
+
+                if (!isVisible) return;
+                // Efeito de cintilação suave na comida
+                const pulse = 0.8 + Math.sin(Date.now() * 0.005 + f.id) * 0.2;
+                ctx.fillStyle = f.color; ctx.beginPath(); 
+                ctx.arc(f.x - cam.x, f.y - cam.y, 3 * pulse, 0, Math.PI*2); ctx.fill();
+            });
+
+            entities.forEach((e) => {
+                if (!e.alive) return;
+                e.update(foods, entities);
+                entities.forEach(other => {
+                    if (e === other || !other.alive || !e.alive) return;
+                    const dx = e.x - other.x;
+                    const dy = e.y - other.y;
+                    if (Math.abs(dx) > e.radius * 6 || Math.abs(dy) > e.radius * 6) return;
+                    const d = Math.sqrt(dx*dx + dy*dy);
+                    
+                    // Mecânica de Roubo de Massa e Planetas
+                    // O alcance de interação é baseado na órbita externa do sistema
+                    const interactionRange = (e.radius + other.radius) * 4;
+                    if (e.radius > other.radius * 1.1 && d < interactionRange) {
+                        const drain = 0.2 * (1 - d/interactionRange);
+                        other.radius -= drain;
+                        e.radius += drain * 0.85; // Eficiência de conversão de massa
+
+                        if (other.radius < 10) {
+                            other.alive = false;
+                            if (other.isBot) setTimeout(() => entities.push(new Galaxy(Math.random()*WORLD_SIZE, Math.random()*WORLD_SIZE, '#ff4757', true)), 3000);
+                        }
+                    }
+                });
+                if (e.isVisible) e.draw(ctx, cam);
+            });
+            ctx.restore();
+            ctx.globalAlpha = 0.4;
+            ctx.beginPath(); ctx.arc(JOYSTICK_BASE_X, JOYSTICK_BASE_Y, JOYSTICK_RADIUS, 0, Math.PI*2); ctx.fillStyle = '#fff'; ctx.fill();
+            ctx.beginPath(); ctx.arc(joystick.x, joystick.y, 30, 0, Math.PI*2); ctx.fillStyle = '#fff'; ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = "white"; ctx.font = "bold 20px Segoe UI"; ctx.textAlign = "left";
+            ctx.fillText(`Massa Galáctica: ${Math.floor(player.radius)}`, 20, 40);
+
+            if (!player.alive) {
+                ctx.fillStyle = "rgba(0,0,0,0.85)"; ctx.fillRect(0,0, canvas.width, canvas.height);
+                ctx.fillStyle = "white"; ctx.textAlign = "center"; ctx.font = "bold 32px Segoe UI";
+                ctx.fillText("SISTEMA ABSORVIDO", canvas.width/2, canvas.height/2 - 20);
+                
+                // Botão de reiniciar padronizado
+                ctx.fillStyle = "#4a90e2";
+                ctx.fillRect(canvas.width/2 - 80, canvas.height/2 + 35, 160, 50);
+                ctx.fillStyle = "white";
+                ctx.font = "bold 18px Segoe UI";
+                ctx.fillText("REINICIAR ↻", canvas.width/2, canvas.height/2 + 67);
+            }
+
+            animationId = requestAnimationFrame(gameLoop);
+        }
+        reset(); gameLoop();
     }
 });

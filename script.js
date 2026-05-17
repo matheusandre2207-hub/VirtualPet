@@ -1604,7 +1604,7 @@ document.getElementById('game-container').addEventListener('touchstart', (e) => 
     if (isDragging || e.target.closest('#shop-overlay') || e.target.closest('.bolinha')) return;
     startXRoom = e.touches[0].clientX;
     isDraggingRoom = true;
-});
+}, { passive: true });
 
 document.addEventListener('mouseup', (e) => {
     if (!isDraggingRoom) return;
