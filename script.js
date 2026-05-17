@@ -1,3 +1,9 @@
+// Resolve o erro 404 do favicon injetando um ícone transparente
+const favicon = document.createElement('link');
+favicon.rel = 'icon';
+favicon.href = 'data:image/x-icon;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
+document.head.appendChild(favicon);
+
 const olhoEsq = document.getElementById('olho-esq');
 const olhoDir = document.getElementById('olho-dir');
 const sobEsq = document.getElementById('sob-esq');
@@ -146,10 +152,6 @@ function loadInventory(optionsArray, key) {
     }
 }
 
-loadInventory(tshirtOptions, 't1'); loadInventory(tshirtOptions2, 't2'); loadInventory(tshirtOptions3, 't3');
-loadInventory(moletomOptions, 'm1'); loadInventory(moletom2Options, 'm2'); loadInventory(chainOptions, 'ch');
-loadInventory(capOptions, 'cp'); loadInventory(glassOptions, 'gl'); loadInventory(headphonesOptions, 'hp');
-
 const tshirtOptions = [
     { name: "Nenhuma", color: "transparent", pattern: "none", remove: true, asset: 'tshirt.png', bought: true, price: 0 },
     { name: "Básica", color: "#ffffff", pattern: "none", asset: 'tshirt.png', bought: false, price: 20 },
@@ -285,6 +287,11 @@ const headphonesOptions = [
     { name: "Roxo", color: "#800080", asset: 'fone.png', bought: false, price: 110 },
     { name: "Laranja", color: "#FFA500", asset: 'fone.png', bought: false, price: 110 }
 ];
+
+// Carrega o inventário APÓS as opções serem definidas para evitar ReferenceError
+loadInventory(tshirtOptions, 't1'); loadInventory(tshirtOptions2, 't2'); loadInventory(tshirtOptions3, 't3');
+loadInventory(moletomOptions, 'm1'); loadInventory(moletom2Options, 'm2'); loadInventory(chainOptions, 'ch');
+loadInventory(capOptions, 'cp'); loadInventory(glassOptions, 'gl'); loadInventory(headphonesOptions, 'hp');
 
 // Arrays de Customização (20 opções cada)
 const bodyTypes = ['assets/body.png'];
@@ -744,6 +751,28 @@ function openShop() {
 
     // Só exibe as seções de personalização se estiver no quarto (3)
     if (currentRoom === 3) {
+        // Seções de Customização Física (Para salvar cores e olhos)
+        createPhysicalCustomSection("Cor do Corpo", bodyColors, (idx) => {
+            const cust = JSON.parse(localStorage.getItem('lumo_cust'));
+            customizarPetFull(0, idx, cust.nose, cust.iris, cust.pattern, cust.eyebrow);
+        });
+        createPhysicalCustomSection("Cor do Nariz", noseColors, (idx) => {
+            const cust = JSON.parse(localStorage.getItem('lumo_cust'));
+            customizarPetFull(0, cust.body, idx, cust.iris, cust.pattern, cust.eyebrow);
+        });
+        createPhysicalCustomSection("Cor dos Olhos", irisColors, (idx) => {
+            const cust = JSON.parse(localStorage.getItem('lumo_cust'));
+            customizarPetFull(0, cust.body, cust.nose, idx, cust.pattern, cust.eyebrow);
+        });
+        createPhysicalCustomSection("Padrão do Corpo", bodyPatterns, (idx) => {
+            const cust = JSON.parse(localStorage.getItem('lumo_cust'));
+            customizarPetFull(0, cust.body, cust.nose, cust.iris, idx, cust.eyebrow);
+        }, true);
+        createPhysicalCustomSection("Sobrancelhas", eyebrowTypes, (idx) => {
+            const cust = JSON.parse(localStorage.getItem('lumo_cust'));
+            customizarPetFull(0, cust.body, cust.nose, cust.iris, cust.pattern, idx);
+        });
+
         carregarSecoesRoupas(false);
     }
 
@@ -951,7 +980,6 @@ function createClothingShopSection(title, optionsArray, updateVarFunc, updateVis
                 if (coins >= opt.price) {
                     coins -= opt.price;
                     opt.bought = true;
-                    saveLumoData();
                     
                     // Lógica de Pacote para Moletons (Normal + C)
                     if (title.includes("Moletom")) {
@@ -963,6 +991,7 @@ function createClothingShopSection(title, optionsArray, updateVarFunc, updateVis
                     updateCoinUI();
                     updateVarFunc(originalIndex);
                     updateVisibilityFunc();
+                    saveLumoData();
                     
                     // Re-renderiza a seção para remover o item comprado da loja
                     section.remove();
@@ -1035,6 +1064,30 @@ function createShopSection(title) {
     return div;
 }
 
+// Nova função para criar seções de customização física na loja
+function createPhysicalCustomSection(title, optionsArray, applyFunc, isPattern = false) {
+    const section = createShopSection(title);
+    const grid = document.createElement('div');
+    grid.className = 'shop-grid';
+    optionsArray.forEach((opt, idx) => {
+        const card = document.createElement('div');
+        card.className = 'shop-item-card';
+        const swatch = document.createElement('div');
+        swatch.className = 'color-swatch';
+        if (typeof opt === 'string') {
+            if (isPattern) swatch.style.backgroundImage = opt;
+            else swatch.style.backgroundColor = opt;
+        } else if (opt.color) {
+            swatch.style.backgroundColor = opt.color;
+        }
+        card.onclick = () => applyFunc(idx);
+        card.appendChild(swatch);
+        grid.appendChild(card);
+    });
+    section.appendChild(grid);
+    shopContainer.appendChild(section);
+}
+
 // Bloqueia menu de contexto em todo o app
 document.addEventListener('contextmenu', event => event.preventDefault());
 
@@ -1085,20 +1138,17 @@ const foodStats = {
 function updateFoodUI() {
     const currentFood = foodOptions[currentFoodIndex];
     maca.innerText = currentFood.stock > 0 ? currentFood.emoji : "🚫";
-    // Se acabar a comida atual, tenta trocar automaticamente para a próxima disponível
-    if (currentFood.stock <= 0) cycleFood(1);
 }
 
 function cycleFood(direction) {
     const boughtOnes = foodOptions.map((f, i) => f.stock > 0 ? i : -1).filter(i => i !== -1);
     if (boughtOnes.length === 0) {
         currentFoodIndex = 0; // Volta para maçã se tudo acabar
-        updateFoodUI();
-        return;
+    } else {
+        const currentIdxInBought = boughtOnes.indexOf(currentFoodIndex);
+        let nextIdxInBought = (currentIdxInBought + direction + boughtOnes.length) % boughtOnes.length;
+        currentFoodIndex = boughtOnes[nextIdxInBought];
     }
-    const currentIdxInBought = boughtOnes.indexOf(currentFoodIndex);
-    let nextIdxInBought = (currentIdxInBought + direction + boughtOnes.length) % boughtOnes.length;
-    currentFoodIndex = boughtOnes[nextIdxInBought];
     updateFoodUI();
 }
 
@@ -1157,7 +1207,13 @@ function processarAlimentacao(elemento) {
         }
         
         updateStatusUI();
-        updateFoodUI();
+        
+        // Se acabou a comida, pula para a próxima automaticamente
+        if (foodOptions[currentFoodIndex].stock <= 0) {
+            cycleFood(1);
+        } else {
+            updateFoodUI();
+        }
         
         // Reseta o elemento para a posição original no seletor imediatamente
         // Isso evita o espaço vazio e simula a reposição da comida
