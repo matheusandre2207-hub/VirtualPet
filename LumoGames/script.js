@@ -117,6 +117,11 @@ document.addEventListener('DOMContentLoaded', () => {
         let joystick = { x: JOYSTICK_BASE_X, y: JOYSTICK_BASE_Y, active: false, angle: 0 };
         let player, snakes, foods;
         let lastClickTime = 0;
+        let commonFoodCounter = 0;
+
+        function addCoins(amount) {
+            window.parent.postMessage({ type: 'addCoins', amount: amount }, '*');
+        }
 
         const handleInput = (clientX, clientY) => {
             const now = Date.now();
@@ -516,6 +521,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (Math.hypot(f.x - s.x, f.y - s.y) < s.radius + 15) {
                         const gain = (f.size === 5 ? 1.2 : 0.6);
                         s.segmentsCount += gain;
+                        
+                        if (!s.isBot) {
+                            if (f.size === 5) addCoins(1); // Restos do corpo
+                            else {
+                                commonFoodCounter++;
+                                if (commonFoodCounter >= 25) { addCoins(1); commonFoodCounter = 0; }
+                            }
+                        }
                         
                         // Paga a dívida de boost ao comer
                         if (s.boostDebt > 0) {

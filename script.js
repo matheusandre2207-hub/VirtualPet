@@ -22,6 +22,7 @@ const btnLoja = document.getElementById('btn-loja');
 const btnGuardaRoupa = document.getElementById('guarda-roupas');
 const closeShop = document.getElementById('close-shop');
 const tv = document.querySelector('.tv');
+const geladeira = document.querySelector('.geladeira');
 const arcadeOverlay = document.getElementById('arcade-overlay');
 const arcadeFrame = document.getElementById('arcade-frame');
 let arcadeIsOpen = false; // Nova flag global para controlar o estado do Arcade
@@ -55,15 +56,26 @@ bodyImgForCollision.onload = () => {
     updateCollisionMap();
 };
 
+// Sistema Global de Economia
+let coins = parseInt(localStorage.getItem('lumo_coins')) || 0;
+const coinAmountEl = document.getElementById('coin-amount');
+
+function updateCoinUI() {
+    coinAmountEl.innerText = coins;
+    localStorage.setItem('lumo_coins', coins);
+}
+updateCoinUI();
+
 // Estados do Pet
-let status = {
-    fome: 0,
-    energia: 0,
-    limpeza: 0,
-    humor: 0
+// Inicializa com 100 (cheio) se não houver save
+let status = JSON.parse(localStorage.getItem('lumo_status')) || {
+    fome: 100,
+    energia: 100,
+    limpeza: 100,
+    humor: 100
 };
 
-let currentBodyTypeIdx = 0;
+let currentBodyTypeIdx = 0; // Sempre 0 agora
 let currentTshirtIdx = -1; // -1 significa sem roupa
 let currentTshirt2Idx = -1;
 let currentTshirt3Idx = -1;
@@ -73,144 +85,173 @@ let currentMoletom2Idx = -1;
 let currentCapIdx = -1;
 let currentGlassIdx = -1;
 let currentHeadphonesIdx = -1;
-let currentHasBroto = false;
+
+// Configuração de Itens (Legado: preço 0 e comprado true | Novos: com preço e comprado false)
+// Carrega estoque de comida do LocalStorage ou define valores iniciais
+const savedFoodStock = JSON.parse(localStorage.getItem('lumo_food_stock')) || {};
+
+const foodOptions = [
+    { name: "Maçã", emoji: "🍎", price: 1, buyAmount: 1, stock: savedFoodStock["🍎"] ?? 10 },
+    { name: "Pizza", emoji: "🍕", price: 50, buyAmount: 10, stock: savedFoodStock["🍕"] ?? 0 },
+    { name: "Hambúrguer", emoji: "🍔", price: 30, buyAmount: 1, stock: savedFoodStock["🍔"] ?? 0 },
+    { name: "Batata Frita", emoji: "🍟", price: 15, buyAmount: 1, stock: savedFoodStock["🍟"] ?? 0 },
+    { name: "Hotdog", emoji: "🌭", price: 10, buyAmount: 1, stock: savedFoodStock["🌭"] ?? 0 },
+    { name: "Pipoca", emoji: "🍿", price: 10, buyAmount: 1, stock: savedFoodStock["🍿"] ?? 0 },
+    { name: "Bacon", emoji: "🥓", price: 30, buyAmount: 5, stock: savedFoodStock["🥓"] ?? 0 },
+    { name: "Ovo", emoji: "🥚", price: 20, buyAmount: 20, stock: savedFoodStock["🥚"] ?? 0 },
+    { name: "Waffle", emoji: "🧇", price: 35, buyAmount: 10, stock: savedFoodStock["🧇"] ?? 0 },
+    { name: "Panqueca", emoji: "🥞", price: 15, buyAmount: 3, stock: savedFoodStock["🥞"] ?? 0 },
+    { name: "Donut", emoji: "🍩", price: 30, buyAmount: 5, stock: savedFoodStock["🍩"] ?? 0 },
+    { name: "Sorvete", emoji: "🍦", price: 20, buyAmount: 1, stock: savedFoodStock["🍦"] ?? 0 },
+    { name: "Café", emoji: "☕", price: 2, buyAmount: 1, stock: savedFoodStock["☕"] ?? 0 },
+    { name: "Melancia", emoji: "🍉", price: 30, buyAmount: 6, stock: savedFoodStock["🍉"] ?? 0 },
+    { name: "Sushi", emoji: "🍣", price: 120, buyAmount: 100, stock: savedFoodStock["🍣"] ?? 0 }
+];
+
+function saveFoodStock() {
+    const stockMap = {};
+    foodOptions.forEach(f => stockMap[f.emoji] = f.stock);
+    localStorage.setItem('lumo_food_stock', JSON.stringify(stockMap));
+}
 
 const tshirtOptions = [
-    { name: "Nenhuma", color: "transparent", pattern: "none", remove: true, asset: 'tshirt.png' },
-    { name: "Básica", color: "#ffffff", pattern: "none", asset: 'tshirt.png' },
-    { name: "Noite", color: "#333333", pattern: "none", asset: 'tshirt.png' },
-    { name: "Vibrante", color: "#ff4444", pattern: "none", asset: 'tshirt.png' },
-    { name: "Listras", color: "#3357ff", pattern: "repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(255,255,255,0.3) 10px, rgba(255,255,255,0.3) 20px)", asset: 'tshirt.png' },
-    { name: "Poá", color: "#f6ff33", pattern: "radial-gradient(circle, rgba(0,0,0,0.1) 20%, transparent 20%)", size: "15px 15px", asset: 'tshirt.png' },
-    { name: "Xadrez Real", color: "#4ed401", pattern: "repeating-linear-gradient(0deg, transparent, transparent 12px, rgba(0,0,0,0.08) 12px, rgba(0,0,0,0.08) 24px), repeating-linear-gradient(90deg, transparent, transparent 12px, rgba(0,0,0,0.08) 12px, rgba(0,0,0,0.08) 24px)", asset: 'tshirt.png' },
-    { name: "Espacial", color: "#1a1a1a", pattern: "radial-gradient(circle, #fff 5%, transparent 5%)", size: "25px 25px", asset: 'tshirt.png' },
-    { name: "Arco-íris", color: "#fff", pattern: "linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8f00ff)", asset: 'tshirt.png' },
-    { name: "Militar", color: "#4b5320", pattern: "radial-gradient(circle at 10% 10%, rgba(107,142,35,0.5) 30%, transparent 30.1%), radial-gradient(circle at 30% 30%, rgba(85,107,47,0.5) 40%, transparent 40.1%), radial-gradient(circle at 50% 50%, rgba(61, 89, 21, 0.5) 50%, transparent 50.1%), radial-gradient(circle at 80% 10%, rgba(120, 134, 107, 0.5) 35%, transparent 35.1%), radial-gradient(circle at 10% 80%, rgba(107, 142, 35, 0.5) 45%, transparent 45.1%)", size: "60px 60px", asset: 'tshirt.png' },
-    { name: "Zebra", color: "#fff", pattern: "repeating-linear-gradient(45deg, #000, #000 5px, transparent 5px, transparent 15px)", size: "30px 30px", asset: 'tshirt.png' },
-    { name: "Galáxia", color: "#2d004d", pattern: "radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 40px), radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 30px)", size: "100px 100px", asset: 'tshirt.png' },
-    { name: "Dourada", color: "#ffd700", pattern: "linear-gradient(135deg, rgba(255,255,255,0.4) 0%, transparent 50%, rgba(0,0,0,0.1) 100%)", asset: 'tshirt.png' },
-    { name: "Céu", color: "#87ceeb", pattern: "radial-gradient(circle at 50% 50%, #fff 20%, transparent 25%)", size: "60px 60px", asset: 'tshirt.png' },
-    { name: "Candy", color: "#ffb6c1", pattern: "repeating-linear-gradient(-45deg, rgba(255,255,255,0.2), rgba(255,255,255,0.2) 10px, transparent 10px, transparent 20px)", asset: 'tshirt.png' }
+    { name: "Nenhuma", color: "transparent", pattern: "none", remove: true, asset: 'tshirt.png', bought: true, price: 0 },
+    { name: "Básica", color: "#ffffff", pattern: "none", asset: 'tshirt.png', bought: false, price: 20 },
+    { name: "Noite", color: "#333333", pattern: "none", asset: 'tshirt.png', bought: false, price: 20 },
+    { name: "Vibrante", color: "#ff4444", pattern: "none", asset: 'tshirt.png', bought: false, price: 25 },
+    { name: "Listras", color: "#3357ff", pattern: "repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(255,255,255,0.3) 10px, rgba(255,255,255,0.3) 20px)", asset: 'tshirt.png', bought: false, price: 40 },
+    { name: "Poá", color: "#f6ff33", pattern: "radial-gradient(circle, rgba(0,0,0,0.1) 20%, transparent 20%)", size: "15px 15px", asset: 'tshirt.png', bought: false, price: 40 },
+    { name: "Xadrez Real", color: "#4ed401", pattern: "repeating-linear-gradient(0deg, transparent, transparent 12px, rgba(0,0,0,0.08) 12px, rgba(0,0,0,0.08) 24px), repeating-linear-gradient(90deg, transparent, transparent 12px, rgba(0,0,0,0.08) 12px, rgba(0,0,0,0.08) 24px)", asset: 'tshirt.png', bought: false, price: 45 },
+    { name: "Espacial", color: "#1a1a1a", pattern: "radial-gradient(circle, #fff 5%, transparent 5%)", size: "25px 25px", asset: 'tshirt.png', bought: false, price: 60 },
+    { name: "Arco-íris", color: "#fff", pattern: "linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8f00ff)", asset: 'tshirt.png', bought: false, price: 70 },
+    { name: "Militar", color: "#4b5320", pattern: "radial-gradient(circle at 10% 10%, rgba(107,142,35,0.5) 30%, transparent 30.1%), radial-gradient(circle at 30% 30%, rgba(85,107,47,0.5) 40%, transparent 40.1%), radial-gradient(circle at 50% 50%, rgba(61, 89, 21, 0.5) 50%, transparent 50.1%), radial-gradient(circle at 80% 10%, rgba(120, 134, 107, 0.5) 35%, transparent 35.1%), radial-gradient(circle at 10% 80%, rgba(107, 142, 35, 0.5) 45%, transparent 45.1%)", size: "60px 60px", asset: 'tshirt.png', bought: false, price: 55 },
+    { name: "Zebra", color: "#fff", pattern: "repeating-linear-gradient(45deg, #000, #000 5px, transparent 5px, transparent 15px)", size: "30px 30px", asset: 'tshirt.png', bought: false, price: 60 },
+    { name: "Galáxia", color: "#2d004d", pattern: "radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 40px), radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 30px)", size: "100px 100px", asset: 'tshirt.png', bought: false, price: 90 },
+    { name: "Dourada", color: "#ffd700", pattern: "linear-gradient(135deg, rgba(255,255,255,0.4) 0%, transparent 50%, rgba(0,0,0,0.1) 100%)", asset: 'tshirt.png', bought: false, price: 150 },
+    { name: "Céu", color: "#87ceeb", pattern: "radial-gradient(circle at 50% 50%, #fff 20%, transparent 25%)", size: "60px 60px", asset: 'tshirt.png', bought: false, price: 40 },
+    { name: "Candy", color: "#ffb6c1", pattern: "repeating-linear-gradient(-45deg, rgba(255,255,255,0.2), rgba(255,255,255,0.2) 10px, transparent 10px, transparent 20px)", asset: 'tshirt.png', bought: false, price: 40 },
+    // Novo Item Exemplo (Trancado)
+    { name: "Cyber", color: "#000", pattern: "repeating-linear-gradient(90deg, #0ff, #0ff 2px, transparent 2px, transparent 4px)", size: "10px 100%", asset: 'tshirt.png', bought: false, price: 500 }
 ];
 
 const tshirtOptions2 = [
-    { name: "Nenhuma", color: "transparent", pattern: "none", remove: true, asset: 'tshirt2.png' },
-    { name: "Azul Marinho", color: "#000080", pattern: "none", asset: 'tshirt2.png' },
-    { name: "Verde Floresta", color: "#228B22", pattern: "none", asset: 'tshirt2.png' },
-    { name: "Roxo Profundo", color: "#4B0082", pattern: "none", asset: 'tshirt2.png' },
-    { name: "Laranja Queimado", color: "#CC5500", pattern: "none", asset: 'tshirt2.png' },
-    { name: "Listras Finas", color: "#87CEEB", pattern: "repeating-linear-gradient(90deg, transparent, transparent 5px, rgba(0,0,0,0.1) 5px, rgba(0,0,0,0.1) 10px)", asset: 'tshirt2.png' },
-    { name: "Quadriculado", color: "#FFD700", pattern: "repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 20px), repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 20px)", asset: 'tshirt2.png' },
-    { name: "Corações", color: "#FF69B4", pattern: "radial-gradient(circle at 50% 50%, #fff 10%, transparent 10%), radial-gradient(circle at 25% 25%, #fff 5%, transparent 5%), radial-gradient(circle at 75% 75%, #fff 5%, transparent 5%)", size: "20px 20px", asset: 'tshirt2.png' },
-    { name: "Ondas", color: "#00BFFF", pattern: "repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.2) 10px, rgba(255,255,255,0.2) 20px)", asset: 'tshirt2.png' },
-    { name: "Camuflagem", color: "#8B4513", pattern: "radial-gradient(circle at 10% 10%, rgba(139,69,19,0.5) 30%, transparent 30.1%), radial-gradient(circle at 90% 90%, rgba(160,82,45,0.5) 40%, transparent 40.1%), radial-gradient(circle at 50% 50%, rgba(101,67,33,0.5) 50%, transparent 50.1%)", size: "50px 50px", asset: 'tshirt2.png' },
-    { name: "Tijolinho", color: "#A0522D", pattern: "linear-gradient(90deg, rgba(255,255,255,0.1) 2px, transparent 2px), linear-gradient(90deg, rgba(255,255,255,0.1) 2px, transparent 2px), linear-gradient(rgba(255,255,255,0.1) 2px, transparent 2px)", size: "40px 20px", position: "0 0, 20px 10px, 0 0", asset: 'tshirt2.png' },
-    { name: "Escamas", color: "#6A5ACD", pattern: "radial-gradient(circle at 50% 0, rgba(255,255,255,0.2) 20%, transparent 20%), radial-gradient(circle at 0 50%, rgba(255,255,255,0.2) 20%, transparent 20%), radial-gradient(circle at 100% 50%, rgba(255,255,255,0.2) 20%, transparent 20%)", size: "30px 30px", asset: 'tshirt2.png' },
-    { name: "Estrelas Pequenas", color: "#4682B4", pattern: "radial-gradient(circle, #fff 2%, transparent 2%)", size: "10px 10px", asset: 'tshirt2.png' },
-    { name: "Tie-Dye", color: "#FFC0CB", pattern: "radial-gradient(circle at 20% 80%, #FF00FF 10%, transparent 10%), radial-gradient(circle at 80% 20%, #00FFFF 10%, transparent 10%), radial-gradient(circle at 50% 50%, #FFFF00 15%, transparent 15%)", size: "100px 100px", asset: 'tshirt2.png' },
-    { name: "Geométrico", color: "#808080", pattern: "linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.1) 75%), linear-gradient(-45deg, rgba(255,255,255,0.1) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.1) 75%)", size: "30px 30px", asset: 'tshirt2.png' }
+    { name: "Nenhuma", color: "transparent", pattern: "none", remove: true, asset: 'tshirt2.png', bought: true, price: 0 },
+    { name: "Azul Marinho", color: "#000080", pattern: "none", asset: 'tshirt2.png', bought: false, price: 30 },
+    { name: "Verde Floresta", color: "#228B22", pattern: "none", asset: 'tshirt2.png', bought: false, price: 30 },
+    { name: "Roxo Profundo", color: "#4B0082", pattern: "none", asset: 'tshirt2.png', bought: false, price: 35 },
+    { name: "Laranja Queimado", color: "#CC5500", pattern: "none", asset: 'tshirt2.png', bought: false, price: 35 },
+    { name: "Listras Finas", color: "#87CEEB", pattern: "repeating-linear-gradient(90deg, transparent, transparent 5px, rgba(0,0,0,0.1) 5px, rgba(0,0,0,0.1) 10px)", asset: 'tshirt2.png', bought: false, price: 50 },
+    { name: "Quadriculado", color: "#FFD700", pattern: "repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 20px), repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 20px)", asset: 'tshirt2.png', bought: false, price: 50 },
+    { name: "Corações", color: "#FF69B4", pattern: "radial-gradient(circle at 50% 50%, #fff 10%, transparent 10%), radial-gradient(circle at 25% 25%, #fff 5%, transparent 5%), radial-gradient(circle at 75% 75%, #fff 5%, transparent 5%)", size: "20px 20px", asset: 'tshirt2.png', bought: false, price: 65 },
+    { name: "Ondas", color: "#00BFFF", pattern: "repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.2) 10px, rgba(255,255,255,0.2) 20px)", asset: 'tshirt2.png', bought: false, price: 55 },
+    { name: "Camuflagem", color: "#8B4513", pattern: "radial-gradient(circle at 10% 10%, rgba(139,69,19,0.5) 30%, transparent 30.1%), radial-gradient(circle at 90% 90%, rgba(160,82,45,0.5) 40%, transparent 40.1%), radial-gradient(circle at 50% 50%, rgba(101,67,33,0.5) 50%, transparent 50.1%)", size: "50px 50px", asset: 'tshirt2.png', bought: false, price: 70 },
+    { name: "Tijolinho", color: "#A0522D", pattern: "linear-gradient(90deg, rgba(255,255,255,0.1) 2px, transparent 2px), linear-gradient(90deg, rgba(255,255,255,0.1) 2px, transparent 2px), linear-gradient(rgba(255,255,255,0.1) 2px, transparent 2px)", size: "40px 20px", position: "0 0, 20px 10px, 0 0", asset: 'tshirt2.png', bought: false, price: 60 },
+    { name: "Escamas", color: "#6A5ACD", pattern: "radial-gradient(circle at 50% 0, rgba(255,255,255,0.2) 20%, transparent 20%), radial-gradient(circle at 0 50%, rgba(255,255,255,0.2) 20%, transparent 20%), radial-gradient(circle at 100% 50%, rgba(255,255,255,0.2) 20%, transparent 20%)", size: "30px 30px", asset: 'tshirt2.png', bought: false, price: 75 },
+    { name: "Estrelas Pequenas", color: "#4682B4", pattern: "radial-gradient(circle, #fff 2%, transparent 2%)", size: "10px 10px", asset: 'tshirt2.png', bought: false, price: 40 },
+    { name: "Tie-Dye", color: "#FFC0CB", pattern: "radial-gradient(circle at 20% 80%, #FF00FF 10%, transparent 10%), radial-gradient(circle at 80% 20%, #00FFFF 10%, transparent 10%), radial-gradient(circle at 50% 50%, #FFFF00 15%, transparent 15%)", size: "100px 100px", asset: 'tshirt2.png', bought: false, price: 110 },
+    { name: "Geométrico", color: "#808080", pattern: "linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.1) 75%), linear-gradient(-45deg, rgba(255,255,255,0.1) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.1) 75%)", size: "30px 30px", asset: 'tshirt2.png', bought: false, price: 60 }
 ];
 
 const tshirtOptions3 = [
-    { name: "Nenhuma", color: "transparent", pattern: "none", remove: true, asset: 'tshirt3.png' },
-    { name: "Preto Sólido", color: "#000000", pattern: "none", asset: 'tshirt3.png' },
-    { name: "Branco Sólido", color: "#FFFFFF", pattern: "none", asset: 'tshirt3.png' },
-    { name: "Cinza Chumbo", color: "#4F4F4F", pattern: "none", asset: 'tshirt3.png' },
-    { name: "Vermelho Sangue", color: "#8B0000", pattern: "none", asset: 'tshirt3.png' },
-    { name: "Listras Verticais", color: "#00CED1", pattern: "repeating-linear-gradient(90deg, transparent, transparent 8px, rgba(0,0,0,0.2) 8px, rgba(0,0,0,0.2) 16px)", asset: 'tshirt3.png' },
-    { name: "Bolhas", color: "#ADD8E6", pattern: "radial-gradient(circle, rgba(255,255,255,0.3) 15%, transparent 15%)", size: "25px 25px", asset: 'tshirt3.png' },
-    { name: "Grade", color: "#D3D3D3", pattern: "linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px)", size: "20px 20px", asset: 'tshirt3.png' },
-    { name: "Fogo", color: "#FF4500", pattern: "radial-gradient(circle at 50% 0%, #FFD700 20%, transparent 20%), radial-gradient(circle at 20% 100%, #FF8C00 15%, transparent 15%)", size: "50px 50px", asset: 'tshirt3.png' },
-    { name: "Gelo", color: "#E0FFFF", pattern: "radial-gradient(circle at 50% 50%, #ADD8E6 10%, transparent 10%), radial-gradient(circle at 20% 80%, #B0E0E6 5%, transparent 5%)", size: "40px 40px", asset: 'tshirt3.png' },
-    { name: "Madeira", color: "#8B4513", pattern: "linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px)", size: "10px 10px", asset: 'tshirt3.png' },
-    { name: "Pixel", color: "#00FF00", pattern: "linear-gradient(90deg, rgba(0,0,0,0.2) 1px, transparent 1px), linear-gradient(rgba(0,0,0,0.2) 1px, transparent 1px)", size: "5px 5px", asset: 'tshirt3.png' },
-    { name: "Nuvens", color: "#F0F8FF", pattern: "radial-gradient(circle at 20% 20%, #fff 25%, transparent 25%), radial-gradient(circle at 70% 60%, #fff 30%, transparent 30%)", size: "80px 80px", asset: 'tshirt3.png' },
-    { name: "Diamante", color: "#B9F2FF", pattern: "linear-gradient(45deg, rgba(255,255,255,0.2) 25%, transparent 25%), linear-gradient(-45deg, rgba(255,255,255,0.2) 25%, transparent 25%)", size: "20px 20px", asset: 'tshirt3.png' },
-    { name: "Tecido", color: "#D2B48C", pattern: "linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px)", size: "2px 2px", asset: 'tshirt3.png' }
+    { name: "Nenhuma", color: "transparent", pattern: "none", remove: true, asset: 'tshirt3.png', bought: true, price: 0 },
+    { name: "Preto Sólido", color: "#000000", pattern: "none", asset: 'tshirt3.png', bought: false, price: 40 },
+    { name: "Branco Sólido", color: "#FFFFFF", pattern: "none", asset: 'tshirt3.png', bought: false, price: 40 },
+    { name: "Cinza Chumbo", color: "#4F4F4F", pattern: "none", asset: 'tshirt3.png', bought: false, price: 40 },
+    { name: "Vermelho Sangue", color: "#8B0000", pattern: "none", asset: 'tshirt3.png', bought: false, price: 45 },
+    { name: "Listras Verticais", color: "#00CED1", pattern: "repeating-linear-gradient(90deg, transparent, transparent 8px, rgba(0,0,0,0.2) 8px, rgba(0,0,0,0.2) 16px)", asset: 'tshirt3.png', bought: false, price: 55 },
+    { name: "Bolhas", color: "#ADD8E6", pattern: "radial-gradient(circle, rgba(255,255,255,0.3) 15%, transparent 15%)", size: "25px 25px", asset: 'tshirt3.png', bought: false, price: 60 },
+    { name: "Grade", color: "#D3D3D3", pattern: "linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px)", size: "20px 20px", asset: 'tshirt3.png', bought: false, price: 50 },
+    { name: "Fogo", color: "#FF4500", pattern: "radial-gradient(circle at 50% 0%, #FFD700 20%, transparent 20%), radial-gradient(circle at 20% 100%, #FF8C00 15%, transparent 15%)", size: "50px 50px", asset: 'tshirt3.png', bought: false, price: 100 },
+    { name: "Gelo", color: "#E0FFFF", pattern: "radial-gradient(circle at 50% 50%, #ADD8E6 10%, transparent 10%), radial-gradient(circle at 20% 80%, #B0E0E6 5%, transparent 5%)", size: "40px 40px", asset: 'tshirt3.png', bought: false, price: 100 },
+    { name: "Madeira", color: "#8B4513", pattern: "linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px)", size: "10px 10px", asset: 'tshirt3.png', bought: false, price: 70 },
+    { name: "Pixel", color: "#00FF00", pattern: "linear-gradient(90deg, rgba(0,0,0,0.2) 1px, transparent 1px), linear-gradient(rgba(0,0,0,0.2) 1px, transparent 1px)", size: "5px 5px", asset: 'tshirt3.png', bought: false, price: 80 },
+    { name: "Nuvens", color: "#F0F8FF", pattern: "radial-gradient(circle at 20% 20%, #fff 25%, transparent 25%), radial-gradient(circle at 70% 60%, #fff 30%, transparent 30%)", size: "80px 80px", asset: 'tshirt3.png', bought: false, price: 85 },
+    { name: "Diamante", color: "#B9F2FF", pattern: "linear-gradient(45deg, rgba(255,255,255,0.2) 25%, transparent 25%), linear-gradient(-45deg, rgba(255,255,255,0.2) 25%, transparent 25%)", size: "20px 20px", asset: 'tshirt3.png', bought: false, price: 130 },
+    { name: "Tecido", color: "#D2B48C", pattern: "linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px)", size: "2px 2px", asset: 'tshirt3.png', bought: false, price: 60 }
 ];
 
 const moletomOptions = [
-    { name: "Nenhum", remove: true },
-    { name: "Vermelho", color: "#FF0000", asset: 'moletom.png' },
-    { name: "Vermelho C", color: "#FF0000", asset: 'moletomC.png' },
-    { name: "Azul", color: "#0000FF", asset: 'moletom.png' },
-    { name: "Azul C", color: "#0000FF", asset: 'moletomC.png' },
-    { name: "Verde", color: "#00FF00", asset: 'moletom.png' },
-    { name: "Verde C", color: "#00FF00", asset: 'moletomC.png' },
-    { name: "Amarelo", color: "#FFFF00", asset: 'moletom.png' },
-    { name: "Amarelo C", color: "#FFFF00", asset: 'moletomC.png' },
-    { name: "Preto", color: "#333333", asset: 'moletom.png' },
-    { name: "Preto C", color: "#333333", asset: 'moletomC.png' },
-    { name: "Branco", color: "#FFFFFF", asset: 'moletom.png' },
-    { name: "Branco C", color: "#FFFFFF", asset: 'moletomC.png' },
-    { name: "Rosa", color: "#FF69B4", asset: 'moletom.png' },
-    { name: "Rosa C", color: "#FF69B4", asset: 'moletomC.png' },
-    { name: "Roxo", color: "#800080", asset: 'moletom.png' },
-    { name: "Roxo C", color: "#800080", asset: 'moletomC.png' },
-    { name: "Laranja", color: "#FFA500", asset: 'moletom.png' },
-    { name: "Laranja C", color: "#FFA500", asset: 'moletomC.png' }
+    { name: "Nenhum", remove: true, bought: true, price: 0 },
+    { name: "Vermelho", color: "#FF0000", asset: 'moletom.png', bought: false, price: 120 },
+    { name: "Vermelho C", color: "#FF0000", asset: 'moletomC.png', bought: false, price: 0 },
+    { name: "Azul", color: "#0000FF", asset: 'moletom.png', bought: false, price: 120 },
+    { name: "Azul C", color: "#0000FF", asset: 'moletomC.png', bought: false, price: 0 },
+    { name: "Verde", color: "#00FF00", asset: 'moletom.png', bought: false, price: 120 },
+    { name: "Verde C", color: "#00FF00", asset: 'moletomC.png', bought: false, price: 0 },
+    { name: "Amarelo", color: "#FFFF00", asset: 'moletom.png', bought: false, price: 120 },
+    { name: "Amarelo C", color: "#FFFF00", asset: 'moletomC.png', bought: false, price: 0 },
+    { name: "Preto", color: "#333333", asset: 'moletom.png', bought: false, price: 120 },
+    { name: "Preto C", color: "#333333", asset: 'moletomC.png', bought: false, price: 0 },
+    { name: "Branco", color: "#FFFFFF", asset: 'moletom.png', bought: false, price: 120 },
+    { name: "Branco C", color: "#FFFFFF", asset: 'moletomC.png', bought: false, price: 0 },
+    { name: "Rosa", color: "#FF69B4", asset: 'moletom.png', bought: false, price: 120 },
+    { name: "Rosa C", color: "#FF69B4", asset: 'moletomC.png', bought: false, price: 0 },
+    { name: "Roxo", color: "#800080", asset: 'moletom.png', bought: false, price: 120 },
+    { name: "Roxo C", color: "#800080", asset: 'moletomC.png', bought: false, price: 0 },
+    { name: "Laranja", color: "#FFA500", asset: 'moletom.png', bought: false, price: 120 },
+    { name: "Laranja C", color: "#FFA500", asset: 'moletomC.png', bought: false, price: 0 }
 ];
 
 const moletom2Options = [
-    { name: "Nenhum", remove: true },
-    { name: "Original", hue: 0, asset: 'moletom2.png' },
-    { name: "Original C", hue: 0, asset: 'moletom2C.png' },
-    { name: "Tropical", hue: 45, asset: 'moletom2.png' },
-    { name: "Tropical C", hue: 45, asset: 'moletom2C.png' },
-    { name: "Oceano", hue: 90, asset: 'moletom2.png' },
-    { name: "Oceano C", hue: 90, asset: 'moletom2C.png' },
-    { name: "Noite", hue: 150, asset: 'moletom2.png' },
-    { name: "Noite C", hue: 150, asset: 'moletom2C.png' },
-    { name: "Ametista", hue: 200, asset: 'moletom2.png' },
-    { name: "Ametista C", hue: 200, asset: 'moletom2C.png' },
-    { name: "Doce", hue: 250, asset: 'moletom2.png' },
-    { name: "Doce C", hue: 250, asset: 'moletom2C.png' },
-    { name: "Fogo", hue: 300, asset: 'moletom2.png' },
-    { name: "Fogo C", hue: 300, asset: 'moletom2C.png' },
-    { name: "Neon", hue: 330, asset: 'moletom2.png' },
-    { name: "Neon C", hue: 330, asset: 'moletom2C.png' }
+    { name: "Nenhum", remove: true, bought: true, price: 0 },
+    { name: "Original", hue: 0, asset: 'moletom2.png', bought: false, price: 150 },
+    { name: "Original C", hue: 0, asset: 'moletom2C.png', bought: false, price: 0 },
+    { name: "Tropical", hue: 45, asset: 'moletom2.png', bought: false, price: 200 },
+    { name: "Tropical C", hue: 45, asset: 'moletom2C.png', bought: false, price: 0 },
+    { name: "Oceano", hue: 90, asset: 'moletom2.png', bought: false, price: 200 },
+    { name: "Oceano C", hue: 90, asset: 'moletom2C.png', bought: false, price: 0 },
+    { name: "Noite", hue: 150, asset: 'moletom2.png', bought: false, price: 200 },
+    { name: "Noite C", hue: 150, asset: 'moletom2C.png', bought: false, price: 0 },
+    { name: "Ametista", hue: 200, asset: 'moletom2.png', bought: false, price: 200 },
+    { name: "Ametista C", hue: 200, asset: 'moletom2C.png', bought: false, price: 0 },
+    { name: "Doce", hue: 250, asset: 'moletom2.png', bought: false, price: 200 },
+    { name: "Doce C", hue: 250, asset: 'moletom2C.png', bought: false, price: 0 },
+    { name: "Fogo", hue: 300, asset: 'moletom2.png', bought: false, price: 200 },
+    { name: "Fogo C", hue: 300, asset: 'moletom2C.png', bought: false, price: 0 },
+    { name: "Neon", hue: 330, asset: 'moletom2.png', bought: false, price: 200 },
+    { name: "Neon C", hue: 330, asset: 'moletom2C.png', bought: false, price: 0 }
 ];
 
 const capOptions = [
-    { name: "Nenhum", color: "transparent", remove: true, asset: 'cap.png', pattern: 'none' },
-    { name: "Vermelho", color: "#FF0000", asset: 'cap.png', pattern: 'none' },
-    { name: "Azul", color: "#0000FF", asset: 'cap.png', pattern: 'none' },
-    { name: "Verde", color: "#00FF00", asset: 'cap.png', pattern: 'none' },
-    { name: "Amarelo", color: "#FFFF00", asset: 'cap.png', pattern: 'none' },
-    { name: "Preto", color: "#000000", asset: 'cap.png', pattern: 'none' },
-    { name: "Branco", color: "#FFFFFF", asset: 'cap.png', pattern: 'none' },
-    { name: "Cinza", color: "#808080", asset: 'cap.png', pattern: 'none' },
-    { name: "Roxo", color: "#800080", asset: 'cap.png', pattern: 'none' },
-    { name: "Laranja", color: "#FFA500", asset: 'cap.png', pattern: 'none' }
+    { name: "Nenhum", color: "transparent", remove: true, asset: 'cap.png', pattern: 'none', bought: true, price: 0 },
+    { name: "Vermelho", color: "#FF0000", asset: 'cap.png', pattern: 'none', bought: false, price: 40 },
+    { name: "Azul", color: "#0000FF", asset: 'cap.png', pattern: 'none', bought: false, price: 40 },
+    { name: "Verde", color: "#00FF00", asset: 'cap.png', pattern: 'none', bought: false, price: 40 },
+    { name: "Amarelo", color: "#FFFF00", asset: 'cap.png', pattern: 'none', bought: false, price: 40 },
+    { name: "Preto", color: "#000000", asset: 'cap.png', pattern: 'none', bought: false, price: 50 },
+    { name: "Branco", color: "#FFFFFF", asset: 'cap.png', pattern: 'none', bought: false, price: 50 },
+    { name: "Cinza", color: "#808080", asset: 'cap.png', pattern: 'none', bought: false, price: 45 },
+    { name: "Roxo", color: "#800080", asset: 'cap.png', pattern: 'none', bought: false, price: 45 },
+    { name: "Laranja", color: "#FFA500", asset: 'cap.png', pattern: 'none', bought: false, price: 45 }
 ];
 
 const glassOptions = [
-    { name: "Nenhum", remove: true },
-    { name: "Óculos", asset: 'glass.png', noMask: true }
+    { name: "Nenhum", remove: true, bought: true, price: 0 },
+    { name: "Óculos", asset: 'glass.png', noMask: true, bought: false, price: 80 }
 ];
 
 const chainOptions = [
-    { name: "Nenhuma", remove: true },
-    { name: "Corrente 1", asset: 'corrente.png', noMask: true },
-    { name: "Corrente 2", asset: 'corrente2.png', noMask: true },
-    { name: "Corrente 3", asset: 'corrente3.png', noMask: true }
+    { name: "Nenhuma", remove: true, bought: true, price: 0 },
+    { name: "Corrente 1", asset: 'corrente.png', noMask: true, bought: false, price: 100 },
+    { name: "Corrente 2", asset: 'corrente2.png', noMask: true, bought: false, price: 150 },
+    { name: "Corrente 3", asset: 'corrente3.png', noMask: true, bought: false, price: 200 }
 ];
 
 const headphonesOptions = [
-    { name: "Nenhum", remove: true },
-    { name: "Vermelho", color: "#FF0000", asset: 'fone.png' },
-    { name: "Azul", color: "#0000FF", asset: 'fone.png' },
-    { name: "Verde", color: "#00FF00", asset: 'fone.png' },
-    { name: "Amarelo", color: "#FFFF00", asset: 'fone.png' },
-    { name: "Preto", color: "#333333", asset: 'fone.png' },
-    { name: "Branco", color: "#FFFFFF", asset: 'fone.png' },
-    { name: "Rosa", color: "#FF69B4", asset: 'fone.png' },
-    { name: "Roxo", color: "#800080", asset: 'fone.png' },
-    { name: "Laranja", color: "#FFA500", asset: 'fone.png' }
+    { name: "Nenhum", remove: true, bought: true, price: 0 },
+    { name: "Vermelho", color: "#FF0000", asset: 'fone.png', bought: false, price: 110 },
+    { name: "Azul", color: "#0000FF", asset: 'fone.png', bought: false, price: 110 },
+    { name: "Verde", color: "#00FF00", asset: 'fone.png', bought: false, price: 110 },
+    { name: "Amarelo", color: "#FFFF00", asset: 'fone.png', bought: false, price: 110 },
+    { name: "Preto", color: "#333333", asset: 'fone.png', bought: false, price: 120 },
+    { name: "Branco", color: "#FFFFFF", asset: 'fone.png', bought: false, price: 120 },
+    { name: "Rosa", color: "#FF69B4", asset: 'fone.png', bought: false, price: 110 },
+    { name: "Roxo", color: "#800080", asset: 'fone.png', bought: false, price: 110 },
+    { name: "Laranja", color: "#FFA500", asset: 'fone.png', bought: false, price: 110 }
 ];
 
 // Arrays de Customização (20 opções cada)
-const bodyTypes = ['assets/body.png', 'assets/body2.png'];
+const bodyTypes = ['assets/body.png'];
 
 const bodyColors = [
     '#4ed401', '#ff5733', '#3357ff', '#ff33a1', '#33fff6', 
@@ -252,9 +293,9 @@ const eyebrowTypes = [
 
 function customizarPet(typeIdx, bodyIdx, noseIdx, irisIdx, patternIdx) {
     const root = document.getElementById('lumo');
-    const bodyPath = bodyTypes[typeIdx % bodyTypes.length];
+    const bodyPath = bodyTypes[0];
     
-    currentBodyTypeIdx = typeIdx % bodyTypes.length;
+    currentBodyTypeIdx = 0;
     
     root.style.setProperty('--body-image', `url('${bodyPath}')`);
     root.style.setProperty('--body-color', bodyColors[bodyIdx % 20]);
@@ -286,7 +327,6 @@ function updateAllClothes() {
     updateCapVisibility();
     updateGlassVisibility();
     updateHeadphonesVisibility();
-    updateBrotoVisibility();
 }
 
 function updateTshirtVisibility() {
@@ -469,16 +509,6 @@ function updateHeadphonesVisibility() {
     }
 }
 
-function updateBrotoVisibility() {
-    const brotoEl = document.querySelector('.pet-broto');
-    // O broto é exclusivo do body2 (index 1) e depende da característica sorteada
-    if (currentBodyTypeIdx === 1 && currentHasBroto) {
-        brotoEl.style.display = 'block';
-    } else {
-        brotoEl.style.display = 'none';
-    }
-}
-
 // Nova função para aplicar estilos de sobrancelha
 function applyEyebrowStyles(eyebrowTypeIdx) {
     const eyebrowType = eyebrowTypes[eyebrowTypeIdx % eyebrowTypes.length];
@@ -498,9 +528,8 @@ function applyEyebrowStyles(eyebrowTypeIdx) {
 }
 
 // Modifica a função customizarPet para incluir a customização da sobrancelha
-function customizarPetFull(typeIdx, bodyIdx, noseIdx, irisIdx, patternIdx, eyebrowTypeIdx, brotoIdx) {
-    customizarPet(typeIdx, bodyIdx, noseIdx, irisIdx, patternIdx); 
-    currentHasBroto = (brotoIdx === 1);
+function customizarPetFull(typeIdx, bodyIdx, noseIdx, irisIdx, patternIdx, eyebrowTypeIdx) {
+    customizarPet(0, bodyIdx, noseIdx, irisIdx, patternIdx); 
     updateAllClothes();
     applyEyebrowStyles(eyebrowTypeIdx); // Aplica os estilos da sobrancelha
 }
@@ -515,21 +544,37 @@ const shopConfig = {
 };
 
 const hueFilters = [0, 45, 90, 150, 200, 260, 300];
-const wallColors = ['#414141', '#6d4c41', '#d6d6d6', '#4a5a7a', '#ff5733', '#3357ff', '#757575'];
-const floorColors = ['#ffffff', '#f0e68c', '#e0e0e0', '#ffdab9', '#b0c4de'];
+const wallColors = [
+    { color: '#414141', bought: true, price: 0 },
+    { color: '#6d4c41', bought: true, price: 0 },
+    { color: '#d6d6d6', bought: true, price: 0 },
+    { color: '#4a5a7a', bought: true, price: 0 },
+    { color: '#ff5733', bought: false, price: 100 },
+    { color: '#3357ff', bought: false, price: 100 },
+    { color: '#757575', bought: false, price: 80 }
+];
+const floorColors = [
+    { color: '#ffffff', bought: true, price: 0 },
+    { color: '#f0e68c', bought: false, price: 120 },
+    { color: '#e0e0e0', bought: false, price: 120 },
+    { color: '#ffdab9', bought: false, price: 150 },
+    { color: '#b0c4de', bought: false, price: 150 }
+];
 
 const wallPatterns = [
-    { name: "Liso", image: "none", size: "auto", position: "0 0" },
-    { name: "Tijolo", image: "linear-gradient(90deg, rgba(255,255,255,0.07) 2px, transparent 2px), linear-gradient(90deg, rgba(255,255,255,0.07) 2px, transparent 2px), linear-gradient(rgba(255,255,255,0.07) 2px, transparent 2px)", size: "80px 40px", position: "0 0, 40px 20px, 0 0" },
-    { name: "Listras V", image: "linear-gradient(90deg, rgba(0, 0, 0, 0.1) 2px, transparent 2px)", size: "40px 100%", position: "0 0" },
-    { name: "Listras H", image: "linear-gradient(rgba(0, 0, 0, 0.1) 2px, transparent 2px)", size: "100% 40px", position: "0 0" },
-    { name: "Azulejo", image: "linear-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.1) 1px, transparent 1px)", size: "30px 30px", position: "0 0" },
-    { name: "Pontos", image: "radial-gradient(rgba(255,255,255,0.1) 2px, transparent 2px)", size: "40px 40px", position: "0 0" },
-    { name: "Chevron", image: "linear-gradient(135deg, rgba(255,255,255,0.05) 25%, transparent 25%), linear-gradient(225deg, rgba(255,255,255,0.05) 25%, transparent 25%), linear-gradient(45deg, rgba(255,255,255,0.05) 25%, transparent 25%), linear-gradient(315deg, rgba(255,255,255,0.05) 25%, transparent 25%)", size: "40px 40px", position: "0 0" }
+    { name: "Liso", image: "none", size: "auto", position: "0 0", bought: true, price: 0 },
+    { name: "Tijolo", image: "linear-gradient(90deg, rgba(255,255,255,0.07) 2px, transparent 2px), linear-gradient(90deg, rgba(255,255,255,0.07) 2px, transparent 2px), linear-gradient(rgba(255,255,255,0.07) 2px, transparent 2px)", size: "80px 40px", position: "0 0, 40px 20px, 0 0", bought: true, price: 0 },
+    { name: "Listras V", image: "linear-gradient(90deg, rgba(0, 0, 0, 0.1) 2px, transparent 2px)", size: "40px 100%", position: "0 0", bought: true, price: 0 },
+    { name: "Listras H", image: "linear-gradient(rgba(0, 0, 0, 0.1) 2px, transparent 2px)", size: "100% 40px", position: "0 0", bought: false, price: 150 },
+    { name: "Azulejo", image: "linear-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.1) 1px, transparent 1px)", size: "30px 30px", position: "0 0", bought: true, price: 0 },
+    { name: "Pontos", image: "radial-gradient(rgba(255,255,255,0.1) 2px, transparent 2px)", size: "40px 40px", position: "0 0", bought: true, price: 0 },
+    { name: "Chevron", image: "linear-gradient(135deg, rgba(255,255,255,0.05) 25%, transparent 25%), linear-gradient(225deg, rgba(255,255,255,0.05) 25%, transparent 25%), linear-gradient(45deg, rgba(255,255,255,0.05) 25%, transparent 25%), linear-gradient(315deg, rgba(255,255,255,0.05) 25%, transparent 25%)", size: "40px 40px", position: "0 0", bought: false, price: 200 }
 ];
 
 btnLoja.addEventListener('click', openShop);
 btnGuardaRoupa.addEventListener('click', openWardrobe);
+document.querySelector('.armario').addEventListener('click', openWardrobe);
+if (geladeira) geladeira.addEventListener('click', openPantry);
 closeShop.addEventListener('click', () => shopOverlay.classList.add('hidden'));
 shopOverlay.addEventListener('click', (e) => { if(e.target === shopOverlay) shopOverlay.classList.add('hidden'); });
 
@@ -578,17 +623,32 @@ function openShop() {
     const wallGrid = document.createElement('div');
     wallGrid.className = 'shop-grid';
     wallColors.forEach(color => {
+        if (color.bought) return;
         const card = document.createElement('div');
         card.className = 'shop-item-card';
         const swatch = document.createElement('div');
         swatch.className = 'color-swatch';
-        swatch.style.backgroundColor = color;
+        swatch.style.backgroundColor = color.color;
 
-        card.onclick = () => {
-            document.querySelectorAll('.parede-fundo')[currentRoom].style.backgroundColor = color;
-        };
+        card.onclick = () => processPurchase(color, () => {
+            document.querySelectorAll('.parede-fundo')[currentRoom].style.backgroundColor = color.color;
+            openShop(); // Refresh
+        });
 
         card.appendChild(swatch);
+
+        // Adiciona etiqueta de preço para Cores de Parede
+        const priceTag = document.createElement('div');
+        priceTag.style.position = 'absolute';
+        priceTag.style.fontSize = '9px';
+        priceTag.style.top = '2px';
+        priceTag.style.background = 'rgba(0,0,0,0.5)';
+        priceTag.style.color = 'white';
+        priceTag.style.borderRadius = '3px';
+        priceTag.style.padding = '1px 3px';
+        priceTag.innerText = `🟡${color.price}`;
+        card.appendChild(priceTag);
+
         wallGrid.appendChild(card);
     });
     wallSection.appendChild(wallGrid);
@@ -599,30 +659,48 @@ function openShop() {
     const patternGrid = document.createElement('div');
     patternGrid.className = 'shop-grid';
     wallPatterns.forEach(pattern => {
+        if (pattern.bought) return;
         const card = document.createElement('div');
         card.className = 'shop-item-card';
         const swatch = document.createElement('div');
         swatch.className = 'color-swatch';
-        swatch.style.backgroundColor = '#bbb'; // Cor base para o preview na loja
+        swatch.style.backgroundColor = '#bbb';
         swatch.style.backgroundImage = pattern.image;
         swatch.style.backgroundSize = pattern.size;
         swatch.style.backgroundPosition = pattern.position;
 
-        card.onclick = () => {
+        card.onclick = () => processPurchase(pattern, () => {
             const wall = document.querySelectorAll('.parede-fundo')[currentRoom];
             wall.style.backgroundImage = pattern.image;
             wall.style.backgroundSize = pattern.size;
             wall.style.backgroundPosition = pattern.position;
-        };
+            openShop();
+        });
         card.appendChild(swatch);
+
+        // Adiciona etiqueta de preço para Estampas de Parede
+        const priceTag = document.createElement('div');
+        priceTag.style.position = 'absolute';
+        priceTag.style.fontSize = '9px';
+        priceTag.style.top = '2px';
+        priceTag.style.background = 'rgba(0,0,0,0.5)';
+        priceTag.style.color = 'white';
+        priceTag.style.borderRadius = '3px';
+        priceTag.style.padding = '1px 3px';
+        priceTag.innerText = `🟡${pattern.price}`;
+        card.appendChild(priceTag);
+
         patternGrid.appendChild(card);
     });
     patternSection.appendChild(patternGrid);
     shopContainer.appendChild(patternSection);
 
+    // Seção de Comidas
+    createClothingShopSection("Comidas", foodOptions, () => {}, () => {}, false);
+
     // Só exibe as seções de personalização se estiver no quarto (3)
     if (currentRoom === 3) {
-        carregarSecoesRoupas();
+        carregarSecoesRoupas(false);
     }
 
     // 9. Seção de Piso
@@ -630,18 +708,33 @@ function openShop() {
     const floorGrid = document.createElement('div');
     floorGrid.className = 'shop-grid';
     floorColors.forEach(color => {
+        if (color.bought) return;
         const card = document.createElement('div');
         card.className = 'shop-item-card';
         const swatch = document.createElement('div');
         swatch.className = 'color-swatch';
-        swatch.style.backgroundColor = color;
+        swatch.style.backgroundColor = color.color;
         swatch.style.backgroundImage = "linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px)";
         
-        card.onclick = () => {
-            document.querySelectorAll('.chao')[currentRoom].style.background = `radial-gradient(circle at 50% 0%, ${color} 20%, #bababa 100%)`;
-        };
+        card.onclick = () => processPurchase(color, () => {
+            document.querySelectorAll('.chao')[currentRoom].style.background = `radial-gradient(circle at 50% 0%, ${color.color} 20%, #bababa 100%)`;
+            openShop();
+        });
 
         card.appendChild(swatch);
+
+        // Adiciona etiqueta de preço para Pisos
+        const priceTag = document.createElement('div');
+        priceTag.style.position = 'absolute';
+        priceTag.style.fontSize = '9px';
+        priceTag.style.top = '2px';
+        priceTag.style.background = 'rgba(0,0,0,0.5)';
+        priceTag.style.color = 'white';
+        priceTag.style.borderRadius = '3px';
+        priceTag.style.padding = '1px 3px';
+        priceTag.innerText = `🟡${color.price}`;
+        card.appendChild(priceTag);
+
         floorGrid.appendChild(card);
     });
     floorSection.appendChild(floorGrid);
@@ -650,81 +743,114 @@ function openShop() {
     shopOverlay.classList.remove('hidden');
 }
 
+function processPurchase(item, callback) {
+    if (coins >= item.price) {
+        coins -= item.price;
+        item.bought = true;
+        updateCoinUI();
+        callback();
+    } else {
+        const pill = document.querySelector('.coin-pill');
+        pill.classList.add('insufficient');
+        setTimeout(() => pill.classList.remove('insufficient'), 400);
+    }
+}
+
 function openWardrobe() {
     shopContainer.innerHTML = '';
     document.querySelector('.shop-header h2').innerText = "Guarda-Roupas";
     
-    carregarSecoesRoupas();
+    carregarSecoesRoupas(true);
     
     shopOverlay.classList.remove('hidden');
 }
 
-function carregarSecoesRoupas() {
+function openPantry() {
+    shopContainer.innerHTML = '';
+    document.querySelector('.shop-header h2').innerText = "Despensa de Comida";
+    
+    // Mostra apenas o que tem no estoque (stock > 0)
+    createClothingShopSection("Meus Alimentos", foodOptions, () => {}, () => {}, true);
+    
+    shopOverlay.classList.remove('hidden');
+}
+
+
+function carregarSecoesRoupas(showBought) {
     if (currentBodyTypeIdx === 0) {
         // Seção de Roupas (T-Shirt)
         createClothingShopSection("T-Shirt 1", tshirtOptions, (val) => {
             currentTshirtIdx = val;
             if (val !== -1) { currentTshirt2Idx = -1; currentTshirt3Idx = -1; currentMoletomIdx = -1; currentMoletom2Idx = -1; }
-        }, updateAllClothes);
+        }, updateAllClothes, showBought);
 
         // Seção de Roupas (T-Shirt 2)
         createClothingShopSection("T-Shirt 2", tshirtOptions2, (val) => {
             currentTshirt2Idx = val;
             if (val !== -1) { currentTshirtIdx = -1; currentTshirt3Idx = -1; currentMoletomIdx = -1; currentMoletom2Idx = -1; }
-        }, updateAllClothes);
+        }, updateAllClothes, showBought);
 
         // Seção de Roupas (T-Shirt 3)
         createClothingShopSection("T-Shirt 3", tshirtOptions3, (val) => {
             currentTshirt3Idx = val;
             if (val !== -1) { currentTshirtIdx = -1; currentTshirt2Idx = -1; currentMoletomIdx = -1; currentMoletom2Idx = -1; }
-        }, updateAllClothes);
+        }, updateAllClothes, showBought);
 
         // Seção de Moletom
         createClothingShopSection("Moletom", moletomOptions, (val) => {
             currentMoletomIdx = val;
             if (val !== -1) { currentTshirtIdx = -1; currentTshirt2Idx = -1; currentTshirt3Idx = -1; currentMoletom2Idx = -1; }
-        }, updateAllClothes);
+        }, updateAllClothes, showBought);
 
         // Seção de Moletom Colorido
         createClothingShopSection("Moletom Colorido", moletom2Options, (val) => {
             currentMoletom2Idx = val;
             if (val !== -1) { currentTshirtIdx = -1; currentTshirt2Idx = -1; currentTshirt3Idx = -1; currentMoletomIdx = -1; }
-        }, updateAllClothes);
+        }, updateAllClothes, showBought);
 
         // Seção de Acessórios de Pescoço
-        createClothingShopSection("Acessórios de Pescoço", chainOptions, (val) => currentChainIdx = val, updateChainVisibility);
+        createClothingShopSection("Acessórios de Pescoço", chainOptions, (val) => currentChainIdx = val, updateChainVisibility, showBought);
 
         // Seção de Bonés (Cap)
-        createClothingShopSection("Boné", capOptions, (val) => currentCapIdx = val, updateCapVisibility);
+        createClothingShopSection("Boné", capOptions, (val) => currentCapIdx = val, updateCapVisibility, showBought);
     }
     
     // Seção de Óculos (Disponível para ambos os tipos de corpo)
-    createClothingShopSection("Óculos", glassOptions, (val) => currentGlassIdx = val, updateGlassVisibility);
+    createClothingShopSection("Óculos", glassOptions, (val) => currentGlassIdx = val, updateGlassVisibility, showBought);
 
     // Seção de Acessórios de Cabeça (Headphones)
-    createClothingShopSection("Acessórios de Cabeça", headphonesOptions, (val) => currentHeadphonesIdx = val, updateHeadphonesVisibility);
+    createClothingShopSection("Acessórios de Cabeça", headphonesOptions, (val) => currentHeadphonesIdx = val, updateHeadphonesVisibility, showBought);
 }
 
 // Helper function to create shop item cards for clothing
-function createClothingShopSection(title, optionsArray, updateVarFunc, updateVisibilityFunc) {
+function createClothingShopSection(title, optionsArray, updateVarFunc, updateVisibilityFunc, showBought) {
     const section = createShopSection(title);
     const grid = document.createElement('div');
     grid.className = 'shop-grid';
     
-    optionsArray.forEach((opt, index) => {
+    const filtered = optionsArray.filter(opt => {
+        if (showBought) {
+            if (opt.emoji) return opt.stock > 0;
+            return opt.bought;
+        }
+        if (opt.emoji) return true; // Comida sempre aparece na loja
+        return !opt.bought && opt.price > 0; // Na loja, só o que não comprei e não é "None"
+    });
+
+    filtered.forEach((opt) => {
+        const originalIndex = optionsArray.indexOf(opt); 
         const card = document.createElement('div');
         card.className = 'shop-item-card';
         const swatch = document.createElement('div');
         swatch.className = 'color-swatch';
 
-        if (opt.remove) {
-            swatch.innerHTML = '✕';
-            swatch.style.display = 'flex';
-            swatch.style.alignItems = 'center';
-            swatch.style.justifyContent = 'center';
-            swatch.style.background = '#eee';
-            swatch.style.color = '#999';
-            swatch.style.fontSize = '24px';
+        if (opt.emoji) {
+            swatch.innerHTML = opt.emoji;
+            swatch.style.fontSize = '30px';
+            swatch.style.display = 'flex'; swatch.style.alignItems = 'center'; swatch.style.justifyContent = 'center';
+        } else if (opt.remove) {
+            swatch.innerHTML = '✕'; swatch.style.display = 'flex'; swatch.style.alignItems = 'center'; swatch.style.justifyContent = 'center';
+            swatch.style.background = '#eee'; swatch.style.color = '#999'; swatch.style.fontSize = '24px';
         } else {
             if (opt.hue !== undefined) swatch.style.filter = `hue-rotate(${opt.hue}deg)`;
             swatch.style.backgroundColor = opt.color;
@@ -747,10 +873,104 @@ function createClothingShopSection(title, optionsArray, updateVarFunc, updateVis
         }
 
         card.onclick = () => {
-            updateVarFunc(opt.remove ? -1 : index); // Atualiza a variável global corretamente via callback
-            updateVisibilityFunc();
+            if (opt.emoji && !showBought) {
+                // Tentativa de Compra
+                if (coins >= opt.price) {
+                    coins -= opt.price;
+                    opt.stock += opt.buyAmount;
+                    updateCoinUI();
+                    saveFoodStock();
+                    
+                    // Feedback visual de compra (brilho verde rápido)
+                    card.style.borderColor = "#4ed401";
+                    setTimeout(() => card.style.borderColor = "#ddd", 300);
+                } else {
+                    const pill = document.querySelector('.coin-pill');
+                    pill.classList.add('insufficient');
+                    setTimeout(() => pill.classList.remove('insufficient'), 400);
+                }
+                return;
+            }
+
+            if (opt.bought || opt.price === 0 || (opt.emoji && showBought)) {
+                if (opt.emoji) {
+                    const foodIdx = foodOptions.findIndex(f => f.emoji === opt.emoji);
+                    if (foodIdx !== -1) currentFoodIndex = foodIdx;
+                    updateFoodUI();
+                }
+                updateVarFunc(opt.remove ? -1 : originalIndex);
+                updateVisibilityFunc();
+            } else {
+                if (coins >= opt.price) {
+                    coins -= opt.price;
+                    opt.bought = true;
+                    
+                    // Lógica de Pacote para Moletons (Normal + C)
+                    if (title.includes("Moletom")) {
+                        const partnerName = opt.name.endsWith(' C') ? opt.name.replace(' C', '') : opt.name + ' C';
+                        const partner = optionsArray.find(o => o.name === partnerName);
+                        if (partner) partner.bought = true;
+                    }
+
+                    updateCoinUI();
+                    updateVarFunc(originalIndex);
+                    updateVisibilityFunc();
+                    
+                    // Re-renderiza a seção para remover o item comprado da loja
+                    section.remove();
+                    createClothingShopSection(title, optionsArray, updateVarFunc, updateVisibilityFunc, false);
+                } else {
+                    // Feedback insuficiente
+                    const pill = document.querySelector('.coin-pill');
+                    pill.classList.add('insufficient');
+                    setTimeout(() => pill.classList.remove('insufficient'), 400);
+                }
+            }
         };
         card.appendChild(swatch);
+        
+        // Se for comida no inventário, mostra a quantidade
+        if (opt.emoji && showBought) {
+            const qtyTag = document.createElement('div');
+            qtyTag.style.position = 'absolute';
+            qtyTag.style.fontSize = '10px';
+            qtyTag.style.bottom = '2px';
+            qtyTag.style.right = '2px';
+            qtyTag.style.background = 'rgba(0,0,0,0.6)';
+            qtyTag.style.color = 'white';
+            qtyTag.style.padding = '1px 4px';
+            qtyTag.style.borderRadius = '4px';
+            qtyTag.innerText = `x${opt.stock}`;
+            card.appendChild(qtyTag);
+        }
+
+        // Se for trancado (não-comida), adiciona classe visual de cadeado
+        if (!opt.bought && opt.price > 0 && !opt.emoji) {
+            card.classList.add('locked');
+            const priceTag = document.createElement('div');
+            priceTag.style.position = 'absolute';
+            priceTag.style.fontSize = '9px';
+            priceTag.style.top = '2px';
+            priceTag.style.background = 'rgba(0,0,0,0.5)';
+            priceTag.style.color = 'white';
+            priceTag.style.borderRadius = '3px';
+            priceTag.style.padding = '1px 3px';
+            priceTag.innerText = `🟡${opt.price}`;
+            card.appendChild(priceTag);
+        } else if (opt.emoji && !showBought) {
+            // Preço da comida na loja (sem cadeado)
+            const priceTag = document.createElement('div');
+            priceTag.style.position = 'absolute';
+            priceTag.style.fontSize = '9px';
+            priceTag.style.top = '2px';
+            priceTag.style.background = 'rgba(0,0,0,0.5)';
+            priceTag.style.color = 'white';
+            priceTag.style.borderRadius = '3px';
+            priceTag.style.padding = '1px 3px';
+            priceTag.innerText = `🟡${opt.price} (${opt.buyAmount}un)`;
+            card.appendChild(priceTag);
+        }
+        
         grid.appendChild(card);
     });
 
@@ -790,7 +1010,6 @@ const roomColors = {
 
 
 // Lógica de Comida
-const foodList = "🍎🍕🍔🍟🌭🍿🥓🥚🧇🥞🍞🥐🥨🥯🥖🧀🥗🥙🥪🌮🌯🍖🍗🥩🍠🥟🥠🥡🍘🍙🍚🦪🍣🍤🥮🍝🍦🍧🍨🍩🍪🍰🧁🍫🍬🍭🍮🍯🥛☕🥝🥥🍇🍉🍊🍌🍏🍐🍑🍒🍓🌶🥑🥒🌰🧅🥕".match(/./gu);
 let currentFoodIndex = 0;
 let estaMastigando = false;
 let bocejou = false; // Controla se o pet já bocejou nesta "crise" de sono
@@ -816,20 +1035,24 @@ const foodStats = {
 };
 
 function updateFoodUI() {
-    maca.innerText = foodList[currentFoodIndex];
+    const currentFood = foodOptions[currentFoodIndex];
+    maca.innerText = currentFood.stock > 0 ? currentFood.emoji : "🚫";
+    // Se acabar a comida atual, tenta trocar automaticamente para a próxima disponível
+    if (currentFood.stock <= 0) cycleFood(1);
 }
 
-document.getElementById('prev-food').addEventListener('click', (e) => {
-    e.stopPropagation();
-    currentFoodIndex = (currentFoodIndex - 1 + foodList.length) % foodList.length;
+function cycleFood(direction) {
+    const boughtOnes = foodOptions.map((f, i) => f.stock > 0 ? i : -1).filter(i => i !== -1);
+    if (boughtOnes.length === 0) {
+        currentFoodIndex = 0; // Volta para maçã se tudo acabar
+        updateFoodUI();
+        return;
+    }
+    const currentIdxInBought = boughtOnes.indexOf(currentFoodIndex);
+    let nextIdxInBought = (currentIdxInBought + direction + boughtOnes.length) % boughtOnes.length;
+    currentFoodIndex = boughtOnes[nextIdxInBought];
     updateFoodUI();
-});
-
-document.getElementById('next-food').addEventListener('click', (e) => {
-    e.stopPropagation();
-    currentFoodIndex = (currentFoodIndex + 1) % foodList.length;
-    updateFoodUI();
-});
+}
 
 function getFoodColor(emoji) {
     const colors = {
@@ -846,8 +1069,11 @@ function getFoodColor(emoji) {
     for (const [name, emojis] of Object.entries(colors)) {
         if (emojis.includes(emoji)) return hex[name];
     }
-    return '#ffca28'; // Cor padrão (dourado) caso não encontre
+    return '#ffca28'; 
 }
+
+document.getElementById('prev-food').addEventListener('click', (e) => { e.stopPropagation(); cycleFood(-1); });
+document.getElementById('next-food').addEventListener('click', (e) => { e.stopPropagation(); cycleFood(1); });
 
 function processarAlimentacao(elemento) {
     const bocaRect = boca.getBoundingClientRect();
@@ -875,7 +1101,15 @@ function processarAlimentacao(elemento) {
         status.energia = Math.min(100, Math.max(0, status.energia + stats.energia));
         status.humor = Math.min(100, Math.max(0, status.humor + stats.humor));
         resetarOlhos(); // Reseta o olhar assim que ele engole
+        
+        // Decrementa o estoque da comida atual
+        if (foodOptions[currentFoodIndex].stock > 0) {
+            foodOptions[currentFoodIndex].stock--;
+            saveFoodStock();
+        }
+        
         updateStatusUI();
+        updateFoodUI();
         
         // Reseta o elemento para a posição original no seletor imediatamente
         // Isso evita o espaço vazio e simula a reposição da comida
@@ -1034,6 +1268,24 @@ function updateIconFill(id, value) {
     }
 }
 
+// --- Lógica de Progressão Offline ---
+function aplicarProgressoOffline() {
+    const lastTime = localStorage.getItem('lumo_last_time');
+    if (lastTime) {
+        const now = Date.now();
+        const diffSeconds = (now - parseInt(lastTime)) / 1000;
+        const ciclos = diffSeconds / 3; // O jogo processa status a cada 3 segundos
+
+        status.fome = Math.max(0, status.fome - (0.5 * ciclos));
+        status.limpeza = Math.max(0, status.limpeza - (0.3 * ciclos));
+        status.energia = Math.max(0, status.energia - (0.4 * ciclos));
+        status.humor = Math.max(0, status.humor - (0.3 * ciclos));
+        
+        updateStatusUI();
+    }
+}
+aplicarProgressoOffline();
+
 // Ciclo de vida: Diminui status com o tempo
 setInterval(() => {
     // Fome diminui sempre
@@ -1055,6 +1307,9 @@ setInterval(() => {
     status.humor = Math.max(0, status.humor - humorDecay);
 
     updateStatusUI();
+    // Salva o estado atual e o tempo
+    localStorage.setItem('lumo_status', JSON.stringify(status));
+    localStorage.setItem('lumo_last_time', Date.now().toString());
 }, 3000);
 
 // Função para fazer o Lumo piscar
@@ -1564,11 +1819,10 @@ function endDrag(e) {
         // Se o movimento foi majoritariamente horizontal e longo o suficiente
         if (Math.abs(dx) > 50 && Math.abs(dy) < 40) {
             if (dx > 0) {
-                currentFoodIndex = (currentFoodIndex - 1 + foodList.length) % foodList.length;
+                cycleFood(-1);
             } else {
-                currentFoodIndex = (currentFoodIndex + 1) % foodList.length;
+                cycleFood(1);
             }
-            updateFoodUI();
         }
     }
 
@@ -1653,16 +1907,15 @@ if (currentRoom === 0) {
     lumo.classList.add('hide-clothes');
 }
 
-// Exemplo: Customização Aleatória ao carregar
-customizarPetFull(
-    Math.floor(Math.random() * bodyTypes.length),
-    Math.floor(Math.random() * 20),
-    Math.floor(Math.random() * 20),
-    Math.floor(Math.random() * 20),
-    Math.floor(Math.random() * 4), // Sorteia entre os primeiros padrões implementados
-    Math.floor(Math.random() * eyebrowTypes.length), // Sorteia o tipo de sobrancelha
-    Math.random() < 0.15 ? 1 : 0 // 15% de chance de ter o broto (raro)
-);
+// Carrega customização salva ou sorteia uma nova
+const savedCust = JSON.parse(localStorage.getItem('lumo_cust')) || {
+    body: Math.floor(Math.random() * 20),
+    nose: Math.floor(Math.random() * 20),
+    iris: Math.floor(Math.random() * 20),
+    pattern: Math.floor(Math.random() * 4),
+    eyebrow: Math.floor(Math.random() * eyebrowTypes.length)
+};
+customizarPetFull(0, savedCust.body, savedCust.nose, savedCust.iris, savedCust.pattern, savedCust.eyebrow);
 
 // Função para resetar a posição da bolinha
 function resetBolinhaPosition() {
@@ -1709,6 +1962,9 @@ window.addEventListener('message', (e) => {
         arcadeOverlay.classList.add('hidden');
         arcadeFrame.src = ''; // Limpa o iframe para economizar memória
         document.body.classList.remove('arcade-active'); // Remove a classe para reabilitar interações
+    } else if (e.data.type === 'addCoins') {
+        coins += e.data.amount;
+        updateCoinUI();
     }
 });
 
