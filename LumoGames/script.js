@@ -25,6 +25,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Função global para adicionar moedas a partir de qualquer minijogo
+    function rewardCoins(amount) {
+        if (amount <= 0) return;
+        window.parent.postMessage({ type: 'addCoins', amount: Math.floor(amount) }, '*');
+    }
+
     // Função utilitária para escurecer uma cor (centralizada para todos os jogos)
     function darkenColor(color, percent) {
         if (color.startsWith('hsl')) {
@@ -117,6 +123,11 @@ document.addEventListener('DOMContentLoaded', () => {
         let joystick = { x: JOYSTICK_BASE_X, y: JOYSTICK_BASE_Y, active: false, angle: 0 };
         let player, snakes, foods;
         let lastClickTime = 0;
+        let commonFoodCounter = 0;
+
+        function addCoins(amount) {
+            window.parent.postMessage({ type: 'addCoins', amount: amount }, '*');
+        }
 
         const handleInput = (clientX, clientY) => {
             const now = Date.now();
@@ -517,6 +528,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         const gain = (f.size === 5 ? 1.2 : 0.6);
                         s.segmentsCount += gain;
                         
+                        if (!s.isBot) {
+                            if (f.size === 5) addCoins(1); // Restos do corpo
+                            else {
+                                commonFoodCounter++;
+                                if (commonFoodCounter >= 25) { addCoins(1); commonFoodCounter = 0; }
+                            }
+                        }
+                        
                         // Paga a dívida de boost ao comer
                         if (s.boostDebt > 0) {
                             s.boostDebt = Math.max(0, s.boostDebt - gain);
@@ -677,6 +696,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             w: BLOCK_W, h: BLOCK_H,
                             color: current.color, sway: (current.x - top.x) * 0.08
                         });
+                        // Recompensa: 1 moeda a cada 2 andares
+                        if (score % 2 === 0) rewardCoins(1);
                         score++;
                         if (diff < 12) combo++; else combo = 0; // Acerto "Perfeito"
                         
@@ -858,7 +879,9 @@ document.addEventListener('DOMContentLoaded', () => {
             
             snake.unshift(head);
             if (head.x === apple.x && head.y === apple.y) { 
-                score++; ripples.push(0); spawnApple(); 
+                score++; 
+                rewardCoins(1); // 1 moeda por maçã
+                ripples.push(0); spawnApple(); 
             } else snake.pop();
             
             ripples = ripples.map(r => r + 1).filter(r => r < snake.length);
@@ -1084,7 +1107,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 pipes.forEach((p, i) => {
                     p.update();
                     if (p.collide(bird)) triggerGameOver();
-                    if (!p.passed && bird.x > p.x + p.width) { score++; p.passed = true; }
+                    if (!p.passed && bird.x > p.x + p.width) { 
+                        score++; 
+                        if (score % 2 === 0) rewardCoins(1); // 1 moeda a cada 2 canos
+                        p.passed = true; 
+                    }
                     if (p.x + p.width < 0) pipes.splice(i, 1);
                 });
             }
@@ -1340,6 +1367,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (toRemove.size > 0) {
                 // Adiciona 20s base por cada grupo de match detectado
                 timeLeft = Math.min(maxTime, timeLeft + 20);
+                
+                // Recompensa: Moedas baseadas no tamanho do combo
+                const coinsEarned = Math.floor(toRemove.size / 3);
+                rewardCoins(coinsEarned);
+
                 toRemove.forEach(pos => {
                     const [r, c] = pos.split(',').map(Number);
                     if (board[r][c]) {
@@ -1678,6 +1710,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             createSplash(midX, midY, a.color);
                             score += FRUIT_TYPES[a.typeIdx].score;
                             
+                            // Recompensa: 1 moeda por fusão, 5 moedas se for melancia
+                            rewardCoins(a.typeIdx >= 9 ? 5 : 1);
+
                             fruits.splice(j, 1);
                             fruits.splice(i, 1);
                             
@@ -1900,7 +1935,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     const revWord = selWord.split('').reverse().join('');
                     const match = words.find(w => (w === selWord || w === revWord) && !foundWords.some(f => f.word === w));
                     if (match) {
-                        foundWords.push({word: match, cells}); score += 100 * level;
+                        foundWords.push({word: match, cells}); 
+                        score += 100 * level;
+                        rewardCoins(5); // 5 moedas por palavra encontrada
+                        
                         if(foundWords.length === words.length) { level++; setTimeout(setupLevel, 800); }
                     }
                 }
@@ -2262,6 +2300,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             f.x = Math.random() * WORLD_SIZE;
                             f.y = Math.random() * WORLD_SIZE;
                             e.radius += 0.4;
+                            if (e === player && Math.random() > 0.9) rewardCoins(1); // Chance de ganhar moeda ao comer
                         }
                     }
                 });
