@@ -34,52 +34,6 @@ html, body {
     flex-direction: column;
 }
 
-/* Interface de Moedas (Pílula Superior Esquerda) */
-.coin-pill {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    background-color: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(5px);
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    border-radius: 50px;
-    padding: 6px 15px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    z-index: 700; /* Acima de tudo (Arcade, Loja, etc) */
-    color: white;
-    font-weight: bold;
-    pointer-events: none;
-    font-family: sans-serif;
-}
-
-/* Estilo para itens bloqueados na loja */
-.shop-item-card.locked {
-    background: #e0e0e0;
-    position: relative;
-}
-
-.shop-item-card.locked::after {
-    content: '🔒';
-    position: absolute;
-    font-size: 12px;
-    bottom: 2px;
-    right: 2px;
-}
-
-/* Feedback visual de compra */
-.coin-pill.insufficient {
-    animation: shakeCoin 0.4s ease;
-    border-color: #ff4757;
-}
-
-@keyframes shakeCoin {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
-}
-
 /* Wrapper para deslizar entre os cômodos */
 #mundo {
     display: flex;
@@ -432,7 +386,6 @@ body.arcade-active #arcade-overlay {
 .shop-item-card {
     aspect-ratio: 1/1;
     background: white;
-    position: relative; /* OBRIGATÓRIO para que os preços apareçam dentro do cartão */
     border: 1px solid #ddd;
     border-radius: 8px;
     display: flex;
@@ -770,7 +723,35 @@ body.arcade-active #arcade-overlay {
     opacity: 0.5;
 }
 
+/* Camada do Broto (Raro para body2) */
+.pet-broto {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1; /* Atrás das roupas, mas acima da pele */
+    display: none;
+    background-color: var(--body-color);
+    background-image: url('assets/broto.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-blend-mode: multiply;
+    -webkit-mask-image: url('assets/broto.png');
+    mask-image: url('assets/broto.png');
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    transition: opacity 0.5s ease-in-out;
+}
+
 /* Esconder roupas no banheiro de forma suave */
+.pet.hide-clothes .pet-broto,
 .pet.hide-clothes .pet-tshirt,
 .pet.hide-clothes .pet-tshirt2,
 .pet.hide-clothes .pet-tshirt3,
