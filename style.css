@@ -7,7 +7,7 @@
     -ms-user-select: none;
     user-select: none;
     -webkit-touch-callout: none;
-    touch-action: none; /* Impede gestos padrão do navegador como zoom e scroll */
+    touch-action: auto; /* Deixa o navegador gerenciar o toque por padrão */
 }
 
 html, body {
@@ -32,6 +32,7 @@ html, body {
     background-color: #fff;
     display: flex;
     flex-direction: column;
+    touch-action: manipulation; /* Permite interações normais e evita zoom acidental */
 }
 
 /* Interface de Moedas (Pílula Superior Esquerda) */
@@ -47,7 +48,7 @@ html, body {
     display: flex;
     align-items: center;
     gap: 8px;
-    z-index: 700; /* Acima de tudo (Arcade, Loja, etc) */
+    z-index: 600; /* Abaixo da Loja, mas acima do mundo */
     color: white;
     font-weight: bold;
     pointer-events: none;
@@ -88,6 +89,7 @@ html, body {
     position: absolute;
     left: 0;
     transition: left 0.5s ease-out;
+    touch-action: none; /* Garante que o arraste dos cômodos não sofra interferência do browser */
 }
 
 /* Cenário */
@@ -365,7 +367,7 @@ body.arcade-active #arcade-overlay {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.4);
-    z-index: 500;
+    z-index: 800; /* Agora a loja fica ACIMA das moedas e de tudo */
     display: flex;
     transition: opacity 0.3s;
 }
@@ -385,6 +387,9 @@ body.arcade-active #arcade-overlay {
     display: flex;
     flex-direction: column;
     padding: 20px;
+    pointer-events: auto;
+    touch-action: pan-y; /* Permite o gesto de deslizar vertical */
+    overflow: hidden;
 }
 
 #shop-overlay.hidden #shop-panel {
@@ -401,16 +406,12 @@ body.arcade-active #arcade-overlay {
 
 #shop-sections-container {
     flex: 1;
-    overflow-y: auto;
+    height: 100%;
+    overflow-y: scroll !important; /* Força a barra de scroll */
+    overflow-x: hidden;
     padding-right: 5px;
-    /* Forçamos a permissão de rolagem vertical ignorando o bloqueio global '*' */
-    touch-action: pan-y !important;
     -webkit-overflow-scrolling: touch; /* Ativa a rolagem com inércia (organic) no iOS */
     overscroll-behavior-y: contain; /* Evita que o fundo balance ao chegar no fim da lista */
-}
-
-/* CRUCIAL: Garante que NADA dentro da loja bloqueie o movimento do dedo */
-#shop-sections-container * {
     touch-action: pan-y !important;
 }
 
@@ -440,7 +441,7 @@ body.arcade-active #arcade-overlay {
     justify-content: center;
     cursor: pointer;
     padding: 5px;
-    touch-action: manipulation; /* Otimiza cliques e permite scroll pai */
+    touch-action: auto;
     transition: border-color 0.2s;
 }
 

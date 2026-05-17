@@ -602,14 +602,34 @@ const wallColors = [
     { color: '#4a5a7a', bought: true, price: 0 },
     { color: '#ff5733', bought: false, price: 100 },
     { color: '#3357ff', bought: false, price: 100 },
-    { color: '#757575', bought: false, price: 80 }
+    { color: '#757575', bought: false, price: 80 },
+    { color: '#2e7d32', bought: false, price: 150 }, // Esmeralda
+    { color: '#1565c0', bought: false, price: 150 }, // Azul Real
+    { color: '#ef6c00', bought: false, price: 120 }, // Sunset
+    { color: '#9575cd', bought: false, price: 130 }, // Lavanda
+    { color: '#f06292', bought: false, price: 130 }, // Rosa Choque
+    { color: '#00838f', bought: false, price: 140 }, // Teal
+    { color: '#d7ccc8', bought: false, price: 90 },  // Areia
+    { color: '#37474f', bought: false, price: 110 }, // Grafite
+    { color: '#fbc02d', bought: false, price: 120 }, // Mostarda
+    { color: '#4527a0', bought: false, price: 160 }  // Roxo Imperial
 ];
 const floorColors = [
     { color: '#ffffff', bought: true, price: 0 },
     { color: '#f0e68c', bought: false, price: 120 },
     { color: '#e0e0e0', bought: false, price: 120 },
     { color: '#ffdab9', bought: false, price: 150 },
-    { color: '#b0c4de', bought: false, price: 150 }
+    { color: '#b0c4de', bought: false, price: 150 },
+    { color: '#3e2723', bought: false, price: 200 }, // Madeira Escura
+    { color: '#d7ccc8', bought: false, price: 180 }, // Carvalho
+    { color: '#757575', bought: false, price: 160 }, // Pedra
+    { color: '#fafafa', bought: false, price: 250 }, // Mármore
+    { color: '#689f38', bought: false, price: 140 }, // Grama
+    { color: '#1a237e', bought: false, price: 190 }, // Azul Noite
+    { color: '#b71c1c', bought: false, price: 210 }, // Vermelho Rubi
+    { color: '#9e9e9e', bought: false, price: 130 }, // Concreto
+    { color: '#a1887f', bought: false, price: 170 }, // Argila
+    { color: '#455a64', bought: false, price: 185 }  // Ardósia
 ];
 
 const wallPatterns = [
@@ -619,7 +639,17 @@ const wallPatterns = [
     { name: "Listras H", image: "linear-gradient(rgba(0, 0, 0, 0.1) 2px, transparent 2px)", size: "100% 40px", position: "0 0", bought: false, price: 150 },
     { name: "Azulejo", image: "linear-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.1) 1px, transparent 1px)", size: "30px 30px", position: "0 0", bought: true, price: 0 },
     { name: "Pontos", image: "radial-gradient(rgba(255,255,255,0.1) 2px, transparent 2px)", size: "40px 40px", position: "0 0", bought: true, price: 0 },
-    { name: "Chevron", image: "linear-gradient(135deg, rgba(255,255,255,0.05) 25%, transparent 25%), linear-gradient(225deg, rgba(255,255,255,0.05) 25%, transparent 25%), linear-gradient(45deg, rgba(255,255,255,0.05) 25%, transparent 25%), linear-gradient(315deg, rgba(255,255,255,0.05) 25%, transparent 25%)", size: "40px 40px", position: "0 0", bought: false, price: 200 }
+    { name: "Chevron", image: "linear-gradient(135deg, rgba(255,255,255,0.05) 25%, transparent 25%), linear-gradient(225deg, rgba(255,255,255,0.05) 25%, transparent 25%), linear-gradient(45deg, rgba(255,255,255,0.05) 25%, transparent 25%), linear-gradient(315deg, rgba(255,255,255,0.05) 25%, transparent 25%)", size: "40px 40px", position: "0 0", bought: false, price: 200 },
+    { name: "Poá Grande", image: "radial-gradient(rgba(0,0,0,0.05) 10%, transparent 10%)", size: "80px 80px", position: "0 0", bought: false, price: 180 },
+    { name: "Diagonal", image: "repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.05) 10px, rgba(0,0,0,0.05) 20px)", size: "100% 100%", position: "0 0", bought: false, price: 220 },
+    { name: "Ondas", image: "radial-gradient(circle at 50% 0, transparent 45%, rgba(0,0,0,0.05) 50%, transparent 55%)", size: "60px 30px", position: "0 0", bought: false, price: 250 },
+    { name: "Losango", image: "conic-gradient(from 45deg, rgba(0,0,0,0.05) 90deg, transparent 0deg)", size: "40px 40px", position: "0 0", bought: false, price: 240 },
+    { name: "Estrelas", image: "radial-gradient(circle at 50% 50%, rgba(255,255,255,0.2) 2px, transparent 2px)", size: "50px 50px", position: "0 0", bought: false, price: 300 },
+    { name: "Grade Fina", image: "linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px)", size: "15px 15px", position: "0 0", bought: false, price: 120 },
+    { name: "Trama", image: "repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(0,0,0,0.03) 10px, rgba(0,0,0,0.03) 11px), repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(0,0,0,0.03) 10px, rgba(0,0,0,0.03) 11px)", size: "100% 100%", position: "0 0", bought: false, price: 160 },
+    { name: "Bolhas", image: "radial-gradient(circle, rgba(255,255,255,0.05) 20%, transparent 20%)", size: "60px 60px", position: "0 0", bought: false, price: 190 },
+    { name: "Linhas V", image: "linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)", size: "10px 100%", position: "0 0", bought: false, price: 110 },
+    { name: "Linhas H", image: "linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px)", size: "100% 10px", position: "0 0", bought: false, price: 110 }
 ];
 
 btnLoja.addEventListener('click', openShop);
@@ -629,10 +659,14 @@ if (geladeira) geladeira.addEventListener('click', openPantry);
 closeShop.addEventListener('click', () => shopOverlay.classList.add('hidden'));
 shopOverlay.addEventListener('click', (e) => { if(e.target === shopOverlay) shopOverlay.classList.add('hidden'); });
 
-// Bloqueia a propagação apenas do início e fim do toque para não mover o fundo.
-// Deixamos o 'touchmove' livre para que o navegador processe a rolagem nativa sem travas de JS.
-['touchstart', 'touchend', 'mousedown', 'mouseup'].forEach(evt => {
-    shopPanel.addEventListener(evt, e => e.stopPropagation(), { passive: evt.includes('touch') });
+// Bloqueia a propagação de toques na loja para que o fundo (mundo) não se mova,
+// mas sem usar preventDefault, permitindo o scroll nativo.
+shopPanel.addEventListener('touchstart', (e) => {
+    e.stopPropagation();
+}, { passive: true });
+
+shopPanel.addEventListener('mousedown', (e) => {
+    e.stopPropagation();
 });
 
 function openShop() {
@@ -1380,10 +1414,10 @@ function aplicarProgressoOffline() {
         const diffSeconds = (now - parseInt(lastTime)) / 1000;
         const ciclos = diffSeconds / 3; // O jogo processa status a cada 3 segundos
 
-        status.fome = Math.max(0, status.fome - (0.5 * ciclos));
-        status.limpeza = Math.max(0, status.limpeza - (0.3 * ciclos));
-        status.energia = Math.max(0, status.energia - (0.4 * ciclos));
-        status.humor = Math.max(0, status.humor - (0.3 * ciclos));
+        status.fome = Math.max(0, status.fome - (0.125 * ciclos));
+        status.limpeza = Math.max(0, status.limpeza - (0.125 * ciclos));
+        status.energia = Math.max(0, status.energia - (0.125 * ciclos));
+        status.humor = Math.max(0, status.humor - (0.125 * ciclos));
         
         updateStatusUI();
     }
@@ -1393,21 +1427,21 @@ aplicarProgressoOffline();
 // Ciclo de vida: Diminui status com o tempo
 setInterval(() => {
     // Fome diminui sempre
-    status.fome = Math.max(0, status.fome - 0.5);
+    status.fome = Math.max(0, status.fome - 0.125);
     
     // Limpeza diminui se não estiver tomando banho
-    if (!estaChovendo) status.limpeza = Math.max(0, status.limpeza - 0.3);
+    if (!estaChovendo) status.limpeza = Math.max(0, status.limpeza - 0.125);
 
     // Energia diminui se acordado, aumenta se dormindo
     if (estaDormindo) {
-        status.energia = Math.min(100, status.energia + 2);
+        status.energia = Math.min(100, status.energia + 0.167);
     } else {
-        status.energia = Math.max(0, status.energia - 0.4);
+        status.energia = Math.max(0, status.energia - 0.125);
     }
 
     // Humor cai gradualmente, e cai mais rápido se as necessidades básicas estiverem críticas
-    let humorDecay = 0.3;
-    if (status.fome < 20 || status.energia < 20 || status.limpeza < 20) humorDecay = 1.5;
+    let humorDecay = 0.125;
+    if (status.fome < 20 || status.energia < 20 || status.limpeza < 20) humorDecay = 0.625;
     status.humor = Math.max(0, status.humor - humorDecay);
 
     updateStatusUI();
@@ -1443,17 +1477,21 @@ document.querySelector('.chuveiro').addEventListener('click', () => {
         olhoDir.classList.add('fechado');
         
         // Começa a soltar água
-        intervaloAgua = setInterval(criarGota, 40);
+        const cenarioBanheiro = document.getElementById('banheiro');
+        intervaloAgua = setInterval(() => criarGota(cenarioBanheiro), 60);
         
         // Começa a limpar a espuma
         intervaloLimpeza = setInterval(() => {
             // Não limpa se o pet estiver dormindo (está no quarto) ou se não estivermos no banheiro
             if (estaDormindo || currentRoom !== 0) return;
 
-            const bolhas = Array.from(document.querySelectorAll('.bolha:not(.limpando)'));
+            const bolhas = Array.from(espumaContainer.querySelectorAll('.bolha:not(.limpando)'));
             if (bolhas.length > 0) {
-                // Ordena por posição 'top' para limpar de cima para baixo
-                bolhas.sort((a, b) => parseFloat(a.style.top) - parseFloat(b.style.top));
+                // Se houver muitas bolhas, a ordenação fica pesada demais para rodar em loop curto.
+                // Limitamos a ordenação para evitar travamentos (Violation).
+                if (bolhas.length < 40) {
+                    bolhas.sort((a, b) => parseFloat(a.style.top) - parseFloat(b.style.top));
+                }
                 
                 // Limpa as 2 bolhas mais altas de cada vez para um efeito mais fluido
                 bolhas.slice(0, 2).forEach(b => {
@@ -1472,7 +1510,7 @@ document.querySelector('.chuveiro').addEventListener('click', () => {
                 status.limpeza = Math.min(limiteChuveiro, status.limpeza + 0.5);
                 updateStatusUI();
             }
-        }, 50); 
+        }, 100); 
     } else {
         desligarChuveiro();
     }
@@ -1492,8 +1530,8 @@ function desligarChuveiro() {
     }
 }
 
-function criarGota() {
-    const cenario = document.querySelector('.cenario');
+function criarGota(cenario) {
+    if (!cenario) return;
     const gota = document.createElement('div');
     gota.classList.add('gota');
     // Centraliza a gota no chuveiro com uma leve variação horizontal
