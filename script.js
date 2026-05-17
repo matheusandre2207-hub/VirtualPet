@@ -689,8 +689,6 @@ function openShop() {
             if (itemId === 'chuveiro') img.src = 'assets/suporte.png'; // Exemplo para o chuveiro
             img.style.filter = `hue-rotate(${hue}deg)`;
             
-            // Usamos apenas onclick. O navegador mobile é inteligente o suficiente para não disparar 
-            // o click se o usuário estiver realizando um movimento de scroll (pan-y).
             card.onclick = () => {
                 const target = document.querySelector(`.${itemId}`) || document.getElementById(itemId);
                 if (target) target.style.filter = `hue-rotate(${hue}deg)`;
@@ -708,31 +706,37 @@ function openShop() {
     const wallGrid = document.createElement('div');
     wallGrid.className = 'shop-grid';
     wallColors.forEach(color => {
-        if (color.bought) return;
         const card = document.createElement('div');
         card.className = 'shop-item-card';
         const swatch = document.createElement('div');
         swatch.className = 'color-swatch';
         swatch.style.backgroundColor = color.color;
 
-        card.onclick = () => processPurchase(color, () => {
-            document.querySelectorAll('.parede-fundo')[currentRoom].style.backgroundColor = color.color;
-            openShop(); // Refresh
-        });
+        card.onclick = () => {
+            if (color.bought) {
+                document.querySelectorAll('.parede-fundo')[currentRoom].style.backgroundColor = color.color;
+            } else {
+                processPurchase(color, () => {
+                    document.querySelectorAll('.parede-fundo')[currentRoom].style.backgroundColor = color.color;
+                    openShop(); // Refresh para esconder o preço
+                });
+            }
+        };
 
         card.appendChild(swatch);
 
-        // Adiciona etiqueta de preço para Cores de Parede
-        const priceTag = document.createElement('div');
-        priceTag.style.position = 'absolute';
-        priceTag.style.fontSize = '9px';
-        priceTag.style.top = '2px';
-        priceTag.style.background = 'rgba(0,0,0,0.5)';
-        priceTag.style.color = 'white';
-        priceTag.style.borderRadius = '3px';
-        priceTag.style.padding = '1px 3px';
-        priceTag.innerText = `🟡${color.price}`;
-        card.appendChild(priceTag);
+        if (!color.bought && color.price > 0) {
+            const priceTag = document.createElement('div');
+            priceTag.style.position = 'absolute';
+            priceTag.style.fontSize = '9px';
+            priceTag.style.top = '2px';
+            priceTag.style.background = 'rgba(0,0,0,0.5)';
+            priceTag.style.color = 'white';
+            priceTag.style.borderRadius = '3px';
+            priceTag.style.padding = '1px 3px';
+            priceTag.innerText = `🟡${color.price}`;
+            card.appendChild(priceTag);
+        }
 
         wallGrid.appendChild(card);
     });
@@ -744,7 +748,6 @@ function openShop() {
     const patternGrid = document.createElement('div');
     patternGrid.className = 'shop-grid';
     wallPatterns.forEach(pattern => {
-        if (pattern.bought) return;
         const card = document.createElement('div');
         card.className = 'shop-item-card';
         const swatch = document.createElement('div');
@@ -754,26 +757,38 @@ function openShop() {
         swatch.style.backgroundSize = pattern.size;
         swatch.style.backgroundPosition = pattern.position;
 
-        card.onclick = () => processPurchase(pattern, () => {
-            const wall = document.querySelectorAll('.parede-fundo')[currentRoom];
-            wall.style.backgroundImage = pattern.image;
-            wall.style.backgroundSize = pattern.size;
-            wall.style.backgroundPosition = pattern.position;
-            openShop();
-        });
+        card.onclick = () => {
+            const applyPattern = () => {
+                const wall = document.querySelectorAll('.parede-fundo')[currentRoom];
+                wall.style.backgroundImage = pattern.image;
+                wall.style.backgroundSize = pattern.size;
+                wall.style.backgroundPosition = pattern.position;
+            };
+            
+            if (pattern.bought) {
+                applyPattern();
+            } else {
+                processPurchase(pattern, () => {
+                    applyPattern();
+                    openShop();
+                });
+            }
+        };
+
         card.appendChild(swatch);
 
-        // Adiciona etiqueta de preço para Estampas de Parede
-        const priceTag = document.createElement('div');
-        priceTag.style.position = 'absolute';
-        priceTag.style.fontSize = '9px';
-        priceTag.style.top = '2px';
-        priceTag.style.background = 'rgba(0,0,0,0.5)';
-        priceTag.style.color = 'white';
-        priceTag.style.borderRadius = '3px';
-        priceTag.style.padding = '1px 3px';
-        priceTag.innerText = `🟡${pattern.price}`;
-        card.appendChild(priceTag);
+        if (!pattern.bought && pattern.price > 0) {
+            const priceTag = document.createElement('div');
+            priceTag.style.position = 'absolute';
+            priceTag.style.fontSize = '9px';
+            priceTag.style.top = '2px';
+            priceTag.style.background = 'rgba(0,0,0,0.5)';
+            priceTag.style.color = 'white';
+            priceTag.style.borderRadius = '3px';
+            priceTag.style.padding = '1px 3px';
+            priceTag.innerText = `🟡${pattern.price}`;
+            card.appendChild(priceTag);
+        }
 
         patternGrid.appendChild(card);
     });
@@ -815,7 +830,6 @@ function openShop() {
     const floorGrid = document.createElement('div');
     floorGrid.className = 'shop-grid';
     floorColors.forEach(color => {
-        if (color.bought) return;
         const card = document.createElement('div');
         card.className = 'shop-item-card';
         const swatch = document.createElement('div');
@@ -823,24 +837,35 @@ function openShop() {
         swatch.style.backgroundColor = color.color;
         swatch.style.backgroundImage = "linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px)";
         
-        card.onclick = () => processPurchase(color, () => {
-            document.querySelectorAll('.chao')[currentRoom].style.background = `radial-gradient(circle at 50% 0%, ${color.color} 20%, #bababa 100%)`;
-            openShop();
-        });
+        card.onclick = () => {
+            const applyFloor = () => {
+                document.querySelectorAll('.chao')[currentRoom].style.background = `radial-gradient(circle at 50% 0%, ${color.color} 20%, #bababa 100%)`;
+            };
+
+            if (color.bought) {
+                applyFloor();
+            } else {
+                processPurchase(color, () => {
+                    applyFloor();
+                    openShop();
+                });
+            }
+        };
 
         card.appendChild(swatch);
 
-        // Adiciona etiqueta de preço para Pisos
-        const priceTag = document.createElement('div');
-        priceTag.style.position = 'absolute';
-        priceTag.style.fontSize = '9px';
-        priceTag.style.top = '2px';
-        priceTag.style.background = 'rgba(0,0,0,0.5)';
-        priceTag.style.color = 'white';
-        priceTag.style.borderRadius = '3px';
-        priceTag.style.padding = '1px 3px';
-        priceTag.innerText = `🟡${color.price}`;
-        card.appendChild(priceTag);
+        if (!color.bought && color.price > 0) {
+            const priceTag = document.createElement('div');
+            priceTag.style.position = 'absolute';
+            priceTag.style.fontSize = '9px';
+            priceTag.style.top = '2px';
+            priceTag.style.background = 'rgba(0,0,0,0.5)';
+            priceTag.style.color = 'white';
+            priceTag.style.borderRadius = '3px';
+            priceTag.style.padding = '1px 3px';
+            priceTag.innerText = `🟡${color.price}`;
+            card.appendChild(priceTag);
+        }
 
         floorGrid.appendChild(card);
     });
