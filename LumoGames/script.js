@@ -2072,6 +2072,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.planets = [];
                 this.color = '#ff4757'; // Começa como Anã Vermelha
                 this.isVisible = false; // Flag para otimização
+                this.foodEaten = 0; // Contador para controle de moedas
             }
 
             addPlanet() {
@@ -2243,7 +2244,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function gameLoop() {
             ctx.fillStyle = '#010816'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            const zoom = Math.max(0.08, 0.8 / (1 + (player.radius - 18) * 0.015));
+            // Zoom dinâmico sem trava inferior para permitir crescimento infinito
+            const zoom = 0.8 / (1 + (player.radius - 18) * 0.015);
             const cam = { x: player.x - (canvas.width/2)/zoom, y: player.y - (canvas.height/2)/zoom, zoom };
             ctx.save(); ctx.scale(cam.zoom, cam.zoom);
 
@@ -2300,7 +2302,20 @@ document.addEventListener('DOMContentLoaded', () => {
                             f.x = Math.random() * WORLD_SIZE;
                             f.y = Math.random() * WORLD_SIZE;
                             e.radius += 0.4;
-                            if (e === player && Math.random() > 0.9) rewardCoins(1); // Chance de ganhar moeda ao comer
+                            
+                            if (e === player) {
+                                player.foodEaten++;
+                                // Se a massa for > 3000, o custo por moeda aumenta progressivamente
+                                let threshold = 10;
+                                if (player.radius > 3000) {
+                                    threshold = 10 + Math.floor((player.radius - 3000) / 100);
+                                }
+                                
+                                if (player.foodEaten >= threshold) {
+                                    rewardCoins(1);
+                                    player.foodEaten = 0;
+                                }
+                            }
                         }
                     }
                 });

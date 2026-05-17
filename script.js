@@ -120,7 +120,7 @@ let currentHeadphonesIdx = savedEquipped.hp ?? -1;
 const savedFoodStock = JSON.parse(localStorage.getItem('lumo_food_stock')) || {};
 
 const foodOptions = [
-    { name: "Maçã", emoji: "🍎", price: 1, buyAmount: 1, stock: savedFoodStock["🍎"] ?? 10 },
+    { name: "Maçã", emoji: "🍎", price: 1, buyAmount: 1, stock: savedFoodStock["🍎"] ?? 0 },
     { name: "Pizza", emoji: "🍕", price: 50, buyAmount: 10, stock: savedFoodStock["🍕"] ?? 0 },
     { name: "Hambúrguer", emoji: "🍔", price: 30, buyAmount: 1, stock: savedFoodStock["🍔"] ?? 0 },
     { name: "Batata Frita", emoji: "🍟", price: 15, buyAmount: 1, stock: savedFoodStock["🍟"] ?? 0 },
@@ -800,28 +800,6 @@ function openShop() {
 
     // Só exibe as seções de personalização se estiver no quarto (3)
     if (currentRoom === 3) {
-        // Seções de Customização Física (Para salvar cores e olhos)
-        createPhysicalCustomSection("Cor do Corpo", bodyColors, (idx) => {
-            const cust = JSON.parse(localStorage.getItem('lumo_cust'));
-            customizarPetFull(0, idx, cust.nose, cust.iris, cust.pattern, cust.eyebrow);
-        });
-        createPhysicalCustomSection("Cor do Nariz", noseColors, (idx) => {
-            const cust = JSON.parse(localStorage.getItem('lumo_cust'));
-            customizarPetFull(0, cust.body, idx, cust.iris, cust.pattern, cust.eyebrow);
-        });
-        createPhysicalCustomSection("Cor dos Olhos", irisColors, (idx) => {
-            const cust = JSON.parse(localStorage.getItem('lumo_cust'));
-            customizarPetFull(0, cust.body, cust.nose, idx, cust.pattern, cust.eyebrow);
-        });
-        createPhysicalCustomSection("Padrão do Corpo", bodyPatterns, (idx) => {
-            const cust = JSON.parse(localStorage.getItem('lumo_cust'));
-            customizarPetFull(0, cust.body, cust.nose, cust.iris, idx, cust.eyebrow);
-        }, true);
-        createPhysicalCustomSection("Sobrancelhas", eyebrowTypes, (idx) => {
-            const cust = JSON.parse(localStorage.getItem('lumo_cust'));
-            customizarPetFull(0, cust.body, cust.nose, cust.iris, cust.pattern, idx);
-        });
-
         carregarSecoesRoupas(false);
     }
 
@@ -1150,7 +1128,7 @@ function createPhysicalCustomSection(title, optionsArray, applyFunc, isPattern =
 // Bloqueia menu de contexto em todo o app
 document.addEventListener('contextmenu', event => event.preventDefault());
 
-let currentRoom = 0; // 0: Banheiro, 1: Sala, 2: Cozinha, 3: Quarto
+let currentRoom = parseInt(localStorage.getItem('lumo_current_room')) || 0; // Carrega o cômodo salvo ou inicia no 0
 let startXRoom = 0;
 let isDraggingRoom = false;
 let draggingElement = null; // Armazena qual item está sendo arrastado
@@ -1195,8 +1173,26 @@ const foodStats = {
 };
 
 function updateFoodUI() {
-    const currentFood = foodOptions[currentFoodIndex];
-    maca.innerText = currentFood.stock > 0 ? currentFood.emoji : "🚫";
+    const boughtOnes = foodOptions.filter(f => f.stock > 0);
+    const prevBtn = document.getElementById('prev-food');
+    const nextBtn = document.getElementById('next-food');
+
+    // Se o item selecionado acabou mas existem outros, pula para o primeiro disponível
+    if (foodOptions[currentFoodIndex].stock <= 0 && boughtOnes.length > 0) {
+        currentFoodIndex = foodOptions.findIndex(f => f.stock > 0);
+    }
+
+    // Controla a visibilidade das setas: só aparecem se houver mais de 1 tipo de comida
+    const showArrows = boughtOnes.length > 1 ? 'visible' : 'hidden';
+    if (prevBtn) prevBtn.style.visibility = showArrows;
+    if (nextBtn) nextBtn.style.visibility = showArrows;
+
+    // Atualiza o emoji ou limpa o espaço se não houver estoque
+    if (boughtOnes.length === 0 || foodOptions[currentFoodIndex].stock <= 0) {
+        maca.innerText = "";
+    } else {
+        maca.innerText = foodOptions[currentFoodIndex].emoji;
+    }
 }
 
 function cycleFood(direction) {
@@ -2063,15 +2059,35 @@ function handleEndDragRoom(endX) {
     }
 
     mundo.style.left = `-${currentRoom * window.innerWidth}px`;
+    localStorage.setItem('lumo_current_room', currentRoom); // Salva o cômodo escolhido
     updateStatusBarColor();
 }
 
 updateStatusBarColor(); // Define a cor inicial
 updateStatusUI(); // Inicializa os ícones cheios
 
+// Procura a primeira comida com estoque para exibir na mesa ao carregar
+currentFoodIndex = foodOptions.findIndex(f => f.stock > 0);
+if (currentFoodIndex === -1) currentFoodIndex = 0; 
+updateFoodUI();
+
+// Ajusta a posição inicial do mundo e do pet para o cômodo carregado de imediato (sem deslizar)
+mundo.style.transition = 'none';
+lumoWrapper.style.transition = 'none';
+
+mundo.style.left = `-${currentRoom * window.innerWidth}px`;
+atualizarPosicaoPet();
+
+// Força o navegador a processar a posição sem animação antes de restaurar as transições
+mundo.offsetHeight; 
+mundo.style.transition = '';
+lumoWrapper.style.transition = '';
+
 // Verifica se começa no banheiro para aplicar o estado das roupas
 if (currentRoom === 0) {
     lumo.classList.add('hide-clothes');
+} else {
+    lumo.classList.remove('hide-clothes');
 }
 
 // Carrega customização salva ou sorteia uma nova
