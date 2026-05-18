@@ -2563,13 +2563,13 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.height = window.innerHeight;
         container.appendChild(canvas);
 
-        const BUBBLE_RADIUS = Math.min(canvas.width / 14, 25);
+        const BUBBLE_RADIUS = Math.min(canvas.width / 18, 20);
         const COLORS = ['#ff4757', '#2ed573', '#1e90ff', '#ffa502', '#3742fa'];
-        const GRID_ROWS = 14;
+        const GRID_ROWS = 16;
         const GRID_COLS = Math.floor(canvas.width / (BUBBLE_RADIUS * 2));
         
-        let grid = [], bullet = null, score = 0, isMoving = false, particles = [];
-        let shooter = { x: canvas.width / 2, y: canvas.height - 80, angle: -Math.PI / 2, color: '', nextColor: '' };
+        let grid = [], bullet = null, score = 0, isMoving = false, isAiming = false, particles = [];
+        let shooter = { x: canvas.width / 2, y: canvas.height - 100, angle: -Math.PI / 2, color: '', nextColor: '', shots: 0 };
 
         function createGrid() {
             grid = [];
@@ -2580,6 +2580,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     grid[r][c] = r < 5 ? COLORS[Math.floor(Math.random() * COLORS.length)] : null;
                 }
             }
+        }
+
+        function addRow() {
+            const newRow = [];
+            const isEven = grid.length % 2 === 0;
+            const cols = isEven ? GRID_COLS : GRID_COLS - 1;
+            for (let c = 0; c < cols; c++) {
+                newRow.push(COLORS[Math.floor(Math.random() * COLORS.length)]);
+            }
+            grid.unshift(newRow);
+            if (grid.length > GRID_ROWS) grid.pop();
+            checkGameOver();
         }
 
         function getBubbleCoords(r, c) {
@@ -2597,18 +2609,39 @@ document.addEventListener('DOMContentLoaded', () => {
             bullet = null; isMoving = false;
         }
 
-        function handleInput(clientX, clientY) {
-            if (isMoving) return;
+        function handleStart(clientX, clientY) {
+            if (isMoving || score === 'GAME OVER' || score === 'VITÓRIA') return;
             const dx = clientX - shooter.x, dy = clientY - shooter.y;
             if (dy > 0) return;
+            isAiming = true;
             shooter.angle = Math.atan2(dy, dx);
+        }
+
+        function handleMove(clientX, clientY) {
+            if (!isAiming) return;
+            const dx = clientX - shooter.x, dy = clientY - shooter.y;
+            shooter.angle = Math.atan2(dy, dx);
+        }
+
+        function handleEnd() {
+            if (!isAiming) return;
+            isAiming = false;
             bullet = { x: shooter.x, y: shooter.y, vx: Math.cos(shooter.angle) * 15, vy: Math.sin(shooter.angle) * 15, color: shooter.color };
             isMoving = true;
         }
 
-        canvas.addEventListener('mousemove', e => { if (!isMoving) shooter.angle = Math.atan2(e.clientY - shooter.y, e.clientX - shooter.x); });
-        canvas.addEventListener('mousedown', e => handleInput(e.clientX, e.clientY));
-        canvas.addEventListener('touchstart', e => { handleInput(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, { passive: false });
+        canvas.addEventListener('mousedown', e => handleStart(e.clientX, e.clientY));
+        window.addEventListener('mousemove', e => handleMove(e.clientX, e.clientY));
+        window.addEventListener('mouseup', handleEnd);
+
+        canvas.addEventListener('touchstart', e => { 
+            handleStart(e.touches[0].clientX, e.touches[0].clientY); 
+            e.preventDefault(); 
+        }, { passive: false });
+        canvas.addEventListener('touchmove', e => { 
+            handleMove(e.touches[0].clientX, e.touches[0].clientY); 
+        }, { passive: false });
+        canvas.addEventListener('touchend', handleEnd);
 
         function update() {
             if (bullet) {
@@ -2654,8 +2687,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 rewardCoins(Math.floor(matches.length / 2));
                 dropIsolated();
             }
-            if (best.r >= GRID_ROWS - 2) createGrid();
+            
+            shooter.shots++;
+            if (shooter.shots >= 6) {
+                addRow();
+                shooter.shots = 0;
+            }
+
+            checkGameOver();
             resetShooter();
+        }
+
+        function checkGameOver() {
+            let empty = true;
+            for (let r = 0; r < grid.length; r++) {
+                for (let c = 0; c < grid[r].length; c++) {
+                    if (grid[r][c]) {
+                        empty = false;
+                        const coords = getBubbleCoords(r, c);
+                        if (coords.y > shooter.y - BUBBLE_RADIUS * 2) score = 'GAME OVER';
+                    }
+                }
+            }
+            if (empty && score !== 'GAME OVER') score = 'VITÓRIA';
         }
 
         function findMatches(r, c, color) {
@@ -2711,10 +2765,54 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        function drawFancyBubble(x, y, color, radius) {
+            ctx.save();
+            ctx.shadowBlur = 8; ctx.shadowColor = 'rgba(0,0,0,0.1)';
+            const grad = ctx.createRadialGradient(x - radius/3, y - radius/3, radius/10, x, y, radius);
+            grad.addColorStop(0, '#fff');
+            grad.addColorStop(0.3, color);
+            grad.addColorStop(1, darkenColor(color, 0.4));
+            ctx.fillStyle = grad;
+            ctx.beginPath(); ctx.arc(x, y, radius - 2, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 0.4;
+            ctx.fillStyle = 'white';
+            ctx.beginPath(); ctx.ellipse(x - radius/2.5, y - radius/2.5, radius/4, radius/6, Math.PI/4, 0, Math.PI*2); ctx.fill();
+            ctx.restore();
+        }
+
         function draw() {
-            ctx.fillStyle = '#fef9f8'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            const bgGrad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            bgGrad.addColorStop(0, '#1e272e'); bgGrad.addColorStop(1, '#2f3640');
+            ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Estrelas de fundo
+            ctx.fillStyle = 'white';
+            for(let i=0; i<50; i++) {
+                const x = (Math.sin(i) * 0.5 + 0.5) * canvas.width;
+                const y = (Math.cos(i*2) * 0.5 + 0.5) * canvas.height;
+                ctx.globalAlpha = 0.2 + Math.sin(Date.now()*0.001 + i)*0.1;
+                ctx.fillRect(x, y, 2, 2);
+            }
+            ctx.globalAlpha = 1;
+
+            // Linha de Trajetória
+            if (isAiming && !bullet) {
+                let tx = shooter.x, ty = shooter.y;
+                let tvx = Math.cos(shooter.angle) * 10, tvy = Math.sin(shooter.angle) * 10;
+                ctx.beginPath(); ctx.setLineDash([5, 8]); ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                ctx.moveTo(tx, ty);
+                for(let i=0; i<40; i++) {
+                    tx += tvx; ty += tvy;
+                    if (tx < BUBBLE_RADIUS || tx > canvas.width - BUBBLE_RADIUS) tvx *= -1;
+                    ctx.lineTo(tx, ty);
+                    if (ty < 100) break;
+                }
+                ctx.stroke(); ctx.setLineDash([]);
+            }
+
+            // Partículas de estouro
             particles.forEach(p => {
-                ctx.globalAlpha = p.life; ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.life; ctx.fillStyle = p.color; ctx.shadowBlur = 5; ctx.shadowColor = p.color;
                 ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
             });
             ctx.globalAlpha = 1;
@@ -2723,34 +2821,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 for (let c = 0; c < grid[r].length; c++) {
                     if (grid[r][c]) {
                         const coords = getBubbleCoords(r, c);
-                        ctx.fillStyle = grid[r][c];
-                        ctx.beginPath(); ctx.arc(coords.x, coords.y, BUBBLE_RADIUS - 2, 0, Math.PI * 2); ctx.fill();
-                        ctx.fillStyle = 'rgba(255,255,255,0.2)';
-                        ctx.beginPath(); ctx.arc(coords.x - BUBBLE_RADIUS/3, coords.y - BUBBLE_RADIUS/3, BUBBLE_RADIUS/4, 0, Math.PI * 2); ctx.fill();
+                        drawFancyBubble(coords.x, coords.y, grid[r][c], BUBBLE_RADIUS);
                     }
                 }
             }
 
+            // Atirador e Próxima Bolha
             if (bullet) {
-                ctx.fillStyle = bullet.color;
-                ctx.beginPath(); ctx.arc(bullet.x, bullet.y, BUBBLE_RADIUS - 2, 0, Math.PI * 2); ctx.fill();
+                drawFancyBubble(bullet.x, bullet.y, bullet.color, BUBBLE_RADIUS);
+            } else if (!isMoving && score !== 'GAME OVER' && score !== 'VITÓRIA') {
+                drawFancyBubble(shooter.x, shooter.y, shooter.color, BUBBLE_RADIUS);
             }
 
-            ctx.save();
-            ctx.translate(shooter.x, shooter.y);
-            ctx.rotate(shooter.angle);
-            ctx.fillStyle = '#ddd'; ctx.fillRect(0, -8, 45, 16);
-            ctx.fillStyle = shooter.color; ctx.beginPath(); ctx.arc(0, 0, BUBBLE_RADIUS, 0, Math.PI * 2); ctx.fill();
-            ctx.restore();
+            // Painel lateral de Próxima
+            ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.beginPath();
+            ctx.roundRect(canvas.width - 70, canvas.height - 130, 60, 110, 15); ctx.fill();
+            ctx.fillStyle = 'white'; ctx.font = '10px Segoe UI'; ctx.fillText('PRÓXIMA', canvas.width - 40, canvas.height - 110);
+            drawFancyBubble(canvas.width - 40, canvas.height - 80, shooter.nextColor, BUBBLE_RADIUS * 0.8);
+            
+            // Placar e Status
+            ctx.fillStyle = '#f5f6fa'; ctx.font = 'bold 26px Segoe UI'; ctx.textAlign = 'center';
+            ctx.shadowBlur = 4; ctx.shadowColor = 'rgba(0,0,0,0.1)';
+            if (typeof score === 'string') {
+                ctx.fillStyle = score === 'VITÓRIA' ? '#2ed573' : '#ff4757';
+                ctx.fillText(score, canvas.width/2, canvas.height/2);
+                ctx.font = '16px Segoe UI'; ctx.fillStyle = 'white'; ctx.fillText('TOQUE PARA REINICIAR', canvas.width/2, canvas.height/2 + 40);
+            } else {
+                ctx.fillText(`SCORE: ${score}`, canvas.width/2, 60);
+            }
+            ctx.shadowBlur = 0;
 
-            ctx.fillStyle = shooter.nextColor;
-            ctx.beginPath(); ctx.arc(shooter.x + 80, shooter.y, BUBBLE_RADIUS * 0.6, 0, Math.PI * 2); ctx.fill();
-
-            ctx.fillStyle = '#333'; ctx.font = 'bold 20px Segoe UI'; ctx.textAlign = 'center';
-            ctx.fillText(`BUBBLE POP`, canvas.width/2, 40);
-            ctx.font = '14px Segoe UI'; ctx.fillText(`SCORE: ${score}`, canvas.width/2, 65);
-
-            update();
+            if (typeof score !== 'string') update();
             animationId = requestAnimationFrame(draw);
         }
 
