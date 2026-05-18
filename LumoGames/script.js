@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const exitBtn = document.getElementById('exit-portal');
     const container = document.getElementById('game-canvas-container');
     let animationId = null;
+    let isPausedGlobal = false; // Flag para pausar jogos durante confirmação
 
     // Variáveis globais para armazenar a customização do Lumo do pet principal
     let playerLumoColor = '#4a90e2'; // Cor padrão se não receber mensagem
@@ -77,7 +78,53 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // --- Sistema de Navegação por Gesto de Voltar e Confirmação ---
+    function showExitConfirmation() {
+        if (isPausedGlobal) return;
+        isPausedGlobal = true;
+
+        const overlayDiv = document.createElement('div');
+        overlayDiv.id = 'exit-confirm-overlay';
+        overlayDiv.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;justify-content:center;align-items:center;z-index:9999;font-family:'Segoe UI',sans-serif;backdrop-filter:blur(5px);";
+        
+        const box = document.createElement('div');
+        box.style = "background:#2f3640;padding:30px;border-radius:20px;text-align:center;border:2px solid #4a90e2;box-shadow:0 10px 30px rgba(0,0,0,0.5);";
+        box.innerHTML = `
+            <p style="color:white;margin-bottom:25px;font-size:20px;font-weight:bold;">Deseja sair realmente?</p>
+            <div style="display:flex;gap:15px;justify-content:center;">
+                <button id="confirm-exit-yes" style="background:#ff4757;color:white;border:none;padding:12px 25px;border-radius:10px;font-weight:bold;cursor:pointer;font-size:16px;">SAIR</button>
+                <button id="confirm-exit-no" style="background:#2ed573;color:white;border:none;padding:12px 25px;border-radius:10px;font-weight:bold;cursor:pointer;font-size:16px;">FICAR</button>
+            </div>
+        `;
+        overlayDiv.appendChild(box);
+        document.body.appendChild(overlayDiv);
+
+        document.getElementById('confirm-exit-yes').onclick = () => {
+            overlayDiv.remove(); isPausedGlobal = false;
+            overlay.classList.add('hidden');
+            if (exitBtn) exitBtn.classList.remove('hidden');
+            container.innerHTML = "";
+            if (animationId) cancelAnimationFrame(animationId);
+        };
+
+        document.getElementById('confirm-exit-no').onclick = () => {
+            overlayDiv.remove(); isPausedGlobal = false;
+            history.pushState(null, null, location.href); // Restaura o estado para interceptar novamente
+        };
+    }
+
+    // Inicializa o trap de histórico para simular o gesto de voltar
+    history.pushState(null, null, location.href);
+    window.addEventListener('popstate', () => {
+        if (!overlay.classList.contains('hidden')) {
+            showExitConfirmation();
+        } else {
+            window.parent.postMessage('closeArcade', '*');
+        }
+    });
+
     function openGame(key) {
+        history.pushState({game: key}, null, location.href);
         overlay.classList.remove('hidden');
         if (exitBtn) exitBtn.classList.add('hidden'); // Esconde o X do portal ao abrir o jogo
         container.innerHTML = "";
@@ -219,8 +266,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         class Snake {
-            constructor(x, y, color, isBot = false) {
+            constructor(x, y, color, isBot = false, name = "Lumo") {
                 this.x = x; this.y = y; this.color = color; this.isBot = isBot;
+                this.name = name;
                 this.angle = Math.random() * Math.PI * 2;
                 this.speed = 2;
                 this.radius = 12;
@@ -242,6 +290,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 }
                 this.alive = true;
+                // Timers para suavização da IA
+                this.aiTimer = 0;
+                this.aiTargetAngle = this.angle;
             }
 
             update(foods, snakes) {
@@ -256,16 +307,22 @@ document.addEventListener('DOMContentLoaded', () => {
                         targetAngle = this.angle;
                     }
                 } else {
-                    const aiResult = this.updateAI(foods, snakes);
-                    targetAngle = aiResult.angle;
-                    this.isBoosting = aiResult.boost;
+                    // IA decidindo apenas a cada X frames para evitar zigzag robótico
+                    if (this.aiTimer <= 0) {
+                        const aiResult = this.updateAI(foods, snakes);
+                        this.aiTargetAngle = aiResult.angle;
+                        this.isBoosting = aiResult.boost;
+                        this.aiTimer = 10 + Math.random() * 15; // Mantém a decisão por um tempo
+                    }
+                    this.aiTimer--;
+                    targetAngle = this.aiTargetAngle;
                 }
 
-                // Interpolação angular suave
+                // Interpolação angular suave - Bots viram mais devagar para evitar zigzag
                 let diff = targetAngle - this.angle;
                 while (diff < -Math.PI) diff += Math.PI * 2;
                 while (diff > Math.PI) diff -= Math.PI * 2;
-                this.angle += diff * 0.1;
+                this.angle += diff * (this.isBot ? 0.06 : 0.12);
 
                 // 2. Aceleração (Boost) com Dívida de Massa
                 const wantsToBoost = this.isBot ? this.isBoosting : mouse.isDoubleHold;
@@ -308,6 +365,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             updateAI(foods, snakes) {
+                // 0. Evitar Bordas (Prioridade Máxima)
+                const margin = 250;
+                if (this.x < margin || this.x > WORLD_SIZE - margin || this.y < margin || this.y > WORLD_SIZE - margin) {
+                    return { angle: Math.atan2(WORLD_SIZE/2 - this.y, WORLD_SIZE/2 - this.x), boost: true };
+                }
+
                 let dangerPoint = null;
                 let sensorDist = 100;
                 let shouldBoost = false;
@@ -457,8 +520,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function resetGame() {
+            const BOT_NAMES = ["StarHunter", "Cosmos", "Nebula", "Void", "Supernova", "Quasar", "Orbit", "Gravity", "Pulsar", "Asteroid", "Meteor", "Comet", "Zenith", "Eclipse", "Galaxy"];
+
             // Player snake uses the color and dot pattern received from the main Lumo pet
-            player = new Snake(WORLD_SIZE/2, WORLD_SIZE/2, playerLumoColor, false);
+            player = new Snake(WORLD_SIZE/2, WORLD_SIZE/2, playerLumoColor, false, "Você");
             snakes = [player];
 
             // Gerar um pool de aparências únicas para os bots
@@ -478,7 +543,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             for(let i=0; i<15; i++) {
                 const color = uniqueBotColors[i % uniqueBotColors.length];
-                snakes.push(new Snake(200 + Math.random()*(WORLD_SIZE-400), 200 + Math.random()*(WORLD_SIZE-400), color, true));
+                const name = BOT_NAMES[i % BOT_NAMES.length];
+                snakes.push(new Snake(200 + Math.random()*(WORLD_SIZE-400), 200 + Math.random()*(WORLD_SIZE-400), color, true, name));
             }
             foods = [];
             for(let i=0; i<400; i++) {
@@ -490,6 +556,7 @@ document.addEventListener('DOMContentLoaded', () => {
         resetGame();
 
         function gameLoop() {
+            if (isPausedGlobal) { animationId = requestAnimationFrame(gameLoop); return; }
             ctx.fillStyle = '#1a1a1a';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -575,18 +642,48 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.fill();
             ctx.globalAlpha = 1.0;
 
-            // HUD Simples
-            ctx.fillStyle = "white";
-            ctx.font = "bold 20px Segoe UI";
-            ctx.textAlign = "left";
-            ctx.fillText(`Massa: ${Math.floor(player.segmentsCount)}`, 20, 40);
-            
-            // Indicador de Boost
-            const boostStatus = player.boostDebt > 0 
-                ? `Recarregando: ${Math.ceil(player.boostDebt)} unidades` 
-                : `Boost: ${Math.max(0, player.boostTimeLeft).toFixed(1)}s (2-cliques)`;
-            ctx.fillStyle = player.boostDebt > 0 ? "#ff4757" : "#2ed573";
-            ctx.fillText(boostStatus, 20, 70);
+            // 1. Placar de Líderes (Leaderboard) - Superior Direito
+            const leaderboard = [...snakes]
+                .filter(s => s.alive)
+                .sort((a, b) => b.segmentsCount - a.segmentsCount);
+
+            ctx.save();
+            ctx.textAlign = 'left';
+            ctx.font = '13px Segoe UI';
+            leaderboard.slice(0, 5).forEach((s, i) => {
+                ctx.fillStyle = s === player ? '#2ed573' : 'white';
+                ctx.globalAlpha = 0.8;
+                const displayName = s === player ? "VOCÊ" : s.name.toUpperCase();
+                ctx.fillText(`${i + 1}. ${displayName}`, canvas.width - 190, 30 + i * 18);
+                ctx.textAlign = 'right';
+                ctx.fillText(Math.floor(s.segmentsCount), canvas.width - 30, 30 + i * 18);
+                ctx.textAlign = 'left';
+            });
+            ctx.restore(); ctx.globalAlpha = 1;
+
+            // 2. Minimapa - Superior Esquerdo
+            const miniSize = 100;
+            const miniPad = 20;
+            const mx = miniPad;
+            const my = miniPad;
+
+            ctx.save();
+            ctx.translate(mx, my);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.beginPath(); ctx.arc(miniSize/2, miniSize/2, miniSize/2, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; ctx.lineWidth = 2; ctx.stroke();
+
+            snakes.forEach(s => {
+                if (!s.alive) return;
+                const px = (s.x / WORLD_SIZE) * miniSize;
+                const py = (s.y / WORLD_SIZE) * miniSize;
+                ctx.fillStyle = s === player ? 'white' : s.color;
+                ctx.beginPath();
+                ctx.arc(px, py, s === player ? 3 : 1.5, 0, Math.PI * 2);
+                ctx.fill();
+                if (s === player) { ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.stroke(); }
+            });
+            ctx.restore();
 
             if (!player.alive) {
                 ctx.fillStyle = "rgba(0,0,0,0.85)";
@@ -713,6 +810,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function draw() {
+            if (isPausedGlobal) { animationId = requestAnimationFrame(draw); return; }
             // Fundo Sky Gradient
             const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
             g.addColorStop(0, '#87CEEB'); g.addColorStop(1, '#E0F7FA');
@@ -889,6 +987,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function draw(t) {
+            if (isPausedGlobal) { animationId = requestAnimationFrame(draw); return; }
             update(t); // Atualiza a lógica
             
             // Cálculo do progresso entre um "tick" e outro (0 a 1)
@@ -1097,6 +1196,7 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.addEventListener('touchstart', input, { passive: false });
 
         function draw() {
+            if (isPausedGlobal) { animationId = requestAnimationFrame(draw); return; }
             const g = ctx.createLinearGradient(0,0,0, canvas.height);
             g.addColorStop(0, '#4facfe'); g.addColorStop(1, '#00f2fe');
             ctx.fillStyle = g; ctx.fillRect(0,0, canvas.width, canvas.height);
@@ -1476,6 +1576,7 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.addEventListener('touchend', handleEnd);
 
         function draw() {
+            if (isPausedGlobal) { animationId = requestAnimationFrame(draw); return; }
             // Lógica de tempo "secando"
             if (!isAnimating && timeLeft > 0) {
                 timeLeft -= 0.016; // Redução por frame
@@ -1783,6 +1884,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function draw() {
+            if (isPausedGlobal) { animationId = requestAnimationFrame(draw); return; }
             // Fundo
             ctx.fillStyle = '#f5f6fa'; ctx.fillRect(0, 0, canvas.width, canvas.height);
             
@@ -1954,6 +2056,7 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.addEventListener('touchend', handleEnd);
 
         function draw() {
+            if (isPausedGlobal) { animationId = requestAnimationFrame(draw); return; }
             ctx.fillStyle = '#1e272e'; ctx.fillRect(0,0,canvas.width, canvas.height);
             const availableH = canvas.height - 200;
             const cellSize = Math.max(20, Math.min((canvas.width - 40) / gridSize, availableH / gridSize));
@@ -2283,6 +2386,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function gameLoop() {
+            if (isPausedGlobal) { animationId = requestAnimationFrame(gameLoop); return; }
             ctx.fillStyle = '#010816'; ctx.fillRect(0, 0, canvas.width, canvas.height);
             // Zoom dinâmico sem trava inferior para permitir crescimento infinito
             const zoom = 0.8 / (1 + (player.radius - 18) * 0.015);
@@ -2527,6 +2631,7 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.addEventListener('touchstart', e => { handleInput(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, {passive: false});
 
         function draw() {
+            if (isPausedGlobal) { animationId = requestAnimationFrame(draw); return; }
             ctx.fillStyle = '#f0f2f5'; ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = '#333'; ctx.font = 'bold 24px Segoe UI'; ctx.textAlign = 'center';
             ctx.fillText(`MEMÓRIA LUMO`, canvas.width/2, 50);
@@ -2571,13 +2676,23 @@ document.addEventListener('DOMContentLoaded', () => {
         let grid = [], bullet = null, score = 0, isMoving = false, isAiming = false, particles = [];
         let shooter = { x: canvas.width / 2, y: canvas.height - 100, angle: -Math.PI / 2, color: '', nextColor: '', shots: 0 };
 
+        // Configurações de Fundo Animado
+        let bgHue = Math.random() * 360;
+        let stars = Array.from({ length: 80 }, () => ({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: Math.random() * 2 + 0.5,
+            speed: 0.02 + Math.random() * 0.05,
+            phase: Math.random() * Math.PI * 2
+        }));
+
         function createGrid() {
             grid = [];
             for (let r = 0; r < GRID_ROWS; r++) {
                 grid[r] = [];
                 const cols = r % 2 === 0 ? GRID_COLS : GRID_COLS - 1;
                 for (let c = 0; c < cols; c++) {
-                    grid[r][c] = r < 5 ? COLORS[Math.floor(Math.random() * COLORS.length)] : null;
+                    grid[r][c] = r < 5 ? { color: COLORS[Math.floor(Math.random() * COLORS.length)], scale: 1 } : null;
                 }
             }
         }
@@ -2587,7 +2702,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const isEven = grid.length % 2 === 0;
             const cols = isEven ? GRID_COLS : GRID_COLS - 1;
             for (let c = 0; c < cols; c++) {
-                newRow.push(COLORS[Math.floor(Math.random() * COLORS.length)]);
+                newRow.push({ color: COLORS[Math.floor(Math.random() * COLORS.length)], scale: 0 });
             }
             grid.unshift(newRow);
             if (grid.length > GRID_ROWS) grid.pop();
@@ -2649,38 +2764,51 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (bullet.x - BUBBLE_RADIUS < 0 || bullet.x + BUBBLE_RADIUS > canvas.width) bullet.vx *= -1;
 
                 let collision = false;
-                for (let r = 0; r < grid.length; r++) {
-                    for (let c = 0; c < grid[r].length; c++) {
-                        if (grid[r][c]) {
-                            const coords = getBubbleCoords(r, c);
-                            if (Math.hypot(bullet.x - coords.x, bullet.y - coords.y) < BUBBLE_RADIUS * 1.6) { collision = true; break; }
-                        }
-                    }
-                    if (collision) break;
-                }
+                if (checkCollisionAt(bullet.x, bullet.y)) collision = true;
+                
                 if (collision || bullet.y - BUBBLE_RADIUS < 100) snapToGrid();
             }
             particles = particles.filter(p => { p.x += p.vx; p.y += p.vy; p.life -= 0.02; return p.life > 0; });
         }
 
-        function snapToGrid() {
+        // Função auxiliar para checar colisão em um ponto
+        function checkCollisionAt(x, y) {
+            let collision = false;
+                for (let r = 0; r < grid.length; r++) {
+                    for (let c = 0; c < grid[r].length; c++) {
+                        if (grid[r][c]) {
+                            const coords = getBubbleCoords(r, c);
+                            if (Math.hypot(x - coords.x, y - coords.y) < BUBBLE_RADIUS * 1.6) { collision = true; break; }
+                        }
+                    }
+                    if (collision) break;
+                }
+            return collision;
+        }
+
+        function getSnapPosition(x, y) {
             let best = { r: 0, c: 0, dist: Infinity };
             for (let r = 0; r < grid.length; r++) {
                 const cols = r % 2 === 0 ? GRID_COLS : GRID_COLS - 1;
                 for (let c = 0; c < cols; c++) {
                     if (!grid[r][c]) {
                         const coords = getBubbleCoords(r, c);
-                        const d = Math.hypot(bullet.x - coords.x, bullet.y - coords.y);
+                        const d = Math.hypot(x - coords.x, y - coords.y);
                         if (d < best.dist) best = { r, c, dist: d };
                     }
                 }
             }
-            grid[best.r][best.c] = bullet.color;
+            return best;
+        }
+
+        function snapToGrid() {
+            const best = getSnapPosition(bullet.x, bullet.y);
+            grid[best.r][best.c] = { color: bullet.color, scale: 0 };
             const matches = findMatches(best.r, best.c, bullet.color);
             if (matches.length >= 3) {
                 matches.forEach(m => {
                     const coords = getBubbleCoords(m.r, m.c);
-                    createExplosion(coords.x, coords.y, grid[m.r][m.c]);
+                    createExplosion(coords.x, coords.y, grid[m.r][m.c].color);
                     grid[m.r][m.c] = null;
                 });
                 score += matches.length * 10;
@@ -2716,11 +2844,11 @@ document.addEventListener('DOMContentLoaded', () => {
             let matches = [], queue = [{ r, c }], visited = new Set([`${r},${c}`]);
             while (queue.length > 0) {
                 let curr = queue.shift();
-                if (grid[curr.r][curr.c] === color) {
+                if (grid[curr.r][curr.c] && grid[curr.r][curr.c].color === color) {
                     matches.push(curr);
                     getNeighbors(curr.r, curr.c).forEach(n => {
                         let key = `${n.r},${n.c}`;
-                        if (!visited.has(key) && grid[n.r][n.c] === color) { visited.add(key); queue.push(n); }
+                        if (!visited.has(key) && grid[n.r][n.c] && grid[n.r][n.c].color === color) { visited.add(key); queue.push(n); }
                     });
                 }
             }
@@ -2752,7 +2880,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 for (let c = 0; c < grid[r].length; c++) {
                     if (grid[r][c] && !connected.has(`${r},${c}`)) {
                         const coords = getBubbleCoords(r, c);
-                        createExplosion(coords.x, coords.y, grid[r][c]);
+                        createExplosion(coords.x, coords.y, grid[r][c].color);
                         grid[r][c] = null; score += 5;
                     }
                 }
@@ -2766,6 +2894,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function drawFancyBubble(x, y, color, radius) {
+            if (radius < 2.1) return; // Evita desenhar bolhas minúsculas que causariam erro de raio negativo
             ctx.save();
             ctx.shadowBlur = 8; ctx.shadowColor = 'rgba(0,0,0,0.1)';
             const grad = ctx.createRadialGradient(x - radius/3, y - radius/3, radius/10, x, y, radius);
@@ -2773,7 +2902,7 @@ document.addEventListener('DOMContentLoaded', () => {
             grad.addColorStop(0.3, color);
             grad.addColorStop(1, darkenColor(color, 0.4));
             ctx.fillStyle = grad;
-            ctx.beginPath(); ctx.arc(x, y, radius - 2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x, y, Math.max(0, radius - 2), 0, Math.PI * 2); ctx.fill();
             ctx.globalAlpha = 0.4;
             ctx.fillStyle = 'white';
             ctx.beginPath(); ctx.ellipse(x - radius/2.5, y - radius/2.5, radius/4, radius/6, Math.PI/4, 0, Math.PI*2); ctx.fill();
@@ -2781,33 +2910,55 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function draw() {
-            const bgGrad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-            bgGrad.addColorStop(0, '#1e272e'); bgGrad.addColorStop(1, '#2f3640');
+            if (isPausedGlobal) { animationId = requestAnimationFrame(draw); return; }
+            // Fundo Animado com Gradiente e Estrelas
+            bgHue += 0.1;
+            const c1 = `hsl(${(bgHue) % 360}, 40%, 10%)`;
+            const c2 = `hsl(${(bgHue + 40) % 360}, 45%, 15%)`;
+            const bgGrad = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 0, canvas.width/2, canvas.height/2, canvas.height);
+            bgGrad.addColorStop(0, c2); bgGrad.addColorStop(1, c1);
             ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // Estrelas de fundo
-            ctx.fillStyle = 'white';
-            for(let i=0; i<50; i++) {
-                const x = (Math.sin(i) * 0.5 + 0.5) * canvas.width;
-                const y = (Math.cos(i*2) * 0.5 + 0.5) * canvas.height;
-                ctx.globalAlpha = 0.2 + Math.sin(Date.now()*0.001 + i)*0.1;
-                ctx.fillRect(x, y, 2, 2);
-            }
+            stars.forEach(s => {
+                const alpha = 0.1 + Math.abs(Math.sin(Date.now() * s.speed + s.phase)) * 0.6;
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = 'white';
+                ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2); ctx.fill();
+            });
             ctx.globalAlpha = 1;
 
-            // Linha de Trajetória
+            // Linha de Trajetória Contínua e Infinita (que para em colisão)
             if (isAiming && !bullet) {
                 let tx = shooter.x, ty = shooter.y;
-                let tvx = Math.cos(shooter.angle) * 10, tvy = Math.sin(shooter.angle) * 10;
-                ctx.beginPath(); ctx.setLineDash([5, 8]); ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-                ctx.moveTo(tx, ty);
-                for(let i=0; i<40; i++) {
+                let tvx = Math.cos(shooter.angle) * 5, tvy = Math.sin(shooter.angle) * 5;
+                const maxSteps = 300;
+
+                ctx.save();
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = 'rgba(255,255,255,0.15)'; 
+                for(let i=0; i<maxSteps; i++) {
+                    let prevX = tx, prevY = ty;
                     tx += tvx; ty += tvy;
                     if (tx < BUBBLE_RADIUS || tx > canvas.width - BUBBLE_RADIUS) tvx *= -1;
+                    
+                    // Diminui a espessura gradualmente de acordo com a distância (i)
+                    ctx.lineWidth = Math.max(1, (BUBBLE_RADIUS * 1.2) * (1 - i / maxSteps));
+                    ctx.beginPath();
+                    ctx.moveTo(prevX, prevY);
                     ctx.lineTo(tx, ty);
+                    ctx.stroke();
+
+                    if (checkCollisionAt(tx, ty)) break;
                     if (ty < 100) break;
                 }
-                ctx.stroke(); ctx.setLineDash([]);
+                ctx.restore();
+
+                // Prévia transparente de onde a bolinha vai encaixar
+                const snap = getSnapPosition(tx, ty);
+                const previewPos = getBubbleCoords(snap.r, snap.c);
+                ctx.globalAlpha = 0.4;
+                drawFancyBubble(previewPos.x, previewPos.y, shooter.color, BUBBLE_RADIUS);
+                ctx.globalAlpha = 1;
             }
 
             // Partículas de estouro
@@ -2820,8 +2971,10 @@ document.addEventListener('DOMContentLoaded', () => {
             for (let r = 0; r < grid.length; r++) {
                 for (let c = 0; c < grid[r].length; c++) {
                     if (grid[r][c]) {
+                        const bubble = grid[r][c];
+                        if (bubble.scale < 1) bubble.scale += 0.05; // Animação de surgimento
                         const coords = getBubbleCoords(r, c);
-                        drawFancyBubble(coords.x, coords.y, grid[r][c], BUBBLE_RADIUS);
+                        drawFancyBubble(coords.x, coords.y, bubble.color, BUBBLE_RADIUS * bubble.scale);
                     }
                 }
             }
@@ -2980,6 +3133,7 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.addEventListener('touchstart', e => { input(e.touches[0].clientX); e.preventDefault(); }, {passive:false});
 
         function draw() {
+            if (isPausedGlobal) { animationId = requestAnimationFrame(draw); return; }
             // Fundo estilo papel quadriculado
             ctx.fillStyle = '#fbf8e6'; ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.strokeStyle = '#e1e8f0'; ctx.lineWidth = 1;
@@ -3102,6 +3256,7 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.addEventListener('touchstart', e => { handleInput(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, {passive:false});
 
         function draw() {
+            if (isPausedGlobal) { animationId = requestAnimationFrame(draw); return; }
             ctx.fillStyle = '#f0f2f5'; ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = '#333'; ctx.font = 'bold 24px Segoe UI'; ctx.textAlign = 'center';
             ctx.fillText(`LUMO SIMON`, canvas.width/2, 50);
