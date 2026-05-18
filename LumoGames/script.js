@@ -66,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
         memory: (container) => initMemory(container),
         bubbles: (container) => initBubbles(container),
         jump: (container) => initLumoJump(container),
-        simon: () => "Lumo Simon: Repita a sequência!"
+        simon: (container) => initLumoSimon(container)
     };
 
     // Adiciona evento de clique em cada card
@@ -2865,5 +2865,116 @@ document.addEventListener('DOMContentLoaded', () => {
             animationId = requestAnimationFrame(draw);
         }
         reset(); state = 'start'; draw();
+    }
+
+    // --- MOTOR DO JOGO LUMO SIMON (SIMON SAYS) ---
+    function initLumoSimon(container) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        container.appendChild(canvas);
+
+        let sequence = [], userSequence = [], state = 'start', activeBtn = -1;
+        const BUTTONS = [
+            { color: '#ff4757', light: '#ff6b81' }, // Vermelho
+            { color: '#2ed573', light: '#7bed9f' }, // Verde
+            { color: '#1e90ff', light: '#70a1ff' }, // Azul
+            { color: '#ffa502', light: '#eccc68' }  // Amarelo
+        ];
+
+        const margin = 20, topMargin = 120;
+        const btnSize = Math.min((canvas.width - margin * 3) / 2, (canvas.height - topMargin - margin * 2) / 2);
+        const offsetX = (canvas.width - (btnSize * 2 + margin)) / 2;
+        const offsetY = topMargin + (canvas.height - topMargin - (btnSize * 2 + margin)) / 2;
+
+        const setupBtns = () => {
+            BUTTONS[0].x = offsetX; BUTTONS[0].y = offsetY;
+            BUTTONS[1].x = offsetX + btnSize + margin; BUTTONS[1].y = offsetY;
+            BUTTONS[2].x = offsetX; BUTTONS[2].y = offsetY + btnSize + margin;
+            BUTTONS[3].x = offsetX + btnSize + margin; BUTTONS[3].y = offsetY + btnSize + margin;
+        };
+
+        function nextLevel() {
+            sequence.push(Math.floor(Math.random() * 4));
+            userSequence = [];
+            playSequence();
+        }
+
+        function playSequence() {
+            state = 'watch';
+            let i = 0;
+            const interval = setInterval(() => {
+                if (state === 'gameover') { clearInterval(interval); return; }
+                activeBtn = sequence[i];
+                setTimeout(() => { if(state !== 'gameover') activeBtn = -1; }, 400);
+                i++;
+                if (i >= sequence.length) {
+                    clearInterval(interval);
+                    setTimeout(() => { if(state !== 'gameover') state = 'play'; }, 600);
+                }
+            }, 800);
+        }
+
+        function handleInput(x, y) {
+            if (state === 'start' || state === 'gameover') { sequence = []; nextLevel(); return; }
+            if (state !== 'play') return;
+
+            let clickedIdx = -1;
+            BUTTONS.forEach((btn, i) => {
+                if (x > btn.x && x < btn.x + btnSize && y > btn.y && y < btn.y + btnSize) clickedIdx = i;
+            });
+
+            if (clickedIdx !== -1) {
+                activeBtn = clickedIdx;
+                setTimeout(() => { if(state !== 'gameover') activeBtn = -1; }, 200);
+                userSequence.push(clickedIdx);
+                
+                if (userSequence[userSequence.length - 1] !== sequence[userSequence.length - 1]) {
+                    state = 'gameover';
+                    activeBtn = -1;
+                } else if (userSequence.length === sequence.length) {
+                    rewardCoins(5);
+                    state = 'watch';
+                    setTimeout(nextLevel, 1000);
+                }
+            }
+        }
+
+        canvas.addEventListener('mousedown', e => handleInput(e.clientX, e.clientY));
+        canvas.addEventListener('touchstart', e => { handleInput(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, {passive:false});
+
+        function draw() {
+            ctx.fillStyle = '#f0f2f5'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#333'; ctx.font = 'bold 24px Segoe UI'; ctx.textAlign = 'center';
+            ctx.fillText(`LUMO SIMON`, canvas.width/2, 50);
+            ctx.font = '16px Segoe UI'; ctx.fillStyle = '#666';
+            ctx.fillText(`Nível: ${sequence.length}  |  ${state === 'watch' ? 'OBSERVE A SEQUÊNCIA' : (state === 'play' ? 'SUA VEZ!' : 'TOQUE PARA INICIAR')}`, canvas.width/2, 85);
+
+            setupBtns();
+            BUTTONS.forEach((btn, i) => {
+                ctx.fillStyle = (activeBtn === i) ? btn.light : btn.color;
+                ctx.shadowBlur = (activeBtn === i) ? 25 : 0;
+                ctx.shadowColor = btn.light;
+                ctx.beginPath();
+                if (ctx.roundRect) ctx.roundRect(btn.x, btn.y, btnSize, btnSize, 20); else ctx.fillRect(btn.x, btn.y, btnSize, btnSize);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                
+                if (activeBtn === i) {
+                    ctx.strokeStyle = 'white'; ctx.lineWidth = 4; ctx.stroke();
+                }
+            });
+
+            if (state === 'start' || state === 'gameover') {
+                ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0,0, canvas.width, canvas.height);
+                ctx.fillStyle = 'white'; ctx.font = 'bold 26px Segoe UI';
+                ctx.fillText(state === 'start' ? 'VAMOS COMEÇAR?' : 'SEQUÊNCIA ERRADA!', canvas.width/2, canvas.height/2 - 20);
+                ctx.font = '18px Segoe UI'; ctx.fillText('TOQUE EM QUALQUER LUGAR', canvas.width/2, canvas.height/2 + 30);
+            }
+
+            animationId = requestAnimationFrame(draw);
+        }
+        draw();
     }
 });
