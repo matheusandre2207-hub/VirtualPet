@@ -2070,9 +2070,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.speed = 2;
                 this.alive = true;
                 this.planets = [];
-                this.color = '#ff4757'; // Começa como Anã Vermelha
+                this.color = color || '#ff4757'; // Usa a cor passada ou o padrão
                 this.isVisible = false; // Flag para otimização
                 this.foodEaten = 0; // Contador para controle de moedas
+                this.type = 'star';
+                this.isTransforming = false;
+                this.transformationProgress = 0;
+                this.rotation = 0;
             }
 
             addPlanet() {
@@ -2090,6 +2094,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
             update(foods, entities) {
                 if (!this.alive) return;
+
+                // Lógica de Transformação
+                if (this.isTransforming) {
+                    this.transformationProgress += 0.015;
+                    if (this.transformationProgress >= 1) {
+                        this.type = 'galaxy';
+                        this.isTransforming = false;
+                        this.radius = 2100; // Salto de expansão após a explosão
+                        this.planets = [];  // A galáxia absorve o sistema solar anterior
+                    }
+                    return; // Trava o movimento durante o "flash" da supernova
+                }
+
+                if (this.type === 'star' && this.radius >= 2000) {
+                    this.isTransforming = true;
+                    this.transformationProgress = 0;
+                }
+
                 let targetAngle = this.angle;
                 if (!this.isBot) { if (joystick.active) targetAngle = joystick.angle; }
                 else { targetAngle = this.updateAI(foods, entities); }
@@ -2123,6 +2145,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.speed = Math.max(0.5, 6 / (1 + this.radius * 0.015));
                 this.x += Math.cos(this.angle) * this.speed;
                 this.y += Math.sin(this.angle) * this.speed;
+
+                if (this.type === 'galaxy') {
+                    this.rotation += 0.015; // Velocidade de rotação da galáxia
+                }
+
                 this.x = Math.max(0, Math.min(WORLD_SIZE, this.x));
                 this.y = Math.max(0, Math.min(WORLD_SIZE, this.y));
             }
@@ -2172,63 +2199,76 @@ document.addEventListener('DOMContentLoaded', () => {
                 ctx.save();
                 ctx.translate(this.x - cam.x, this.y - cam.y);
                 
-                // 1. Desenha o Brilho (Glow) por baixo
-                const glowSize = this.radius * 2.8;
-                const glowGrad = ctx.createRadialGradient(0, 0, this.radius, 0, 0, glowSize);
-                glowGrad.addColorStop(0, this.color);
-                glowGrad.addColorStop(1, 'transparent');
-                ctx.fillStyle = glowGrad;
-                ctx.beginPath(); ctx.arc(0, 0, glowSize, 0, Math.PI * 2); ctx.fill();
+                if (this.type === 'star') {
+                    // Desenha Sol e Planetas (Lógica original)
+                    const glowGrad = ctx.createRadialGradient(0, 0, this.radius, 0, 0, this.radius * 2.8);
+                    glowGrad.addColorStop(0, this.color); glowGrad.addColorStop(1, 'transparent');
+                    ctx.fillStyle = glowGrad; ctx.beginPath(); ctx.arc(0, 0, this.radius * 2.8, 0, Math.PI * 2); ctx.fill();
 
-                // 2. Desenha o Núcleo Estelar por cima
-                const sunSize = this.radius * 1.8;
-                const sunGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, sunSize);
-                const coreColor = this.color === '#ff4757' ? '#ff9f43' : '#fff';
-                sunGrad.addColorStop(0, '#fff'); sunGrad.addColorStop(0.3, coreColor);
-                sunGrad.addColorStop(0.7, this.color); sunGrad.addColorStop(1, darkenColor(this.color, 0.5));
-                ctx.fillStyle = sunGrad;
-                ctx.beginPath(); ctx.arc(0, 0, sunSize, 0, Math.PI * 2); ctx.fill();
+                    const sunGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, this.radius * 1.8);
+                    const coreColor = this.color === '#ff4757' ? '#ff9f43' : '#fff';
+                    sunGrad.addColorStop(0, '#fff'); sunGrad.addColorStop(0.3, coreColor);
+                    sunGrad.addColorStop(0.7, this.color); sunGrad.addColorStop(1, darkenColor(this.color, 0.5));
+                    ctx.fillStyle = sunGrad; ctx.beginPath(); ctx.arc(0, 0, this.radius * 1.8, 0, Math.PI * 2); ctx.fill();
 
-                // 3. Desenha Órbitas e Planetas
-                this.planets.forEach(p => {
-                    // Linha da Órbita
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-                    ctx.lineWidth = 1;
-                    ctx.beginPath(); ctx.arc(0, 0, p.dist, 0, Math.PI * 2); ctx.stroke();
+                    this.planets.forEach(p => {
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'; ctx.lineWidth = 1;
+                        ctx.beginPath(); ctx.arc(0, 0, p.dist, 0, Math.PI * 2); ctx.stroke();
+                        const px = Math.cos(p.angle) * p.dist; const py = Math.sin(p.angle) * p.dist;
+                        ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(px, py, p.size, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.beginPath(); ctx.arc(px - p.size*0.3, py - p.size*0.3, p.size*0.4, 0, Math.PI * 2); ctx.fill();
+                    });
+                } else {
+                    // Desenha Galáxia Espiral
+                    ctx.rotate(this.rotation);
+                    const galaxyGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, this.radius * 1.5);
+                    galaxyGlow.addColorStop(0, '#fff');
+                    galaxyGlow.addColorStop(0.3, this.color);
+                    galaxyGlow.addColorStop(1, 'transparent');
+                    ctx.fillStyle = galaxyGlow;
+                    ctx.beginPath(); ctx.arc(0, 0, this.radius * 1.5, 0, Math.PI * 2); ctx.fill();
 
-                    const px = Math.cos(p.angle) * p.dist;
-                    const py = Math.sin(p.angle) * p.dist;
+                    // Braços da Galáxia (Segmentos Orgânicos que afinam)
+                    const numArms = 4;
+                    const dotsPerArm = 40;
+                    for (let i = 0; i < numArms; i++) {
+                        const startAngle = (i * Math.PI * 2) / numArms;
+                        let lastX = 0;
+                        let lastY = 0;
 
-                    // Corpo do planeta e pequeno brilho reflexivo
-                    ctx.fillStyle = p.color;
-                    ctx.beginPath(); ctx.arc(px, py, p.size, 0, Math.PI * 2); ctx.fill();
-
-                    // Padrões do planeta
-                    ctx.save();
-                    ctx.clip();
-                    if (p.type === 'gaseous') {
-                        ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-                        ctx.lineWidth = p.size / 2;
-                        ctx.beginPath();
-                        ctx.moveTo(-p.size, -p.size/3); ctx.lineTo(p.size, -p.size/3);
-                        ctx.moveTo(-p.size, p.size/3); ctx.lineTo(p.size, p.size/3);
-                        ctx.stroke();
-                    } else if (p.type === 'rocky') {
-                        ctx.fillStyle = 'rgba(0,0,0,0.15)';
-                        ctx.beginPath(); ctx.arc(p.size/3, -p.size/4, p.size/3, 0, Math.PI*2); ctx.fill();
-                        ctx.beginPath(); ctx.arc(-p.size/4, p.size/3, p.size/4, 0, Math.PI*2); ctx.fill();
-                    } else if (p.type === 'icy') {
-                        const iceGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, p.size);
-                        iceGrad.addColorStop(0, 'rgba(255,255,255,0.4)');
-                        iceGrad.addColorStop(1, 'transparent');
-                        ctx.fillStyle = iceGrad; ctx.fill();
+                        for (let j = 0; j < dotsPerArm; j++) {
+                            const progress = j / dotsPerArm;
+                            const r = progress * this.radius * 2.5;
+                            const theta = startAngle + progress * 4; 
+                            const px = Math.cos(theta) * r;
+                            const py = Math.sin(theta) * r;
+                            
+                            if (j > 0) {
+                                ctx.strokeStyle = this.color;
+                                // O braço afina conforme se afasta do centro
+                                ctx.lineWidth = (this.radius * 0.3) * (1 - progress);
+                                ctx.beginPath();
+                                ctx.moveTo(lastX, lastY);
+                                ctx.lineTo(px, py);
+                                ctx.stroke();
+                            }
+                            
+                            if (j % 8 === 0) { 
+                                ctx.fillStyle = '#fff';
+                                ctx.fillRect(px - 2, py - 2, 4, 4);
+                            }
+                            lastX = px; lastY = py;
+                        }
                     }
-                    ctx.restore();
+                }
 
-                    // Brilho reflexivo
-                    ctx.fillStyle = 'rgba(255,255,255,0.3)';
-                    ctx.beginPath(); ctx.arc(px - p.size*0.3, py - p.size*0.3, p.size*0.4, 0, Math.PI * 2); ctx.fill();
-                });
+                // Efeito de Supernova (Explosão e Expansão)
+                if (this.isTransforming) {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.radius * (1 + this.transformationProgress * 8), 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(255, 255, 255, ${1 - this.transformationProgress})`;
+                    ctx.fill();
+                }
 
                 ctx.restore(); ctx.globalAlpha = 1;
             }
@@ -2239,7 +2279,7 @@ document.addEventListener('DOMContentLoaded', () => {
             entities = [player];
             for(let i=0; i<400; i++) entities.push(new Galaxy(Math.random()*WORLD_SIZE, Math.random()*WORLD_SIZE, '#ff4757', true));
             foods = [];
-            for(let i=0; i<40000; i++) foods.push({x: Math.random()*WORLD_SIZE, y: Math.random()*WORLD_SIZE, color: '#fff', id: Math.random()});
+            for(let i=0; i<8000; i++) foods.push({x: Math.random()*WORLD_SIZE, y: Math.random()*WORLD_SIZE, color: '#fff', id: Math.random()});
         }
 
         function gameLoop() {
@@ -2282,26 +2322,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 return e.alive && (e === player || e.isVisible);
             });
             
-            foods.forEach((f) => {
+            // Otimização: Loop de comida mais eficiente
+            for (let i = 0; i < foods.length; i++) {
+                const f = foods[i];
                 const isVisible = f.x > cam.x - 20 && f.x < cam.x + viewW + 20 && f.y > cam.y - 20 && f.y < cam.y + viewH + 20;
                 
-                // Lógica de Atração (Magnetismo) e Consumo para entidades ativas
-                activeEntities.forEach(e => {
+                for (let j = 0; j < activeEntities.length; j++) {
+                    const e = activeEntities[j];
                     const dx = e.x - f.x;
                     const dy = e.y - f.y;
-                    if (Math.abs(dx) < e.radius * 8 && Math.abs(dy) < e.radius * 8) {
-                        const d = Math.sqrt(dx*dx + dy*dy);
+                    const magnetRange = e.radius * 8;
+
+                    // Quick check para evitar Math.sqrt desnecessário
+                    if (Math.abs(dx) < magnetRange && Math.abs(dy) < magnetRange) {
+                        const d = Math.hypot(dx, dy);
+                        
                         // Atração Gravitacional
                         if (d < e.radius * 6) {
                             const pull = (1 - d / (e.radius * 6)) * 4;
                             f.x += (dx / d) * pull;
                             f.y += (dy / d) * pull;
                         }
+
                         // Consumo
                         if (d < e.radius * 1.2) {
                             f.x = Math.random() * WORLD_SIZE;
                             f.y = Math.random() * WORLD_SIZE;
-                            e.radius += 0.4;
+                            
+                            if (e.type === 'star' && e.radius < 2000) e.radius += 0.4;
+                            else if (e.type === 'galaxy' && e.radius < 3000) e.radius += 0.1;
                             
                             if (e === player) {
                                 player.foodEaten++;
@@ -2318,14 +2367,15 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         }
                     }
-                });
+                }
 
-                if (!isVisible) return;
+                if (!isVisible) continue;
+                
                 // Efeito de cintilação suave na comida
                 const pulse = 0.8 + Math.sin(Date.now() * 0.005 + f.id) * 0.2;
                 ctx.fillStyle = f.color; ctx.beginPath(); 
                 ctx.arc(f.x - cam.x, f.y - cam.y, 3 * pulse, 0, Math.PI*2); ctx.fill();
-            });
+            }
 
             entities.forEach((e) => {
                 if (!e.alive) return;
