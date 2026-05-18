@@ -2876,6 +2876,16 @@ document.addEventListener('DOMContentLoaded', () => {
         container.appendChild(canvas);
 
         let sequence = [], userSequence = [], state = 'start', activeBtn = -1;
+        let pet = { x: canvas.width / 2, y: canvas.height / 2, radius: 25 };
+        let tilt = { x: 0, y: 0 };
+
+        function handleOrientation(e) {
+            // gamma: inclinação esquerda/direita (-90 a 90)
+            // beta: inclinação frente/trás (-180 a 180)
+            tilt.x = e.gamma || 0;
+            tilt.y = e.beta || 0;
+        }
+
         const BUTTONS = [
             { color: '#ff4757', light: '#ff6b81' }, // Vermelho
             { color: '#2ed573', light: '#7bed9f' }, // Verde
@@ -2917,7 +2927,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function handleInput(x, y) {
-            if (state === 'start' || state === 'gameover') { sequence = []; nextLevel(); return; }
+            if (state === 'start' || state === 'gameover') {
+                // Solicita permissão para sensores de movimento (essencial para iOS 13+)
+                if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    DeviceOrientationEvent.requestPermission()
+                        .then(permissionState => {
+                            if (permissionState === 'granted') window.addEventListener('deviceorientation', handleOrientation);
+                        })
+                        .catch(console.error);
+                } else {
+                    window.addEventListener('deviceorientation', handleOrientation);
+                }
+                sequence = []; nextLevel(); return;
+            }
             if (state !== 'play') return;
 
             let clickedIdx = -1;
@@ -2950,6 +2972,30 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.fillText(`LUMO SIMON`, canvas.width/2, 50);
             ctx.font = '16px Segoe UI'; ctx.fillStyle = '#666';
             ctx.fillText(`Nível: ${sequence.length}  |  ${state === 'watch' ? 'OBSERVE A SEQUÊNCIA' : (state === 'play' ? 'SUA VEZ!' : 'TOQUE PARA INICIAR')}`, canvas.width/2, 85);
+
+            // Atualizar e Desenhar Bonequinho (Lumo) com Inclinação
+            if (state !== 'start') {
+                // Aplicar movimento baseado no tilt (multiplicador 0.5 para suavidade)
+                // Ajustamos o eixo Y em -45 para compensar a inclinação natural ao segurar o celular
+                pet.x += tilt.x * 0.5;
+                pet.y += (tilt.y - 45) * 0.5;
+
+                // Limites da tela
+                pet.x = Math.max(pet.radius, Math.min(canvas.width - pet.radius, pet.x));
+                pet.y = Math.max(pet.radius, Math.min(canvas.height - pet.radius, pet.y));
+
+                ctx.save();
+                ctx.translate(pet.x, pet.y);
+                ctx.fillStyle = playerLumoColor;
+                ctx.beginPath(); ctx.arc(0, 0, pet.radius, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = 'white';
+                ctx.beginPath(); ctx.arc(-8, -5, 6, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(8, -5, 6, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = 'black';
+                ctx.beginPath(); ctx.arc(-8, -5, 2, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(8, -5, 2, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+            }
 
             setupBtns();
             BUTTONS.forEach((btn, i) => {
