@@ -2788,14 +2788,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (this.x > canvas.width) this.x = 0;
             }
             draw() {
-                ctx.save(); ctx.translate(this.x, this.y);
-                ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI * 2); ctx.fill();
+                ctx.save(); 
+                ctx.translate(this.x, this.y);
+                
+                // Efeito Squash & Stretch baseado na velocidade vertical
+                const stretch = Math.min(0.25, Math.abs(this.vy) * 0.02);
+                if (this.vy < 0) ctx.scale(1 - stretch, 1 + stretch); // Estica subindo
+                else ctx.scale(1 + stretch, 1 - stretch); // Achata caindo
+
+                ctx.fillStyle = this.color;
+                ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI * 2); ctx.fill();
+                
+                // Detalhes do Rosto
                 ctx.fillStyle = 'white';
                 ctx.beginPath(); ctx.arc(-7, -5, 6, 0, Math.PI * 2); ctx.fill();
                 ctx.beginPath(); ctx.arc(7, -5, 6, 0, Math.PI * 2); ctx.fill();
                 ctx.fillStyle = 'black';
-                ctx.beginPath(); ctx.arc(-7 + (this.vx * 0.4), -5 + (this.vy * 0.1), 2.5, 0, Math.PI * 2); ctx.fill();
-                ctx.beginPath(); ctx.arc(7 + (this.vx * 0.4), -5 + (this.vy * 0.1), 2.5, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(-7 + (this.vx * 0.5), -5 + (this.vy * 0.1), 2.5, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(7 + (this.vx * 0.5), -5 + (this.vy * 0.1), 2.5, 0, Math.PI * 2); ctx.fill();
                 ctx.restore();
             }
         }
@@ -2803,19 +2813,36 @@ document.addEventListener('DOMContentLoaded', () => {
         class Platform {
             constructor(y, type = 'normal') {
                 this.w = 75; this.h = 14;
-                this.x = Math.random() * (canvas.width - this.w); this.y = y;
+                this.x = Math.random() * (canvas.width - this.w - 20) + 10; this.y = y;
                 this.type = type; // 'normal', 'moving', 'breakable'
                 this.vx = type === 'moving' ? (Math.random() < 0.5 ? 2 : -2) : 0;
+                this.color = type === 'moving' ? '#54a0ff' : (type === 'breakable' ? '#ee5253' : '#1dd1a1');
             }
             update() {
                 this.x += this.vx;
                 if (this.x < 0 || this.x + this.w > canvas.width) this.vx *= -1;
             }
             draw() {
-                ctx.fillStyle = this.type === 'moving' ? '#3498db' : (this.type === 'breakable' ? '#e67e22' : '#2ecc71');
-                ctx.beginPath(); 
-                if (ctx.roundRect) ctx.roundRect(this.x, this.y, this.w, this.h, 5); else ctx.fillRect(this.x, this.y, this.w, this.h);
+                ctx.save();
+                // Sombra da plataforma
+                ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                if (ctx.roundRect) ctx.roundRect(this.x + 4, this.y + 4, this.w, this.h, 7); else ctx.fillRect(this.x + 4, this.y + 4, this.w, this.h);
                 ctx.fill();
+
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                if (ctx.roundRect) ctx.roundRect(this.x, this.y, this.w, this.h, 7); else ctx.fillRect(this.x, this.y, this.w, this.h);
+                ctx.fill();
+
+                // Textura de "Doodle"
+                ctx.strokeStyle = 'rgba(0,0,0,0.15)'; ctx.lineWidth = 1.5;
+                if (this.type === 'breakable') {
+                    ctx.beginPath(); ctx.moveTo(this.x + 25, this.y); ctx.lineTo(this.x + 35, this.y + this.h);
+                    ctx.moveTo(this.x + 45, this.y); ctx.lineTo(this.x + 55, this.y + this.h); ctx.stroke();
+                } else {
+                    for(let i=10; i<this.w; i+=20) { ctx.beginPath(); ctx.arc(this.x + i, this.y + 7, 2, 0, Math.PI*2); ctx.fill(); }
+                }
+                ctx.restore();
             }
         }
 
@@ -2852,7 +2879,13 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.addEventListener('touchstart', e => { input(e.touches[0].clientX); e.preventDefault(); }, {passive:false});
 
         function draw() {
-            ctx.fillStyle = '#f8faff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Fundo estilo papel quadriculado
+            ctx.fillStyle = '#fbf8e6'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#e1e8f0'; ctx.lineWidth = 1;
+            for(let i=0; i<canvas.width; i+=40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
+            for(let i=0; i<canvas.height; i+=40) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke(); }
+            ctx.strokeStyle = 'rgba(255,0,0,0.1)'; ctx.beginPath(); ctx.moveTo(60, 0); ctx.lineTo(60, canvas.height); ctx.stroke();
+
             if (state === 'playing') {
                 player.update();
                 if (player.y < canvas.height / 2) {
@@ -2876,10 +2909,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (player.y > canvas.height + 50) state = 'gameover';
             }
             platforms.forEach(p => { p.update(); p.draw(); }); player.draw();
-            ctx.fillStyle = '#333'; ctx.font = 'bold 24px Segoe UI'; ctx.textAlign = 'center';
-            ctx.fillText(`PONTOS: ${score}`, canvas.width/2, 50);
-            if (state === 'start') ctx.fillText('TOQUE PARA SUBIR', canvas.width/2, canvas.height/2);
-            if (state === 'gameover') ctx.fillText('FIM DE JOGO', canvas.width/2, canvas.height/2);
+            
+            ctx.fillStyle = '#576574'; ctx.font = 'bold 28px Segoe UI'; ctx.textAlign = 'center';
+            ctx.shadowBlur = 4; ctx.shadowColor = 'rgba(0,0,0,0.1)';
+            ctx.fillText(score, canvas.width/2, 60); ctx.shadowBlur = 0;
+
+            if (state === 'start') { ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.font = 'bold 22px Segoe UI'; ctx.fillText('INCLINE PARA MOVER', canvas.width/2, canvas.height/2); }
+            if (state === 'gameover') { ctx.fillStyle = '#ee5253'; ctx.font = 'bold 32px Segoe UI'; ctx.fillText('CAIU!', canvas.width/2, canvas.height/2); }
             animationId = requestAnimationFrame(draw);
         }
         reset(); state = 'start'; draw();
