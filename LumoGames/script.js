@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
         slice: (container) => initLumoSlice(container),
         word: (container) => initLumoWord(container),
         galaxy: (container) => initLumoGalaxy(container),
-        memory: () => "Jogo da Memória do Lumo...",
+        memory: (container) => initMemory(container),
         bubbles: () => "Bubble Pop: Mire e estoure!",
         jump: () => "Lumo Jump: Suba sem parar!",
         simon: () => "Lumo Simon: Repita a sequência!"
@@ -2427,5 +2427,131 @@ document.addEventListener('DOMContentLoaded', () => {
             animationId = requestAnimationFrame(gameLoop);
         }
         reset(); gameLoop();
+    }
+
+    // --- MOTOR DO JOGO DA MEMÓRIA ---
+    function initMemory(container) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        container.appendChild(canvas);
+
+        let level = 1, score = 0, cards = [], flipped = [], matched = [], lockBoard = false;
+        let rows, cols, cardSize, offsetX, offsetY;
+        const COLORS = ['#ff4757', '#2ed573', '#1e90ff', '#ffa502', '#3742fa', '#70a1ff', '#7bed9f', '#eccc68', '#ff6b81', '#5352ed'];
+
+        function setupLevel() {
+            matched = []; flipped = []; lockBoard = false;
+            // Progressão de dificuldade: 2x2 -> 2x3 -> 3x4 -> 4x4
+            if (level === 1) { rows = 2; cols = 2; }
+            else if (level === 2) { rows = 2; cols = 3; }
+            else if (level === 3) { rows = 3; cols = 4; }
+            else { rows = 4; cols = 4; }
+
+            const numPairs = (rows * cols) / 2;
+            let pairColors = [];
+            for (let i = 0; i < numPairs; i++) {
+                const color = COLORS[i % COLORS.length];
+                pairColors.push(color, color);
+            }
+            pairColors.sort(() => Math.random() - 0.5);
+
+            const padding = 20;
+            const topMargin = 120;
+            cardSize = Math.min((canvas.width - padding * 2) / cols, (canvas.height - topMargin - padding) / rows) - 10;
+            offsetX = (canvas.width - (cols * (cardSize + 10))) / 2;
+            offsetY = topMargin + (canvas.height - topMargin - (rows * (cardSize + 10))) / 2;
+
+            cards = [];
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    cards.push({
+                        r, c, color: pairColors.pop(),
+                        isFlipped: false, isMatched: false,
+                        anim: 0 
+                    });
+                }
+            }
+        }
+
+        function drawLumo(ctx, x, y, size, color) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.fillStyle = color;
+            ctx.beginPath(); ctx.arc(0, size * 0.05, size * 0.35, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = 'white';
+            ctx.beginPath(); ctx.arc(-size * 0.1, 0, size * 0.08, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(size * 0.1, 0, size * 0.08, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = 'black';
+            ctx.beginPath(); ctx.arc(-size * 0.1, 0, size * 0.03, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(size * 0.1, 0, size * 0.03, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+        }
+
+        function handleInput(x, y) {
+            if (lockBoard) return;
+            const c = Math.floor((x - offsetX) / (cardSize + 10));
+            const r = Math.floor((y - offsetY) / (cardSize + 10));
+            if (r < 0 || r >= rows || c < 0 || c >= cols) return;
+
+            const card = cards.find(card => card.r === r && card.c === c);
+            if (!card || card.isFlipped || card.isMatched || flipped.includes(card)) return;
+
+            card.isFlipped = true;
+            flipped.push(card);
+
+            if (flipped.length === 2) {
+                lockBoard = true;
+                if (flipped[0].color === flipped[1].color) {
+                    score += 100 * level;
+                    rewardCoins(5);
+                    setTimeout(() => {
+                        flipped.forEach(c => c.isMatched = true);
+                        matched.push(...flipped);
+                        flipped = [];
+                        lockBoard = false;
+                        if (matched.length === cards.length) { level++; setTimeout(setupLevel, 800); }
+                    }, 600);
+                } else {
+                    setTimeout(() => {
+                        flipped.forEach(c => c.isFlipped = false);
+                        flipped = [];
+                        lockBoard = false;
+                    }, 1000);
+                }
+            }
+        }
+
+        canvas.addEventListener('mousedown', e => handleInput(e.clientX, e.clientY));
+        canvas.addEventListener('touchstart', e => { handleInput(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, {passive: false});
+
+        function draw() {
+            ctx.fillStyle = '#f0f2f5'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#333'; ctx.font = 'bold 24px Segoe UI'; ctx.textAlign = 'center';
+            ctx.fillText(`MEMÓRIA LUMO`, canvas.width/2, 50);
+            ctx.font = '16px Segoe UI'; ctx.fillStyle = '#666';
+            ctx.fillText(`Nível: ${level}  |  Score: ${score}`, canvas.width/2, 85);
+
+            cards.forEach(card => {
+                const x = offsetX + card.c * (cardSize + 10), y = offsetY + card.r * (cardSize + 10);
+                const target = (card.isFlipped || card.isMatched) ? 1 : 0;
+                card.anim += (target - card.anim) * 0.15;
+                ctx.save();
+                ctx.translate(x + cardSize/2, y + cardSize/2);
+                ctx.scale(Math.abs(Math.cos(card.anim * Math.PI)), 1);
+                if (card.anim > 0.5) {
+                    ctx.fillStyle = 'white'; ctx.beginPath(); ctx.roundRect(-cardSize/2, -cardSize/2, cardSize, cardSize, 10); ctx.fill();
+                    ctx.strokeStyle = '#ddd'; ctx.lineWidth = 2; ctx.stroke();
+                    drawLumo(ctx, 0, 0, cardSize, card.color);
+                } else {
+                    ctx.fillStyle = '#4a90e2'; ctx.beginPath(); ctx.roundRect(-cardSize/2, -cardSize/2, cardSize, cardSize, 10); ctx.fill();
+                    ctx.fillStyle = 'white'; ctx.font = 'bold 30px Segoe UI'; ctx.fillText('?', 0, 10);
+                }
+                ctx.restore();
+            });
+            animationId = requestAnimationFrame(draw);
+        }
+        setupLevel(); draw();
     }
 });
