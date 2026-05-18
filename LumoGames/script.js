@@ -64,8 +64,8 @@ document.addEventListener('DOMContentLoaded', () => {
         word: (container) => initLumoWord(container),
         galaxy: (container) => initLumoGalaxy(container),
         memory: (container) => initMemory(container),
-        bubbles: () => "Bubble Pop: Mire e estoure!",
-        jump: () => "Lumo Jump: Suba sem parar!",
+        bubbles: (container) => initBubbles(container),
+        jump: (container) => initLumoJump(container),
         simon: () => "Lumo Simon: Repita a sequência!"
     };
 
@@ -2553,5 +2553,317 @@ document.addEventListener('DOMContentLoaded', () => {
             animationId = requestAnimationFrame(draw);
         }
         setupLevel(); draw();
+    }
+
+    // --- MOTOR DO JOGO BUBBLE POP ---
+    function initBubbles(container) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        container.appendChild(canvas);
+
+        const BUBBLE_RADIUS = Math.min(canvas.width / 14, 25);
+        const COLORS = ['#ff4757', '#2ed573', '#1e90ff', '#ffa502', '#3742fa'];
+        const GRID_ROWS = 14;
+        const GRID_COLS = Math.floor(canvas.width / (BUBBLE_RADIUS * 2));
+        
+        let grid = [], bullet = null, score = 0, isMoving = false, particles = [];
+        let shooter = { x: canvas.width / 2, y: canvas.height - 80, angle: -Math.PI / 2, color: '', nextColor: '' };
+
+        function createGrid() {
+            grid = [];
+            for (let r = 0; r < GRID_ROWS; r++) {
+                grid[r] = [];
+                const cols = r % 2 === 0 ? GRID_COLS : GRID_COLS - 1;
+                for (let c = 0; c < cols; c++) {
+                    grid[r][c] = r < 5 ? COLORS[Math.floor(Math.random() * COLORS.length)] : null;
+                }
+            }
+        }
+
+        function getBubbleCoords(r, c) {
+            const offset = r % 2 === 0 ? 0 : BUBBLE_RADIUS;
+            const xPadding = (canvas.width - (GRID_COLS * BUBBLE_RADIUS * 2)) / 2;
+            return {
+                x: xPadding + c * BUBBLE_RADIUS * 2 + BUBBLE_RADIUS + offset,
+                y: r * BUBBLE_RADIUS * 1.7 + BUBBLE_RADIUS + 100
+            };
+        }
+
+        function resetShooter() {
+            shooter.color = shooter.nextColor || COLORS[Math.floor(Math.random() * COLORS.length)];
+            shooter.nextColor = COLORS[Math.floor(Math.random() * COLORS.length)];
+            bullet = null; isMoving = false;
+        }
+
+        function handleInput(clientX, clientY) {
+            if (isMoving) return;
+            const dx = clientX - shooter.x, dy = clientY - shooter.y;
+            if (dy > 0) return;
+            shooter.angle = Math.atan2(dy, dx);
+            bullet = { x: shooter.x, y: shooter.y, vx: Math.cos(shooter.angle) * 15, vy: Math.sin(shooter.angle) * 15, color: shooter.color };
+            isMoving = true;
+        }
+
+        canvas.addEventListener('mousemove', e => { if (!isMoving) shooter.angle = Math.atan2(e.clientY - shooter.y, e.clientX - shooter.x); });
+        canvas.addEventListener('mousedown', e => handleInput(e.clientX, e.clientY));
+        canvas.addEventListener('touchstart', e => { handleInput(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, { passive: false });
+
+        function update() {
+            if (bullet) {
+                bullet.x += bullet.vx; bullet.y += bullet.vy;
+                if (bullet.x - BUBBLE_RADIUS < 0 || bullet.x + BUBBLE_RADIUS > canvas.width) bullet.vx *= -1;
+
+                let collision = false;
+                for (let r = 0; r < grid.length; r++) {
+                    for (let c = 0; c < grid[r].length; c++) {
+                        if (grid[r][c]) {
+                            const coords = getBubbleCoords(r, c);
+                            if (Math.hypot(bullet.x - coords.x, bullet.y - coords.y) < BUBBLE_RADIUS * 1.6) { collision = true; break; }
+                        }
+                    }
+                    if (collision) break;
+                }
+                if (collision || bullet.y - BUBBLE_RADIUS < 100) snapToGrid();
+            }
+            particles = particles.filter(p => { p.x += p.vx; p.y += p.vy; p.life -= 0.02; return p.life > 0; });
+        }
+
+        function snapToGrid() {
+            let best = { r: 0, c: 0, dist: Infinity };
+            for (let r = 0; r < grid.length; r++) {
+                const cols = r % 2 === 0 ? GRID_COLS : GRID_COLS - 1;
+                for (let c = 0; c < cols; c++) {
+                    if (!grid[r][c]) {
+                        const coords = getBubbleCoords(r, c);
+                        const d = Math.hypot(bullet.x - coords.x, bullet.y - coords.y);
+                        if (d < best.dist) best = { r, c, dist: d };
+                    }
+                }
+            }
+            grid[best.r][best.c] = bullet.color;
+            const matches = findMatches(best.r, best.c, bullet.color);
+            if (matches.length >= 3) {
+                matches.forEach(m => {
+                    const coords = getBubbleCoords(m.r, m.c);
+                    createExplosion(coords.x, coords.y, grid[m.r][m.c]);
+                    grid[m.r][m.c] = null;
+                });
+                score += matches.length * 10;
+                rewardCoins(Math.floor(matches.length / 2));
+                dropIsolated();
+            }
+            if (best.r >= GRID_ROWS - 2) createGrid();
+            resetShooter();
+        }
+
+        function findMatches(r, c, color) {
+            let matches = [], queue = [{ r, c }], visited = new Set([`${r},${c}`]);
+            while (queue.length > 0) {
+                let curr = queue.shift();
+                if (grid[curr.r][curr.c] === color) {
+                    matches.push(curr);
+                    getNeighbors(curr.r, curr.c).forEach(n => {
+                        let key = `${n.r},${n.c}`;
+                        if (!visited.has(key) && grid[n.r][n.c] === color) { visited.add(key); queue.push(n); }
+                    });
+                }
+            }
+            return matches;
+        }
+
+        function getNeighbors(r, c) {
+            let neighbors = [];
+            const isEven = r % 2 === 0;
+            const offsets = isEven ? [[0,-1], [0,1], [-1,-1], [-1,0], [1,-1], [1,0]] : [[0,-1], [0,1], [-1,0], [-1,1], [1,0], [1,1]];
+            offsets.forEach(o => {
+                let nr = r + o[0], nc = c + o[1];
+                if (grid[nr] && grid[nr][nc] !== undefined) neighbors.push({ r: nr, c: nc });
+            });
+            return neighbors;
+        }
+
+        function dropIsolated() {
+            let connected = new Set(), queue = [];
+            for (let c = 0; c < grid[0].length; c++) if (grid[0][c]) { connected.add(`0,${c}`); queue.push({ r: 0, c }); }
+            while (queue.length > 0) {
+                let curr = queue.shift();
+                getNeighbors(curr.r, curr.c).forEach(n => {
+                    let key = `${n.r},${n.c}`;
+                    if (!connected.has(key) && grid[n.r][n.c]) { connected.add(key); queue.push(n); }
+                });
+            }
+            for (let r = 0; r < grid.length; r++) {
+                for (let c = 0; c < grid[r].length; c++) {
+                    if (grid[r][c] && !connected.has(`${r},${c}`)) {
+                        const coords = getBubbleCoords(r, c);
+                        createExplosion(coords.x, coords.y, grid[r][c]);
+                        grid[r][c] = null; score += 5;
+                    }
+                }
+            }
+        }
+
+        function createExplosion(x, y, color) {
+            for (let i = 0; i < 8; i++) {
+                particles.push({ x, y, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6, life: 1.0, color, size: Math.random() * 3 + 1 });
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = '#fef9f8'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                ctx.globalAlpha = p.life; ctx.fillStyle = p.color;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+
+            for (let r = 0; r < grid.length; r++) {
+                for (let c = 0; c < grid[r].length; c++) {
+                    if (grid[r][c]) {
+                        const coords = getBubbleCoords(r, c);
+                        ctx.fillStyle = grid[r][c];
+                        ctx.beginPath(); ctx.arc(coords.x, coords.y, BUBBLE_RADIUS - 2, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                        ctx.beginPath(); ctx.arc(coords.x - BUBBLE_RADIUS/3, coords.y - BUBBLE_RADIUS/3, BUBBLE_RADIUS/4, 0, Math.PI * 2); ctx.fill();
+                    }
+                }
+            }
+
+            if (bullet) {
+                ctx.fillStyle = bullet.color;
+                ctx.beginPath(); ctx.arc(bullet.x, bullet.y, BUBBLE_RADIUS - 2, 0, Math.PI * 2); ctx.fill();
+            }
+
+            ctx.save();
+            ctx.translate(shooter.x, shooter.y);
+            ctx.rotate(shooter.angle);
+            ctx.fillStyle = '#ddd'; ctx.fillRect(0, -8, 45, 16);
+            ctx.fillStyle = shooter.color; ctx.beginPath(); ctx.arc(0, 0, BUBBLE_RADIUS, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+
+            ctx.fillStyle = shooter.nextColor;
+            ctx.beginPath(); ctx.arc(shooter.x + 80, shooter.y, BUBBLE_RADIUS * 0.6, 0, Math.PI * 2); ctx.fill();
+
+            ctx.fillStyle = '#333'; ctx.font = 'bold 20px Segoe UI'; ctx.textAlign = 'center';
+            ctx.fillText(`BUBBLE POP`, canvas.width/2, 40);
+            ctx.font = '14px Segoe UI'; ctx.fillText(`SCORE: ${score}`, canvas.width/2, 65);
+
+            update();
+            animationId = requestAnimationFrame(draw);
+        }
+
+        createGrid(); resetShooter(); draw();
+    }
+
+    // --- MOTOR DO JOGO LUMO JUMP (DOODLE STYLE) ---
+    function initLumoJump(container) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        container.appendChild(canvas);
+
+        let platforms = [], player, score = 0, state = 'start', animationId;
+        const GRAVITY = 0.35, JUMP_FORCE = -11;
+
+        class Player {
+            constructor() {
+                this.x = canvas.width / 2; this.y = canvas.height - 150;
+                this.radius = 20; this.vy = JUMP_FORCE; this.vx = 0;
+                this.color = playerLumoColor;
+            }
+            update() {
+                this.vy += GRAVITY; this.y += this.vy; this.x += this.vx;
+                if (this.x < 0) this.x = canvas.width;
+                if (this.x > canvas.width) this.x = 0;
+            }
+            draw() {
+                ctx.save(); ctx.translate(this.x, this.y);
+                ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = 'white';
+                ctx.beginPath(); ctx.arc(-7, -5, 6, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(7, -5, 6, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = 'black';
+                ctx.beginPath(); ctx.arc(-7 + (this.vx * 0.4), -5 + (this.vy * 0.1), 2.5, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(7 + (this.vx * 0.4), -5 + (this.vy * 0.1), 2.5, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        class Platform {
+            constructor(y, type = 'normal') {
+                this.w = 75; this.h = 14;
+                this.x = Math.random() * (canvas.width - this.w); this.y = y;
+                this.type = type; // 'normal', 'moving', 'breakable'
+                this.vx = type === 'moving' ? (Math.random() < 0.5 ? 2 : -2) : 0;
+            }
+            update() {
+                this.x += this.vx;
+                if (this.x < 0 || this.x + this.w > canvas.width) this.vx *= -1;
+            }
+            draw() {
+                ctx.fillStyle = this.type === 'moving' ? '#3498db' : (this.type === 'breakable' ? '#e67e22' : '#2ecc71');
+                ctx.beginPath(); 
+                if (ctx.roundRect) ctx.roundRect(this.x, this.y, this.w, this.h, 5); else ctx.fillRect(this.x, this.y, this.w, this.h);
+                ctx.fill();
+            }
+        }
+
+        function reset() {
+            score = 0; state = 'playing'; player = new Player(); platforms = [];
+            platforms.push(new Platform(canvas.height - 60)); // Base
+            for(let i = 1; i < 9; i++) spawnPlatform(canvas.height - (i * 90));
+        }
+
+        function spawnPlatform(y) {
+            let type = 'normal';
+            if (score > 1500 && Math.random() < 0.25) type = 'moving';
+            if (score > 3000 && Math.random() < 0.15) type = 'breakable';
+            platforms.push(new Platform(y, type));
+        }
+
+        const input = (clientX) => {
+            if (state === 'start') { state = 'playing'; return; }
+            if (state === 'gameover') { reset(); return; }
+            player.vx = (clientX - player.x) * 0.12;
+        };
+
+        canvas.addEventListener('mousemove', e => input(e.clientX));
+        canvas.addEventListener('touchstart', e => { input(e.touches[0].clientX); e.preventDefault(); }, {passive:false});
+
+        function draw() {
+            ctx.fillStyle = '#f8faff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            if (state === 'playing') {
+                player.update();
+                if (player.y < canvas.height / 2) {
+                    const diff = canvas.height / 2 - player.y; player.y = canvas.height / 2;
+                    score += Math.floor(diff/5); platforms.forEach(p => p.y += diff);
+                    if (Math.floor(score/100) > Math.floor((score - diff/5)/100)) rewardCoins(1);
+                }
+                if (player.vy > 0) {
+                    platforms.forEach((p, i) => {
+                        if (player.x + 15 > p.x && player.x - 15 < p.x + p.w && player.y + 20 > p.y && player.y + 20 < p.y + p.h + player.vy) {
+                            if (p.type === 'breakable') platforms.splice(i, 1);
+                            else player.vy = JUMP_FORCE;
+                        }
+                    });
+                }
+                platforms = platforms.filter(p => p.y < canvas.height);
+                while (platforms.length < 9) {
+                    const highestY = platforms.reduce((min, p) => Math.min(min, p.y), canvas.height);
+                    spawnPlatform(highestY - (70 + Math.random() * 50));
+                }
+                if (player.y > canvas.height + 50) state = 'gameover';
+            }
+            platforms.forEach(p => { p.update(); p.draw(); }); player.draw();
+            ctx.fillStyle = '#333'; ctx.font = 'bold 24px Segoe UI'; ctx.textAlign = 'center';
+            ctx.fillText(`PONTOS: ${score}`, canvas.width/2, 50);
+            if (state === 'start') ctx.fillText('TOQUE PARA SUBIR', canvas.width/2, canvas.height/2);
+            if (state === 'gameover') ctx.fillText('FIM DE JOGO', canvas.width/2, canvas.height/2);
+            animationId = requestAnimationFrame(draw);
+        }
+        reset(); state = 'start'; draw();
     }
 });
