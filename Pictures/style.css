@@ -1,0 +1,1285 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    touch-action: auto; /* Deixa o navegador gerenciar o toque por padrão */
+}
+
+html, body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    height: 100dvh; /* Viewport dinâmico para mobile */
+    width: 100vw;
+    background-color: #333;
+    font-family: sans-serif;
+    overflow: hidden;
+    position: fixed; /* Trava a posição da página */
+}
+
+#game-container {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    position: relative;
+    overflow: hidden;
+    background-color: #fff;
+    display: flex;
+    flex-direction: column;
+    touch-action: manipulation; /* Permite interações normais e evita zoom acidental */
+}
+
+/* Interface de Moedas (Pílula Superior Esquerda) */
+.coin-pill {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50px;
+    padding: 6px 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 600; /* Abaixo da Loja, mas acima do mundo */
+    color: white;
+    font-weight: bold;
+    pointer-events: none;
+    font-family: sans-serif;
+}
+
+/* Estilo para itens bloqueados na loja */
+.shop-item-card.locked {
+    background: #e0e0e0;
+    position: relative;
+}
+
+.shop-item-card.locked::after {
+    content: '🔒';
+    position: absolute;
+    font-size: 12px;
+    bottom: 2px;
+    right: 2px;
+}
+
+/* Feedback visual de compra */
+.coin-pill.insufficient {
+    animation: shakeCoin 0.4s ease;
+    border-color: #ff4757;
+}
+
+@keyframes shakeCoin {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+/* Wrapper para deslizar entre os cômodos */
+#mundo {
+    display: flex;
+    width: 400%; /* Quatro cômodos */
+    height: 100%;
+    position: absolute;
+    left: 0;
+    transition: left 0.5s ease-out;
+    touch-action: none; /* Garante que o arraste dos cômodos não sofra interferência do browser */
+}
+
+/* Cenário */
+.cenario {
+    position: relative;
+    width: 100vw;
+    height: 100%;
+    flex-shrink: 0;
+}
+
+.parede-fundo {
+    height: 70%;
+    background-color: #414141; /* parede */
+    position: absolute;
+    width: 100%;
+    z-index: 0;
+}
+
+.parede-fundo::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 15px; /* Altura do rodapé */
+    background-color: #fcfcfc;
+    background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.411) 2px, transparent 2px);
+    background-size: 60px 100%; /* Mesma largura das lajotas do chão */
+    border-top: 1px solid #777; /* Linha superior para dar profundidade */
+}
+
+/* --- Estampas das Paredes por Cômodo --- */
+
+/* Banheiro: Padrão de Tijolinhos (Original) */
+#banheiro .parede-fundo {
+    background-image: 
+        linear-gradient(90deg, rgba(255, 255, 255, 0.07) 2px, transparent 2px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.07) 2px, transparent 2px),
+        linear-gradient(rgba(255, 255, 255, 0.07) 2px, transparent 2px);
+    background-size: 80px 40px;
+    background-position: 0 0, 40px 20px, 0 0;
+}
+
+/* Sala: Padrão de Listras Verticais (Papel de Parede) */
+#sala .parede-fundo {
+    background-color: #6d4c41;
+    background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.192) 2px, transparent 2px);
+    background-size: 50px 100%;
+}
+
+/* Cozinha: Padrão de Azulejos Quadrados */
+#cozinha .parede-fundo {
+    background-color: #d6d6d6;
+    background-image: 
+        linear-gradient(rgba(0, 0, 0, 0.5) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.5) 1px, transparent 1px);
+    background-size: 30px 30px;
+}
+
+/* Quarto: Padrão Pontilhado Suave (Relaxante) */
+#quarto .parede-fundo {
+    background-color: #4a5a7a;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.1) 2px, transparent 2px);
+    background-size: 40px 40px;
+}
+
+.chao {
+    height: 30%;
+    width: 100%;
+    background: radial-gradient(circle at 50% 0%, #ffffff 20%, #e0e0e0 100%);
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    overflow: hidden;
+    box-shadow: inset 0 15px 20px -15px rgba(0,0,0,0.5); /* Sombra de contato com a parede */
+    z-index: 1;
+}
+
+.chao::after {
+    content: '';
+    position: absolute;
+    top: -50px;
+    left: 0;
+    width: 100%;
+    height: 1000px;
+    background-image: 
+        linear-gradient(rgba(29, 29, 29, 0.4) 2px, transparent 2px),
+        linear-gradient(90deg, rgba(29, 29, 29, 0.4) 2px, transparent 2px);
+    background-size: 60px 60px;
+    transform: perspective(400px) rotateX(60deg);
+    transform-origin: top center;
+    pointer-events: none;
+}
+
+/* --- Decorações do Banheiro --- */
+
+/* Chuveiro no Centro Superior */
+.chuveiro {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 10;
+    cursor: pointer;
+}
+
+.chuveiro-cano {
+    width: 10px;
+    height: 40px;
+    background: #999;
+}
+
+.chuveiro-cabeca {
+    width: 60px;
+    height: 15px;
+    background: #bbb;
+    border-radius: 5px 5px 0 0;
+    border-bottom: 2px solid #888;
+}
+
+/* Gotas de Água (Pixels esticados) */
+.gota {
+    position: absolute;
+    top: 55px; /* Inicia logo abaixo da cabeça do chuveiro */
+    width: 2px;
+    height: 25px;
+    background-color: rgba(173, 216, 230, 0.6);
+    z-index: 15; /* À frente do pet */
+    pointer-events: none;
+    animation: cairAgua 0.7s linear forwards;
+}
+
+@keyframes cairAgua {
+    0% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(450px); opacity: 0; }
+}
+
+/* Pia à Esquerda */
+.pia-container {
+    position: absolute;
+    bottom: 30%; /* Exatamente onde a parede encontra o chão */
+    left: -10px;
+    z-index: 10;
+    transform: translateZ(1px);
+}
+
+.pia {
+    width: 150px;
+    height: 130px;
+    background-image: url('assets/pia.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: bottom center;
+    transform: translateY(10px); /* Ajuste para encostar no rodapé */
+}
+
+/* Armário acima da pia */
+.armario {
+    position: absolute;
+    bottom: 52%;
+    left: -5px;
+    width: 150px;
+    height: 130px;
+    background-image: url('assets/armario.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    z-index: 10;
+    transform: translateZ(1px);
+}
+
+/* Toalha e Suporte */
+.toalha-suporte {
+    position: absolute;
+    bottom: 40%;
+    left: 130px;
+    width: 120px;
+    height: 120px;
+    background-image: url('assets/toalha.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    z-index: 10;
+    transform: translateZ(1px);
+}
+
+/* --- Decorações da Sala --- */
+.tv {
+    position: absolute;
+    bottom: 55%; /* Posicionada para ficar acima do rack */
+    right: 30px; /* Centralizada horizontalmente em relação ao rack */
+    width: 180px;
+    height: 110px;
+    background-color: #000; /* Centro preto para a tela */
+    border: 4px solid #757575; /* Borda branca grossa */
+    border-radius: 5px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    z-index: 10;
+    transform: translateZ(1px);
+    cursor: pointer;
+}
+
+.rack {
+    position: absolute;
+    bottom: 30%; /* AJUSTE AQUI A POSIÇÃO VERTICAL (Ex: 28%, 32%, etc) */
+    right: 20px;
+    width: 50%;
+    height: 200px;
+    background-image: url('assets/rack.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: bottom center;
+    z-index: 10;
+    transform: translateZ(1px);
+}
+
+/* --- Overlay do Lumo Arcade --- */
+#arcade-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    z-index: 600; /* Acima da loja e UI */
+}
+
+#arcade-overlay.hidden {
+    display: none;
+}
+
+#arcade-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+/* Desabilita interações quando o Arcade está aberto */
+body.arcade-active #mundo,
+body.arcade-active #lumo-wrapper,
+body.arcade-active .status-container,
+body.arcade-active #shop-overlay {
+    pointer-events: none;
+}
+
+/* Garante que o próprio Arcade continue interativo */
+body.arcade-active #arcade-overlay {
+    pointer-events: all;
+}
+
+
+/* Guarda-roupas no Quarto */
+.guarda-roupas {
+    position: absolute;
+    bottom: 29%; /* Mesma altura da geladeira */
+    right: -50px; /* Mesma posição horizontal da geladeira (parcialmente fora da tela à direita) */
+    width: 250px; /* Mesma largura da geladeira */
+    height: 320px; /* Mesma altura da geladeira */
+    background-image: url('assets/wardrobe.png'); /* Novo asset */
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: bottom center;
+    z-index: 10;
+    cursor: pointer;
+    transform: translateZ(1px);
+}
+/* --- Menu da Loja Lateral --- */
+#shop-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 800; /* Agora a loja fica ACIMA das moedas e de tudo */
+    display: flex;
+    transition: opacity 0.3s;
+}
+
+#shop-overlay.hidden {
+    pointer-events: none;
+    opacity: 0;
+}
+
+#shop-panel {
+    width: 80%;
+    max-width: 320px;
+    height: 100%;
+    background: #f5f5f5;
+    box-shadow: 5px 0 15px rgba(0,0,0,0.2);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    pointer-events: auto;
+    touch-action: pan-y; /* Permite o gesto de deslizar vertical */
+    overflow: hidden;
+}
+
+#shop-overlay.hidden #shop-panel {
+    transform: translateX(-100%);
+}
+
+.shop-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+#shop-sections-container {
+    flex: 1;
+    height: 100%;
+    overflow-y: scroll !important; /* Força a barra de scroll */
+    overflow-x: hidden;
+    padding-right: 5px;
+    -webkit-overflow-scrolling: touch; /* Ativa a rolagem com inércia (organic) no iOS */
+    overscroll-behavior-y: contain; /* Evita que o fundo balance ao chegar no fim da lista */
+    touch-action: pan-y !important;
+}
+
+.shop-section-title {
+    font-size: 14px;
+    font-weight: bold;
+    color: #777;
+    margin: 15px 0 10px;
+    text-transform: uppercase;
+}
+
+.shop-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.shop-item-card {
+    aspect-ratio: 1/1;
+    background: white;
+    position: relative; /* OBRIGATÓRIO para que os preços apareçam dentro do cartão */
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 5px;
+    touch-action: auto;
+    transition: border-color 0.2s;
+}
+
+.shop-item-card:hover {
+    border-color: #4ed401;
+}
+
+.shop-item-card img {
+    max-width: 80%;
+    max-height: 80%;
+    object-fit: contain;
+}
+
+.color-swatch {
+    width: 100%;
+    height: 100%;
+    border-radius: 4px;
+}
+
+#close-shop {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #999;
+}
+
+.planta {
+    position: absolute;
+    bottom: 26%; /* Mesma altura da base do rack, logo acima do chão */
+    left: -50px;
+    width: 200px;
+    height: 250px;
+    background-image: url('assets/planta.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: bottom center;
+    z-index: 10;
+    transform: translateZ(1px);
+}
+
+.bolinha {
+    position: absolute;
+    bottom: 5%;
+    left: 50%;
+    width: 60px;
+    height: 60px;
+    background: radial-gradient(circle at 30% 30%, #ff5722, #bf360c);
+    border-radius: 50%;
+    z-index: 25;
+    cursor: grab;
+    touch-action: none;
+    box-shadow: 0 15px 15px rgba(0,0,0,0.3);
+    transform: translateX(-50%);
+    transform-origin: bottom center;
+    transition: none !important; /* Removemos qualquer transição para física pura via JS */
+    display: block;
+}
+
+@keyframes quicar {
+    0%, 100% { transform: translate(var(--ball-dx), var(--ball-dy)) scale(var(--ball-scale)); }
+    50% { transform: translate(var(--ball-dx), var(--ball-dy)) scale(calc(var(--ball-scale) * 1.1), calc(var(--ball-scale) * 0.9)); }
+}
+
+.quicando {
+    animation: quicar 0.3s ease-out !important;
+}
+
+/* --- Decorações da Cozinha --- */
+.geladeira {
+    position: absolute;
+    bottom: 29%;
+    right: -50px;
+    width: 250px;
+    height: 320px;
+    background-image: url('assets/armariodecozinha.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: bottom center;
+    z-index: 10;
+    transform: translateZ(1px);
+}
+
+.fogao {
+    position: absolute;
+    bottom: 29%;
+    left: -10px;
+    width: 150px;
+    height: 150px;
+    background-image: url('assets/fogao.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: bottom center;
+    z-index: 10;
+    transform: translateZ(1px);
+}
+
+.mesa {
+    position: absolute;
+    bottom: 17%; /* Altura da mesa na parede */
+    left: 0;
+    width: 100%; /* Atravessa de um lado ao outro */
+    height: 50px; /* Espessura da tábua */
+    background-color: #5d4037; /* Cor de madeira escura */
+    border-bottom: 4px solid #3e2723; /* Sombra/detalhe na borda */
+    box-shadow: 0 5px 10px rgba(0,0,0,0.3);
+    z-index: 22; /* Agora à frente do pet (20) */
+    transform: translateZ(2px); /* Força para frente do chão 3D */
+}
+
+.food-selector {
+    position: absolute;
+    bottom: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    z-index: 25;
+}
+
+.food-arrow {
+    background: none;
+    border: none;
+    color: #000000;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 10px;
+}
+
+/* --- Decorações do Quarto --- */
+.cama {
+    position: absolute;
+    /* Ajuste manual de posição e tamanho abaixo */
+    bottom: 7%; 
+    left: 5%; /* Centralizado em relação ao pet, considerando a largura da cama */
+    width: 360px;
+    height: 200px;
+    background-image: url('assets/cama.png');
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: bottom center;
+    z-index: 10;
+    transform: translateZ(1px);
+
+}
+
+.comoda {
+    position: absolute;
+    bottom: 27%;
+    left: -20px;
+    width: 160px;
+    height: 130px;
+    background-image: url('assets/comoda.png'); /* Certifique-se de ter este asset ou use background-color */
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: bottom center;
+    z-index: 10;
+    transform: translateZ(1px);
+}
+
+.abajur {
+    position: absolute;
+    bottom: 75%; /* Ajustado para manter colado com a nova altura */
+    left: 50%;
+    transform: translateX(-50%) translateZ(1px); /* Centraliza e mantém à frente do fundo */
+    width: 65px;
+    height: 85px;
+    background-image: url('assets/abajur.png'); /* Certifique-se de ter este asset */
+    background-size: contain;
+    background-repeat: no-repeat;
+    cursor: pointer;
+    z-index: 1; /* Relativo à cômoda */
+}
+
+#sleep-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 15, 0.7);
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+}
+
+#sleep-overlay.active {
+    opacity: 1;
+}
+
+.z-container {
+    position: absolute;
+    top: -20px; /* Posicionado levemente acima da cabeça */
+    left: 70%; /* Posicionado acima da cabeça */
+    pointer-events: none;
+    z-index: 120;
+}
+
+.z-particle {
+    position: absolute;
+    color: #fff;
+    font-weight: bold;
+    font-size: 24px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    animation: sleep-z 2.5s linear forwards;
+}
+
+@keyframes sleep-z {
+    0% { transform: translate(0, 0) scale(0.5); opacity: 0; }
+    20% { opacity: 1; }
+    100% { transform: translate(40px, -80px) scale(1.5); opacity: 0; }
+}
+
+.maca-img {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 30px;
+    cursor: grab;
+    transition: transform 0.3s ease-out;
+    touch-action: none;
+}
+
+/* Sabonete e Suporte */
+.sabonete-container {
+    position: absolute;
+    bottom: 41%;
+    left: 260px; /* Posicionado à direita da toalha */
+    width: 80px;
+    height: 40px;
+    z-index: 25; /* Agora acima do pet (10) e da interface (20) */
+}
+
+.suporte-sabonete {
+    width: 100%;
+    height: 100%;
+    background-image: url('assets/suporte.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    position: absolute;
+    bottom: 0;
+}
+
+.sabonete-img {
+    width: 100%;
+    height: 100%;
+    background-image: url('assets/sabonete.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    position: absolute;
+    left: 0;
+    bottom: 1px;
+    cursor: grab;
+    z-index: 4;
+    transition: transform 0.3s ease-out; /* Efeito de volta suave */
+    touch-action: none; /* Melhora arraste em dispositivos móveis */
+}
+
+/* Wrapper para controlar posição global sem resetar animações */
+#lumo-wrapper {
+    position: absolute;
+    bottom: 15%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    transition: transform 0.5s ease-out; /* Match com a transição do mundo */
+    pointer-events: none; /* Permite cliques nos filhos */
+}
+
+/*O Pet*/
+.pet {
+    width: 260px;
+    height: 220px;
+    transform-origin: bottom center;
+    animation: respirar 4s ease-in-out infinite;
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    /* Variáveis de Customização */
+    --body-image: url('assets/body.png');
+    --body-color: #4ed401;
+    --nose-color: #8A2BE2;
+    --iris-color: #01a3d4;
+}
+
+.pet-corpo-mask {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--body-color);
+    background-image: var(--body-image);
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-blend-mode: multiply; /* Faz a cor tingir apenas o que é branco na imagem */
+    -webkit-mask-image: var(--body-image); /* Define que a área visível segue o formato do PNG */
+    mask-image: var(--body-image);
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+}
+
+/* Camada de Padrão do Corpo */
+.pet-pattern {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    background-image: var(--body-pattern, none);
+    mix-blend-mode: overlay; /* Faz o padrão interagir com a cor do corpo */
+    opacity: 0.5;
+}
+
+/* Esconder roupas no banheiro de forma suave */
+.pet.hide-clothes .pet-tshirt,
+.pet.hide-clothes .pet-tshirt2,
+.pet.hide-clothes .pet-tshirt3,
+.pet.hide-clothes .pet-chain,
+.pet.hide-clothes .pet-moletom,
+.pet.hide-clothes .pet-moletom2,
+.pet.hide-clothes .pet-glass,
+.pet.hide-clothes .pet-headphones,
+.pet.hide-clothes .pet-cap {
+    opacity: 0 !important;
+    pointer-events: none;
+}
+
+/* Camada da Camiseta 1 (T-Shirt) */
+.pet-tshirt {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2;
+    display: none;
+    background-color: var(--tshirt-color, #ffffff);
+    background-repeat: repeat, no-repeat;
+    background-position: center, center;
+    background-blend-mode: overlay, multiply;
+    -webkit-mask-image: url('assets/tshirt.png');
+    mask-image: url('assets/tshirt.png');
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    transition: opacity 0.5s ease-in-out;
+}
+
+/* Camada da Camiseta 2 (T-Shirt 2) */
+.pet-tshirt2 {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2; /* Acima do corpo, abaixo dos detalhes do rosto */
+    display: none; /* Escondida por padrão */
+    
+    background-color: var(--tshirt2-color, #ffffff);
+    background-repeat: repeat, no-repeat;
+    background-position: center, center;
+    background-blend-mode: overlay, multiply;
+
+    -webkit-mask-image: url('assets/tshirt2.png');
+    mask-image: url('assets/tshirt2.png');
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    transition: opacity 0.5s ease-in-out;
+}
+
+/* Camada da Camiseta 3 (T-Shirt 3) */
+.pet-tshirt3 {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2; /* Acima do corpo, abaixo dos detalhes do rosto */
+    display: none; /* Escondida por padrão */
+    
+    background-color: var(--tshirt3-color, #ffffff);
+    background-repeat: repeat, no-repeat;
+    background-position: center, center;
+    background-blend-mode: overlay, multiply;
+
+    -webkit-mask-image: url('assets/tshirt3.png');
+    mask-image: url('assets/tshirt3.png');
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    transition: opacity 0.5s ease-in-out;
+}
+
+/* Camada do Acessório de Pescoço (Corrente) */
+.pet-chain {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 3; /* Acima das tshirts (2) */
+    display: none;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    transition: opacity 0.5s ease-in-out;
+}
+
+/* Camadas de Moletom */
+.pet-moletom, .pet-moletom2 {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2; /* Mesma camada das t-shirts */
+    display: none;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    transition: opacity 0.5s ease-in-out;
+}
+
+.pet-moletom {
+    background-blend-mode: multiply;
+    background-color: var(--moletom-color, #ffffff);
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+}
+
+.pet-moletom2 {
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+}
+
+/* Camada dos Óculos */
+.pet-glass {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 12; /* Posicionado acima dos olhos (10) e abaixo do boné (15) */
+    display: none;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    transition: opacity 0.5s ease-in-out;
+}
+
+/* Camada dos Headphones */
+.pet-headphones {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 16; /* Acima do boné e óculos */
+    display: none;
+    background-color: var(--headphones-color, #ffffff);
+    background-image: url('assets/fone.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-blend-mode: multiply;
+    -webkit-mask-image: url('assets/fone.png');
+    mask-image: url('assets/fone.png');
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    transition: opacity 0.5s ease-in-out;
+}
+
+/* Camada do Boné (Cap) */
+.pet-cap {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 15; /* Acima dos olhos e sobrancelhas */
+    display: none; /* Escondido por padrão */
+    
+    background-color: var(--cap-color, #ffffff);
+    background-repeat: no-repeat; /* Boné geralmente não tem pattern repetido */
+    background-position: center;
+    background-blend-mode: multiply; /* Apenas cor, sem pattern por padrão */
+
+    -webkit-mask-image: url('assets/cap.png');
+    mask-image: url('assets/cap.png');
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    transition: opacity 0.5s ease-in-out;
+}
+
+/* Container de Espuma/Bolhas */
+.espuma-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Não interfere no clique */
+    z-index: 5; /* À frente do corpo, mas atrás dos olhos (10) */
+}
+
+.bolha {
+    position: absolute;
+    background-color: rgba(209, 238, 255, 0.473);
+    border: 1px solid rgba(173, 216, 230, 0.6);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: aparecerBolha 0.3s ease-out forwards;
+    transition: transform 0.6s ease-in, opacity 0.6s ease-in;
+}
+
+.bolha.limpando {
+    animation: none !important; /* Interrompe a animação de entrada */
+    transform: translateY(60px) scale(0.5) !important; /* Escorre para baixo e encolhe */
+    opacity: 0 !important;
+    pointer-events: none;
+}
+
+/* Manchas de Sujeira */
+.mancha-sujeira {
+    position: absolute;
+    background-color: rgba(61, 46, 21, 0.6);
+    border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; /* Formato irregular */
+    pointer-events: none;
+    z-index: 4;
+    filter: blur(2px);
+}
+
+.particula-comida {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 30;
+    animation: cairParticula 0.6s ease-out forwards;
+}
+
+@keyframes cairParticula {
+    0% { transform: translate(0, 0) rotate(0); opacity: 1; }
+    100% { transform: translate(var(--dx), var(--dy)) rotate(360deg); opacity: 0; }
+}
+
+@keyframes aparecerBolha {
+    0% { transform: scale(0); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.olhos-container {
+    display: flex;
+    gap: 30px;
+    margin-top: 090px;
+    z-index: 10;
+}
+
+.olho-wrapper {
+    position: relative;
+    width: 40px;
+    height: 40px;
+}
+
+/* Olheiras (escurecimento abaixo dos olhos) */
+.olho-wrapper.sleepy::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 34px;
+    height: 10px;
+    background: rgba(147, 112, 219, 0.4); /* Roxo translúcido */
+    border-radius: 50%;
+    filter: blur(4px);
+    z-index: 1;
+    pointer-events: none;
+}
+
+.sobrancelha {
+    position: absolute;
+    left: 50%;
+    background-color: var(--nose-color);
+    z-index: 11;
+    transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.5s ease;
+    pointer-events: none;
+    
+    /* Controlado por variáveis CSS do JavaScript */
+    width: var(--sob-width);
+    height: var(--sob-height);
+    top: var(--sob-top);
+    border-radius: var(--sob-border-radius);
+    
+    transform: translateX(-50%) translate(var(--sob-x, 0px), var(--sob-y, 0px));
+}
+
+.olho.fechado + .sobrancelha {
+    top: var(--sob-closed-top);
+}
+
+#olho-esq.triste + #sob-esq { transform: translateX(-50%) translate(var(--sob-x, 0px), var(--sob-y, 0px)) rotate(var(--sob-sad-rotate)); }
+#olho-dir.triste + #sob-dir { transform: translateX(-50%) translate(var(--sob-x, 0px), var(--sob-y, 0px)) rotate(calc(var(--sob-sad-rotate) * -1)); }
+
+.olho {
+    width: 40px;
+    height: 40px;
+    background-color: var(--nose-color);
+    background-color: #ffffff; /*branco dos olhos*/
+    border-radius: 50%;
+    border: 1px solid #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    position: relative; /* CRUCIAL: Define o limite para o corte das pálpebras absolute */
+    transition: height 0.15s ease-out, background-color 0.5s ease, border 0.5s ease, border-radius 0.5s ease, margin-top 0.5s ease;
+}
+
+.olho.triste {
+    animation: tremer 0.3s ease-in-out infinite;
+}
+
+.palpebra {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 51%; /* Altura fixa para cobrir metade do olho + pequena margem de segurança */
+    background-color: var(--body-color);
+    z-index: 5;
+    /* Transição mais rápida e 'snappy' para parecer movimento muscular */
+    transition: transform 0.2s cubic-bezier(0.45, 0.05, 0.55, 0.95), background-color 0.5s ease;
+}
+
+.palpebra.superior { top: 0; border-radius: 0; border-bottom: 1px solid #000; transform: translateY(-105%); }
+.palpebra.inferior { bottom: 0; border-radius: 0; border-top: 1px solid #000; transform: translateY(105%); }
+
+.olho.semi-fechado .palpebra.superior {
+    transform: translateY(-15%); /* Desliza suavemente para baixo */
+}
+
+.olho.semi-fechado .palpebra.inferior {
+    transform: translateY(15%); /* Desliza suavemente para cima */
+}
+
+/* Ao piscar ou dormir, as pálpebras se movem para cobrir o olho totalmente de forma orgânica */
+.olho.fechado .palpebra {
+    transform: translateY(0) !important; /* Garante o encontro perfeito no centro */
+}
+
+.olho::after {
+    content: '';
+    width: 32px;
+    height: 32px;
+    /* Padrão normal: 1 brilho, pupila 10px */
+    background: var(--eye-gradient, 
+        radial-gradient(circle at 65% 35%, #fff 4px, transparent 2.5px),
+        radial-gradient(circle, #000 10px, var(--iris-color) 5px)
+    );
+    border-radius: 50%;
+    position: relative;
+    top: var(--pupil-y, 0px); /* Controlado via JS */
+    transition: transform 0.2s ease-out; /* Removido opacity para evitar 'esmaecimento' */
+}
+
+@keyframes tremer {
+    0%, 100% { transform: translate(0, 0); }
+    25% { transform: translate(-1px, 1px); }
+    50% { transform: translate(1px, -1px); }
+    75% { transform: translate(-1px, -1px); }
+}
+
+#olho-esq::after {
+    left: calc(var(--pupil-x, 0px) + 3px); /* Mantém o offset original + movimento JS */
+}
+
+#olho-dir::after {
+    left: calc(var(--pupil-x, 0px) - 3px); /* Mantém o offset original + movimento JS */
+}
+
+.boca {
+    width: 23px;
+    height: 30px;
+    background-image: url('assets/mouth.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    margin-top: -13px;
+    z-index: 1;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.4s ease;
+}
+
+.boca.sad-mouth {
+    background-image: url('assets/sadmouth.png');
+}
+
+.boca.boca-aberta {
+    background-image: url('assets/openmouth.png'); /* Imagem da boca aberta */
+}
+
+.nariz {
+    width: 9px;
+    height: 5px;
+    background-color: var(--nose-color);
+    border-radius: 50%;
+    margin-top: -15px;
+    z-index: 2;
+}
+
+/* Animação de Respiração */
+@keyframes respirar {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.03, 0.97); /* Alarga levemente e achata */
+    }
+}
+
+
+/* Interface de Status (Pílula) */
+.status-container {
+    position: absolute;
+    bottom: 20px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    z-index: 200; /* Sempre no topo de tudo */
+}
+
+.status-pill {
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    padding: 4px 10px;
+    border-radius: 50px; /* Formato de pílula */
+    gap: 6px;
+    border: 2px solid #666;
+}
+
+.status-item {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #888;
+    border-radius: 10px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: transparent;
+    border: none;
+}
+
+.icon-container {
+    position: relative;
+    width: 24px;
+    height: 24px;
+}
+
+.icon-outline-img, .icon-fill-img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.icon-fill-img {
+    transition: clip-path 0.5s ease-out;
+}
+
+.ui-button {
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 2px solid #666;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: white;
+    transition: transform 0.2s, background-color 0.2s;
+}
+
+.ui-button:active { transform: scale(0.9); }
+.ui-button svg { width: 22px; height: 22px; }
