@@ -750,10 +750,12 @@ function openShop() {
             if (color.bought) {
                 document.querySelectorAll('.parede-fundo')[currentRoom].style.backgroundColor = color.color;
                 saveHouseData();
+                updateStatusBarColor();
             } else {
                 processPurchase(color, () => {
                     document.querySelectorAll('.parede-fundo')[currentRoom].style.backgroundColor = color.color;
                     saveHouseData();
+                    updateStatusBarColor();
                     openShop(); // Refresh para esconder o preço
                 });
             }
@@ -1174,17 +1176,9 @@ let isDraggingRoom = false;
 let draggingElement = null; // Armazena qual item está sendo arrastado
 
 let estaChovendo = false;
-let estaDormindo = false;
+let estaDormindo = localStorage.getItem('lumo_esta_dormindo') === 'true';
 let intervaloAgua, intervaloLimpeza;
 let intervalZ;
-
-// Mapeamento de cores das paredes por cômodo
-const roomColors = {
-    0: '#414141', // Banheiro
-    1: '#6d4c41', // Sala
-    2: '#d6d6d6', // Cozinha
-    3: '#4a5a7a'  // Quarto
-};
 
 
 // Lógica de Comida
@@ -1354,7 +1348,11 @@ function criarParticulasComida(color) {
 function updateStatusBarColor() {
     const metaThemeColor = document.getElementById('theme-color');
     if (metaThemeColor) {
-        metaThemeColor.setAttribute('content', roomColors[currentRoom]);
+        const wall = document.querySelectorAll('.parede-fundo')[currentRoom];
+        if (wall) {
+            const actualColor = window.getComputedStyle(wall).backgroundColor;
+            metaThemeColor.setAttribute('content', actualColor);
+        }
     }
 }
 
@@ -1936,6 +1934,7 @@ function verificarColisaoMacaComBoca(x, y) {
 // Lógica do Abajur (Sono)
 abajur.addEventListener('click', () => {
     estaDormindo = !estaDormindo;
+    localStorage.setItem('lumo_esta_dormindo', estaDormindo);
     
     if (estaDormindo) {
         sleepOverlay.classList.add('active');
@@ -2138,6 +2137,14 @@ atualizarPosicaoPet();
 mundo.offsetHeight; 
 mundo.style.transition = '';
 lumoWrapper.style.transition = '';
+
+// Inicializa o estado visual do sono se o pet estava dormindo ao fechar o app
+if (estaDormindo) {
+    sleepOverlay.classList.add('active');
+    olhoEsq.classList.add('fechado');
+    olhoDir.classList.add('fechado');
+    intervalZ = setInterval(criarZ, 1200);
+}
 
 // Verifica se começa no banheiro para aplicar o estado das roupas
 if (currentRoom === 0) {
