@@ -1347,11 +1347,13 @@ function criarParticulasComida(color) {
 
 function updateStatusBarColor() {
     const metaThemeColor = document.getElementById('theme-color');
-    if (metaThemeColor) {
+    const statusBarSpacer = document.getElementById('status-bar-spacer');
+    if (metaThemeColor || statusBarSpacer) {
         const wall = document.querySelectorAll('.parede-fundo')[currentRoom];
         if (wall) {
             const actualColor = window.getComputedStyle(wall).backgroundColor;
-            metaThemeColor.setAttribute('content', actualColor);
+            if (metaThemeColor) metaThemeColor.setAttribute('content', actualColor);
+            if (statusBarSpacer) statusBarSpacer.style.backgroundColor = actualColor;
         }
     }
 }

@@ -35,6 +35,15 @@ html, body {
     touch-action: manipulation; /* Permite interações normais e evita zoom acidental */
 }
 
+/* Barra de Status para iPhones com Notch */
+#status-bar-spacer {
+    width: 100%;
+    height: env(safe-area-inset-top, 0px);
+    background-color: #414141; /* Cor inicial */
+    flex-shrink: 0;
+    z-index: 1000;
+}
+
 /* Interface de Moedas (Pílula Superior Esquerda) */
 .coin-pill {
     position: fixed;
