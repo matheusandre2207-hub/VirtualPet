@@ -1348,12 +1348,18 @@ function criarParticulasComida(color) {
 function updateStatusBarColor() {
     const metaThemeColor = document.getElementById('theme-color');
     const statusBarSpacer = document.getElementById('status-bar-spacer');
-    if (metaThemeColor || statusBarSpacer) {
+    const bottomSpacer = document.getElementById('bottom-spacer');
+    
+    if (metaThemeColor || statusBarSpacer || bottomSpacer) {
         const wall = document.querySelectorAll('.parede-fundo')[currentRoom];
         if (wall) {
             const actualColor = window.getComputedStyle(wall).backgroundColor;
             if (metaThemeColor) metaThemeColor.setAttribute('content', actualColor);
             if (statusBarSpacer) statusBarSpacer.style.backgroundColor = actualColor;
+        }
+        if (bottomSpacer) {
+            // Define a cor do espaçador inferior para combinar com a base cinza do gradiente do chão
+            bottomSpacer.style.backgroundColor = "#bababa";
         }
     }
 }

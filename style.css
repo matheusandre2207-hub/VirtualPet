@@ -17,7 +17,7 @@ html, body {
     height: 100vh;
     height: 100dvh; /* Viewport dinâmico para mobile */
     width: 100vw;
-    background-color: #333;
+    background-color: #fff;
     font-family: sans-serif;
     overflow: hidden;
     position: fixed; /* Trava a posição da página */
@@ -27,7 +27,6 @@ html, body {
     width: 100vw;
     height: 100vh;
     height: 100dvh;
-    position: relative;
     overflow: hidden;
     background-color: #fff;
     display: flex;
@@ -44,10 +43,26 @@ html, body {
     z-index: 1000;
 }
 
+/* Container que segura o jogo dentro da área segura */
+#view-port {
+    flex: 1;
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+}
+
+/* Espaçador inferior para a barra de gestos do iPhone */
+#bottom-spacer {
+    width: 100%;
+    height: env(safe-area-inset-bottom, 0px);
+    background-color: #bababa; /* Cor base para camuflar com o chão */
+    flex-shrink: 0;
+}
+
 /* Interface de Moedas (Pílula Superior Esquerda) */
 .coin-pill {
     position: fixed;
-    top: 20px;
+    top: calc(25px + env(safe-area-inset-top, 0px));
     left: 20px;
     background-color: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(5px);
