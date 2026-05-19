@@ -2672,9 +2672,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const COLORS = ['#ff4757', '#2ed573', '#1e90ff', '#ffa502', '#3742fa'];
         const GRID_ROWS = 16;
         const GRID_COLS = Math.floor(canvas.width / (BUBBLE_RADIUS * 2));
+        const GRID_WIDTH = GRID_COLS * BUBBLE_RADIUS * 2;
+        const X_PADDING = (canvas.width - GRID_WIDTH) / 2;
         
         let grid = [], bullet = null, score = 0, isMoving = false, isAiming = false, particles = [];
-        let shooter = { x: canvas.width / 2, y: canvas.height - 100, angle: -Math.PI / 2, color: '', nextColor: '', shots: 0 };
+        let shooter = { x: X_PADDING + (GRID_WIDTH / 2), y: canvas.height - 100, angle: -Math.PI / 2, color: '', nextColor: '', shots: 0 };
 
         // Configurações de Fundo Animado
         let bgHue = Math.random() * 360;
@@ -2711,9 +2713,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function getBubbleCoords(r, c) {
             const offset = r % 2 === 0 ? 0 : BUBBLE_RADIUS;
-            const xPadding = (canvas.width - (GRID_COLS * BUBBLE_RADIUS * 2)) / 2;
             return {
-                x: xPadding + c * BUBBLE_RADIUS * 2 + BUBBLE_RADIUS + offset,
+                x: X_PADDING + c * BUBBLE_RADIUS * 2 + BUBBLE_RADIUS + offset,
                 y: r * BUBBLE_RADIUS * 1.7 + BUBBLE_RADIUS + 100
             };
         }

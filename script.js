@@ -96,6 +96,31 @@ function saveLumoData() {
     localStorage.setItem('lumo_inventory', JSON.stringify(inventory));
 }
 
+// --- Sistema de Persistência da Decoração da Casa ---
+function saveHouseData() {
+    const houseStyle = [];
+    const walls = document.querySelectorAll('.parede-fundo');
+    const floors = document.querySelectorAll('.chao');
+
+    for (let i = 0; i < 4; i++) {
+        houseStyle.push({
+            wallColor: walls[i].style.backgroundColor,
+            wallImage: walls[i].style.backgroundImage,
+            wallSize: walls[i].style.backgroundSize,
+            wallPos: walls[i].style.backgroundPosition,
+            floorBG: floors[i].style.background
+        });
+    }
+    localStorage.setItem('lumo_house_styles', JSON.stringify(houseStyle));
+    
+    const houseInv = {
+        walls: wallColors.map(c => c.bought),
+        floors: floorColors.map(c => c.bought),
+        patterns: wallPatterns.map(p => p.bought)
+    };
+    localStorage.setItem('lumo_house_inventory', JSON.stringify(houseInv));
+}
+
 // Estados do Pet
 let status = JSON.parse(localStorage.getItem('lumo_status')) || {
     fome: 100,
@@ -653,6 +678,14 @@ const wallPatterns = [
     { name: "Linhas H", image: "linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px)", size: "100% 10px", position: "0 0", bought: false, price: 110 }
 ];
 
+// Carrega inventário da casa
+const savedHouseInv = JSON.parse(localStorage.getItem('lumo_house_inventory'));
+if (savedHouseInv) {
+    savedHouseInv.walls.forEach((b, i) => { if(wallColors[i]) wallColors[i].bought = b; });
+    savedHouseInv.floors.forEach((b, i) => { if(floorColors[i]) floorColors[i].bought = b; });
+    savedHouseInv.patterns.forEach((b, i) => { if(wallPatterns[i]) wallPatterns[i].bought = b; });
+}
+
 btnLoja.addEventListener('click', openShop);
 btnGuardaRoupa.addEventListener('click', openWardrobe);
 document.querySelector('.armario').addEventListener('click', openWardrobe);
@@ -716,9 +749,11 @@ function openShop() {
         card.onclick = () => {
             if (color.bought) {
                 document.querySelectorAll('.parede-fundo')[currentRoom].style.backgroundColor = color.color;
+                saveHouseData();
             } else {
                 processPurchase(color, () => {
                     document.querySelectorAll('.parede-fundo')[currentRoom].style.backgroundColor = color.color;
+                    saveHouseData();
                     openShop(); // Refresh para esconder o preço
                 });
             }
@@ -764,6 +799,7 @@ function openShop() {
                 wall.style.backgroundImage = pattern.image;
                 wall.style.backgroundSize = pattern.size;
                 wall.style.backgroundPosition = pattern.position;
+                saveHouseData();
             };
             
             if (pattern.bought) {
@@ -771,6 +807,7 @@ function openShop() {
             } else {
                 processPurchase(pattern, () => {
                     applyPattern();
+                    saveHouseData();
                     openShop();
                 });
             }
@@ -819,6 +856,7 @@ function openShop() {
         card.onclick = () => {
             const applyFloor = () => {
                 document.querySelectorAll('.chao')[currentRoom].style.background = `radial-gradient(circle at 50% 0%, ${color.color} 20%, #bababa 100%)`;
+                saveHouseData();
             };
 
             if (color.bought) {
@@ -826,6 +864,7 @@ function openShop() {
             } else {
                 processPurchase(color, () => {
                     applyFloor();
+                    saveHouseData();
                     openShop();
                 });
             }
@@ -2064,6 +2103,22 @@ function handleEndDragRoom(endX) {
     updateStatusBarColor();
 }
 
+// Aplica estilos de casa salvos
+const savedHouseStyles = JSON.parse(localStorage.getItem('lumo_house_styles'));
+if (savedHouseStyles) {
+    const walls = document.querySelectorAll('.parede-fundo');
+    const floors = document.querySelectorAll('.chao');
+    savedHouseStyles.forEach((style, i) => {
+        if (walls[i]) {
+            walls[i].style.backgroundColor = style.wallColor;
+            walls[i].style.backgroundImage = style.wallImage;
+            walls[i].style.backgroundSize = style.wallSize;
+            walls[i].style.backgroundPosition = style.wallPos;
+        }
+        if (floors[i]) floors[i].style.background = style.floorBG;
+    });
+}
+
 updateStatusBarColor(); // Define a cor inicial
 updateStatusUI(); // Inicializa os ícones cheios
 
@@ -2121,12 +2176,14 @@ const tvChannels = [
     'assets/channel (1).gif', 'assets/channel (2).gif', 'assets/channel (3).gif',
     'assets/channel (4).gif', 'assets/channel (5).gif', 'assets/channel (6).gif'
 ];
-let currentTVChannel = 0;
+let currentTVChannel = parseInt(localStorage.getItem('lumo_tv_channel')) || 0;
+if (currentTVChannel !== 0) tv.style.backgroundImage = `url('${tvChannels[currentTVChannel]}')`;
 
 tv.addEventListener('click', () => {
     if (estaDormindo) return;
     currentTVChannel = (currentTVChannel + 1) % tvChannels.length;
     tv.style.backgroundImage = currentTVChannel === 0 ? 'none' : `url('${tvChannels[currentTVChannel]}')`;
+    localStorage.setItem('lumo_tv_channel', currentTVChannel);
 });
 
 // Lógica do Console (Lumo Arcade)
