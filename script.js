@@ -1549,21 +1549,21 @@ document.querySelector('.chuveiro').addEventListener('click', () => {
         
         // Começa a limpar a espuma
         intervaloLimpeza = setInterval(() => {
-            // Não limpa se o pet estiver dormindo (está no quarto) ou se não estivermos no banheiro
             if (estaDormindo || currentRoom !== 0) return;
 
             const bolhas = Array.from(espumaContainer.querySelectorAll('.bolha:not(.limpando)'));
             if (bolhas.length > 0) {
-                // Se houver muitas bolhas, a ordenação fica pesada demais para rodar em loop curto.
-                // Limitamos a ordenação para evitar travamentos (Violation).
-                if (bolhas.length < 40) {
-                    bolhas.sort((a, b) => parseFloat(a.style.top) - parseFloat(b.style.top));
-                }
+                // Ordenação rigorosa: as bolhas com menor 'top' (mais perto da cabeça) saem primeiro
+                bolhas.sort((a, b) => {
+                    const topA = parseFloat(a.style.top) || 0;
+                    const topB = parseFloat(b.style.top) || 0;
+                    return topA - topB;
+                });
                 
-                // Limpa as 2 bolhas mais altas de cada vez para um efeito mais fluido
-                bolhas.slice(0, 2).forEach(b => {
+                // Aumentamos para 8 bolhas por ciclo para uma limpeza muito mais rápida
+                bolhas.slice(0, 8).forEach((b, index) => {
                     b.classList.add('limpando');
-                    setTimeout(() => b.remove(), 600);
+                    setTimeout(() => b.remove(), 1000);
                 });
             }
             
@@ -1577,7 +1577,7 @@ document.querySelector('.chuveiro').addEventListener('click', () => {
                 status.limpeza = Math.min(limiteChuveiro, status.limpeza + 0.5);
                 updateStatusUI();
             }
-        }, 100); 
+        }, 60); // Intervalo reduzido de 80ms para 60ms para maior fluidez e rapidez
     } else {
         desligarChuveiro();
     }
