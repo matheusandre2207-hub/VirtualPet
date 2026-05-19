@@ -293,6 +293,8 @@ html, body {
     z-index: 10;
     transform: translateZ(1px);
     cursor: pointer;
+    background-size: cover;
+    background-position: center;
 }
 
 .rack {
@@ -307,6 +309,21 @@ html, body {
     background-position: bottom center;
     z-index: 10;
     transform: translateZ(1px);
+}
+
+.console {
+    position: absolute;
+    bottom: 42%; /* Posicionado para ficar sobre a superfície do rack */
+    right: 85px;
+    width: 65px;
+    height: 65px;
+    background-image: url('assets/console.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: bottom center;
+    z-index: 11;
+    transform: translateZ(1px);
+    cursor: pointer;
 }
 
 /* --- Overlay do Lumo Arcade --- */

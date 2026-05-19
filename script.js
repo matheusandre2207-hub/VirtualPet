@@ -28,6 +28,7 @@ const btnLoja = document.getElementById('btn-loja');
 const btnGuardaRoupa = document.getElementById('guarda-roupas');
 const closeShop = document.getElementById('close-shop');
 const tv = document.querySelector('.tv');
+const gameConsole = document.querySelector('.console');
 const geladeira = document.querySelector('.geladeira');
 const arcadeOverlay = document.getElementById('arcade-overlay');
 const arcadeFrame = document.getElementById('arcade-frame');
@@ -2114,8 +2115,22 @@ function resetBolinhaPosition() {
     resetarOlhos();
 }
 
-// Lógica da TV (Lumo Arcade)
+// Lógica da TV (Troca de Canais)
+const tvChannels = [
+    'none',
+    'assets/channel (1).gif', 'assets/channel (2).gif', 'assets/channel (3).gif',
+    'assets/channel (4).gif', 'assets/channel (5).gif', 'assets/channel (6).gif'
+];
+let currentTVChannel = 0;
+
 tv.addEventListener('click', () => {
+    if (estaDormindo) return;
+    currentTVChannel = (currentTVChannel + 1) % tvChannels.length;
+    tv.style.backgroundImage = currentTVChannel === 0 ? 'none' : `url('${tvChannels[currentTVChannel]}')`;
+});
+
+// Lógica do Console (Lumo Arcade)
+gameConsole.addEventListener('click', () => {
     if (estaDormindo) return; // Não abre se o pet estiver dormindo
     arcadeIsOpen = true;
     arcadeOverlay.classList.remove('hidden');
