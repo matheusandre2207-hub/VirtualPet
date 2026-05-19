@@ -17,6 +17,7 @@ const olhosContainer = document.querySelector('.olhos-container');
 const espumaContainer = document.querySelector('.espuma-container');
 const corpoMask = document.querySelector('.pet-corpo-mask');
 const mundo = document.getElementById('mundo');
+const mundoForeground = document.getElementById('mundo-foreground'); // Nova referência
 const abajur = document.getElementById('abajur');
 const sleepOverlay = document.getElementById('sleep-overlay');
 const zContainer = document.querySelector('.z-container');
@@ -1481,10 +1482,10 @@ function aplicarProgressoOffline() {
         const diffSeconds = (now - parseInt(lastTime)) / 1000;
         const ciclos = diffSeconds / 3; // O jogo processa status a cada 3 segundos
 
-        status.fome = Math.max(0, status.fome - (0.125 * ciclos));
-        status.limpeza = Math.max(0, status.limpeza - (0.125 * ciclos));
-        status.energia = Math.max(0, status.energia - (0.125 * ciclos));
-        status.humor = Math.max(0, status.humor - (0.125 * ciclos));
+        status.fome = Math.max(0, status.fome - (0.0417 * ciclos));
+        status.limpeza = Math.max(0, status.limpeza - (0.0417 * ciclos));
+        status.energia = Math.max(0, status.energia - (0.0417 * ciclos));
+        status.humor = Math.max(0, status.humor - (0.0417 * ciclos));
         
         updateStatusUI();
     }
@@ -1494,21 +1495,21 @@ aplicarProgressoOffline();
 // Ciclo de vida: Diminui status com o tempo
 setInterval(() => {
     // Fome diminui sempre
-    status.fome = Math.max(0, status.fome - 0.125);
+    status.fome = Math.max(0, status.fome - 0.0417);
     
     // Limpeza diminui se não estiver tomando banho
-    if (!estaChovendo) status.limpeza = Math.max(0, status.limpeza - 0.125);
+    if (!estaChovendo) status.limpeza = Math.max(0, status.limpeza - 0.0417);
 
     // Energia diminui se acordado, aumenta se dormindo
     if (estaDormindo) {
-        status.energia = Math.min(100, status.energia + 0.167);
+        status.energia = Math.min(100, status.energia + 0.0556);
     } else {
-        status.energia = Math.max(0, status.energia - 0.125);
+        status.energia = Math.max(0, status.energia - 0.0417);
     }
 
     // Humor cai gradualmente, e cai mais rápido se as necessidades básicas estiverem críticas
-    let humorDecay = 0.125;
-    if (status.fome < 20 || status.energia < 20 || status.limpeza < 20) humorDecay = 0.625;
+    let humorDecay = 0.0417;
+    if (status.fome < 20 || status.energia < 20 || status.limpeza < 20) humorDecay = 0.2085;
     status.humor = Math.max(0, status.humor - humorDecay);
 
     updateStatusUI();
@@ -2106,6 +2107,7 @@ function handleEndDragRoom(endX) {
     }
 
     mundo.style.transform = `translateX(-${currentRoom * 100}vw)`;
+    if (mundoForeground) mundoForeground.style.transform = `translateX(-${currentRoom * 100}vw)`; // Move o foreground também
     localStorage.setItem('lumo_current_room', currentRoom); // Salva o cômodo escolhido
     updateStatusBarColor();
 }
@@ -2139,12 +2141,14 @@ mundo.style.transition = 'none';
 lumoWrapper.style.transition = 'none';
 
 mundo.style.transform = `translateX(-${currentRoom * 100}vw)`;
+if (mundoForeground) mundoForeground.style.transform = `translateX(-${currentRoom * 100}vw)`; // Move o foreground também
 atualizarPosicaoPet();
 
 // Força o navegador a processar a posição sem animação antes de restaurar as transições
 mundo.offsetHeight; 
 mundo.style.transition = '';
 lumoWrapper.style.transition = '';
+if (mundoForeground) mundoForeground.style.transition = ''; // Restaura transição do foreground
 
 // Inicializa o estado visual do sono se o pet estava dormindo ao fechar o app
 if (estaDormindo) {
