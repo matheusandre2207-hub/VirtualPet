@@ -111,9 +111,12 @@ html, body {
     width: 400%; /* Quatro cômodos */
     height: 100%;
     position: absolute;
+    top: 0;
     left: 0;
-    transition: left 0.5s ease-out;
+    transform: translateX(0);
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     touch-action: none; /* Garante que o arraste dos cômodos não sofra interferência do browser */
+    will-change: transform;
 }
 
 /* Cenário */

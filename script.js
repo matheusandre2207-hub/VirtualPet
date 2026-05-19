@@ -2105,7 +2105,7 @@ function handleEndDragRoom(endX) {
         lumo.classList.remove('hide-clothes');
     }
 
-    mundo.style.left = `-${currentRoom * window.innerWidth}px`;
+    mundo.style.transform = `translateX(-${currentRoom * 100}vw)`;
     localStorage.setItem('lumo_current_room', currentRoom); // Salva o cômodo escolhido
     updateStatusBarColor();
 }
@@ -2138,7 +2138,7 @@ updateFoodUI();
 mundo.style.transition = 'none';
 lumoWrapper.style.transition = 'none';
 
-mundo.style.left = `-${currentRoom * window.innerWidth}px`;
+mundo.style.transform = `translateX(-${currentRoom * 100}vw)`;
 atualizarPosicaoPet();
 
 // Força o navegador a processar a posição sem animação antes de restaurar as transições
