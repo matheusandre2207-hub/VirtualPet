@@ -558,6 +558,7 @@ body.arcade-active #arcade-overlay {
     border-radius: 50%;
     z-index: 25;
     cursor: grab;
+    pointer-events: auto;
     touch-action: none;
     box-shadow: 0 15px 15px rgba(0,0,0,0.3);
     transform: translateX(-50%);
