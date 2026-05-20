@@ -43,7 +43,26 @@
                 </div>
             </div>
 
-            <!-- Sala (Cômodo 2) -->
+            <!-- Quarto (Cômodo 2) -->
+            <div class="cenario" id="quarto">
+                <div class="parede-fundo"></div>
+                <div class="chao"></div>
+                <div class="cama"></div>
+                <div class="comoda">
+                    <div class="abajur" id="abajur"></div>
+                </div>
+                <div class="guarda-roupas" id="guarda-roupas"></div>
+            </div>
+
+            <!-- Cozinha (Cômodo 3) -->
+            <div class="cenario" id="cozinha">
+                <div class="parede-fundo"></div>
+                <div class="chao"></div>
+                <div class="geladeira"></div>
+                <div class="fogao"></div>
+            </div>
+
+            <!-- Sala (Cômodo 4) -->
             <div class="cenario" id="sala">
                 <div class="parede-fundo"></div>
                 <div class="chao"></div>
@@ -55,23 +74,12 @@
                 <div class="planta"></div>
             </div>
 
-            <!-- Cozinha (Cômodo 3) -->
-            <div class="cenario" id="cozinha">
+            <!-- Área Externa (Cômodo 5) -->
+            <div class="cenario" id="externa">
                 <div class="parede-fundo"></div>
                 <div class="chao"></div>
-                <div class="geladeira"></div>
-                <div class="fogao"></div>
-            </div>
-
-            <!-- Quarto (Cômodo 4) -->
-            <div class="cenario" id="quarto">
-                <div class="parede-fundo"></div>
-                <div class="chao"></div>
-                <div class="cama"></div>
-                <div class="comoda">
-                    <div class="abajur" id="abajur"></div>
-                </div>
-                <div class="guarda-roupas" id="guarda-roupas"></div>
+                <div class="piscina"></div>
+                <div class="arvore"></div>
             </div>
         </div>
 
@@ -115,9 +123,7 @@
         <!-- Camada de Primeiro Plano (Objetos na frente do Pet) -->
         <div id="mundo-foreground">
             <div class="cenario-fore"></div> <!-- Banheiro -->
-            <div class="cenario-fore">
-                <div id="bolinha" class="bolinha"></div>
-            </div> <!-- Sala -->
+            <div class="cenario-fore"></div> <!-- Quarto -->
             <div class="cenario-fore">
                 <div class="mesa"></div>
                 <div class="food-selector">
@@ -126,7 +132,10 @@
                     <button class="food-arrow" id="next-food" style="visibility: hidden;">&gt;</button>
                 </div>
             </div> <!-- Cozinha -->
-            <div class="cenario-fore"></div> <!-- Quarto -->
+            <div class="cenario-fore">
+                <div id="bolinha" class="bolinha"></div>
+            </div> <!-- Sala -->
+            <div class="cenario-fore"></div> <!-- Área Externa -->
         </div>
 
         <div id="sleep-overlay"></div>

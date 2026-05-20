@@ -108,7 +108,7 @@ html, body {
 /* Wrapper para deslizar entre os cômodos */
 #mundo {
     display: flex;
-    width: 400%; /* Quatro cômodos */
+    width: 500%; /* Cinco cômodos */
     height: 100%;
     position: absolute;
     top: 0;
@@ -122,7 +122,7 @@ html, body {
 
 #mundo-foreground {
     display: flex;
-    width: 400%;
+    width: 500%;
     height: 100%;
     position: absolute;
     top: 0;
@@ -181,11 +181,11 @@ html, body {
     background-position: 0 0, 40px 20px, 0 0;
 }
 
-/* Sala: Padrão de Listras Verticais (Papel de Parede) */
-#sala .parede-fundo {
-    background-color: #6d4c41;
-    background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.192) 2px, transparent 2px);
-    background-size: 50px 100%;
+/* Quarto: Padrão Pontilhado Suave (Relaxante) */
+#quarto .parede-fundo {
+    background-color: #4a5a7a;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.1) 2px, transparent 2px);
+    background-size: 40px 40px;
 }
 
 /* Cozinha: Padrão de Azulejos Quadrados */
@@ -197,17 +197,41 @@ html, body {
     background-size: 30px 30px;
 }
 
-/* Quarto: Padrão Pontilhado Suave (Relaxante) */
-#quarto .parede-fundo {
-    background-color: #4a5a7a;
-    background-image: radial-gradient(rgba(255, 255, 255, 0.1) 2px, transparent 2px);
-    background-size: 40px 40px;
+/* Sala: Padrão de Listras Verticais (Papel de Parede) */
+#sala .parede-fundo {
+    background-color: #6d4c41;
+    background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.192) 2px, transparent 2px);
+    background-size: 50px 100%;
+}
+
+/* Área Externa: Céu e Grama */
+#externa .parede-fundo {
+    background-color: #87CEEB;
+    background-image: radial-gradient(circle at 20% 20%, #fff 10px, transparent 11px),
+                      radial-gradient(circle at 80% 40%, #fff 15px, transparent 16px);
+    background-size: 200px 200px;
+}
+
+#externa .chao {
+    background: radial-gradient(circle at 50% 0%, #7cfc00 20%, #228b22 100%);
+}
+
+#externa .arvore {
+    position: absolute;
+    bottom: 30%;
+    left: 20px;
+    width: 150px;
+    height: 250px;
+    background-image: url('assets/arvore.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    z-index: 10;
 }
 
 .chao {
     height: 30%;
     width: 100%;
-    background: radial-gradient(circle at 50% 0%, #ffffff 20%, #e0e0e0 100%);
+    background-color: #bababa; /* Cor base fallback */
     position: absolute;
     bottom: 0;
     left: 0;
@@ -216,20 +240,35 @@ html, body {
     z-index: 1;
 }
 
-.chao::after {
+/* Camadas de Piso com Perspectiva (Textura e Grade) */
+.chao::before, .chao::after {
     content: '';
     position: absolute;
-    top: -50px;
-    left: 0;
-    width: 100%;
-    height: 1000px;
+    top: -100px; /* Aumentado para garantir cobertura total na rotação */
+    left: -50%;
+    width: 200%;
+    height: 1200px;
+    transform: perspective(400px) rotateX(60deg);
+    transform-origin: top center;
+    pointer-events: none;
+}
+
+/* Camada da Textura/Cor (Segue o chão) */
+.chao::before {
+    z-index: 1;
+    background-color: var(--floor-color, #ffffff);
+    background-image: var(--floor-pattern, radial-gradient(circle at 50% 0%, rgba(255,255,255,0.4) 0%, transparent 100%));
+    background-size: var(--floor-size, auto);
+}
+
+/* Camada da Grade (Lajotas) */
+.chao::after {
+    z-index: 2;
     background-image: 
         linear-gradient(rgba(29, 29, 29, 0.4) 2px, transparent 2px),
         linear-gradient(90deg, rgba(29, 29, 29, 0.4) 2px, transparent 2px);
     background-size: 60px 60px;
-    transform: perspective(400px) rotateX(60deg);
-    transform-origin: top center;
-    pointer-events: none;
+    opacity: var(--floor-grid-opacity, 1);
 }
 
 /* --- Decorações do Banheiro --- */

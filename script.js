@@ -103,13 +103,16 @@ function saveHouseData() {
     const walls = document.querySelectorAll('.parede-fundo');
     const floors = document.querySelectorAll('.chao');
 
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 5; i++) {
         houseStyle.push({
             wallColor: walls[i].style.backgroundColor,
             wallImage: walls[i].style.backgroundImage,
             wallSize: walls[i].style.backgroundSize,
             wallPos: walls[i].style.backgroundPosition,
-            floorBG: floors[i].style.background
+            floorColor: floors[i].style.getPropertyValue('--floor-color'),
+            floorPattern: floors[i].style.getPropertyValue('--floor-pattern'),
+            floorSize: floors[i].style.getPropertyValue('--floor-size'),
+            floorGrid: floors[i].style.getPropertyValue('--floor-grid-opacity') || "1"
         });
     }
     localStorage.setItem('lumo_house_styles', JSON.stringify(houseStyle));
@@ -117,7 +120,8 @@ function saveHouseData() {
     const houseInv = {
         walls: wallColors.map(c => c.bought),
         floors: floorColors.map(c => c.bought),
-        patterns: wallPatterns.map(p => p.bought)
+        patterns: wallPatterns.map(p => p.bought),
+        floorPatterns: floorPatterns.map(p => p.bought)
     };
     localStorage.setItem('lumo_house_inventory', JSON.stringify(houseInv));
 }
@@ -616,9 +620,10 @@ function customizarPetFull(typeIdx, bodyIdx, noseIdx, irisIdx, patternIdx, eyebr
 
 const shopConfig = {
     0: { name: "Banheiro", items: ["pia", "chuveiro", "sabonete"] },
-    1: { name: "Sala", items: ["tv", "rack", "planta"] },
+    1: { name: "Quarto", items: ["cama", "comoda", "abajur"] },
     2: { name: "Cozinha", items: ["geladeira", "fogao", "mesa"] },
-    3: { name: "Quarto", items: ["cama", "comoda", "abajur"] }
+    3: { name: "Sala", items: ["tv", "rack", "planta"] },
+    4: { name: "Área Externa", items: ["piscina", "arvore"] }
 };
 
 const hueFilters = [0, 45, 90, 150, 200, 260, 300];
@@ -643,20 +648,42 @@ const wallColors = [
 ];
 const floorColors = [
     { color: '#ffffff', bought: true, price: 0 },
-    { color: '#f0e68c', bought: false, price: 120 },
-    { color: '#e0e0e0', bought: false, price: 120 },
-    { color: '#ffdab9', bought: false, price: 150 },
-    { color: '#b0c4de', bought: false, price: 150 },
-    { color: '#3e2723', bought: false, price: 200 }, // Madeira Escura
-    { color: '#d7ccc8', bought: false, price: 180 }, // Carvalho
-    { color: '#757575', bought: false, price: 160 }, // Pedra
-    { color: '#fafafa', bought: false, price: 250 }, // Mármore
-    { color: '#689f38', bought: false, price: 140 }, // Grama
-    { color: '#1a237e', bought: false, price: 190 }, // Azul Noite
-    { color: '#b71c1c', bought: false, price: 210 }, // Vermelho Rubi
-    { color: '#9e9e9e', bought: false, price: 130 }, // Concreto
-    { color: '#a1887f', bought: false, price: 170 }, // Argila
-    { color: '#455a64', bought: false, price: 185 }  // Ardósia
+    { color: '#f0e68c', bought: false, price: 60 },
+    { color: '#e0e0e0', bought: false, price: 60 },
+    { color: '#ffdab9', bought: false, price: 80 },
+    { color: '#b0c4de', bought: false, price: 80 },
+    { color: '#8d6e63', bought: false, price: 100 },
+    { color: '#689f38', bought: false, price: 90 },
+    { color: '#757575', bought: false, price: 85 },
+    { color: '#1a237e', bought: false, price: 110 },
+    { color: '#b71c1c', bought: false, price: 120 },
+    { color: '#9e9e9e', bought: false, price: 70 },
+    { color: '#a1887f', bought: false, price: 95 },
+    { color: '#455a64', bought: false, price: 105 },
+    { color: '#9575cd', bought: false, price: 115 },
+    { color: '#f06292', bought: false, price: 115 },
+    { color: '#00838f', bought: false, price: 125 },
+    { color: '#d7ccc8', bought: false, price: 65 }
+];
+
+const floorPatterns = [
+    { name: "Liso", image: "radial-gradient(circle at 50% 0%, rgba(255,255,255,0.4) 0%, transparent 100%)", size: "auto", gridOpacity: "1", bought: true, price: 0 },
+    { name: "Madeira", image: "repeating-linear-gradient(90deg, rgba(0,0,0,0.1), rgba(0,0,0,0.1) 2px, transparent 2px, transparent 40px)", size: "auto", gridOpacity: "0.1", bought: false, price: 200 },
+    { name: "Mármore", image: "radial-gradient(circle at 20% 30%, rgba(255,255,255,0.2) 0%, transparent 40%)", size: "auto", gridOpacity: "0.2", bought: false, price: 250 },
+    { name: "Grama", image: "radial-gradient(circle at 50% 50%, rgba(0,0,0,0.1) 10%, transparent 80%)", size: "auto", gridOpacity: "0", bought: false, price: 150 },
+    { name: "Tijolo", image: "linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px), linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px)", size: "30px 30px", gridOpacity: "0.4", bought: false, price: 180 },
+    { name: "Carpete", image: "radial-gradient(rgba(0,0,0,0.1) 1px, transparent 0)", size: "4px 4px", gridOpacity: "0", bought: false, price: 160 },
+    { name: "Xadrez", image: "conic-gradient(rgba(0,0,0,0.05) 90deg, transparent 90deg 180deg, rgba(0,0,0,0.05) 180deg 270deg, transparent 270deg)", size: "40px 40px", gridOpacity: "0.8", bought: false, price: 210 },
+    { name: "Listras", image: "linear-gradient(90deg, rgba(255,255,255,0.1) 50%, transparent 50%)", size: "20px 100%", gridOpacity: "0.5", bought: false, price: 140 },
+    { name: "Chevron", image: "linear-gradient(135deg, rgba(0,0,0,0.05) 25%, transparent 25%), linear-gradient(225deg, rgba(0,0,0,0.05) 25%, transparent 25%)", size: "30px 30px", gridOpacity: "0.6", bought: false, price: 230 },
+    { name: "Pontos", image: "radial-gradient(rgba(0,0,0,0.05) 20%, transparent 20%)", size: "15px 15px", gridOpacity: "0.5", bought: false, price: 170 },
+    { name: "Diamante", image: "linear-gradient(45deg, rgba(0,0,0,0.03) 25%, transparent 25%), linear-gradient(-45deg, rgba(0,0,0,0.03) 25%, transparent 25%)", size: "40px 40px", gridOpacity: "0.7", bought: false, price: 190 },
+    { name: "Grade", image: "linear-gradient(rgba(0,0,0,0.1) 2px, transparent 2px), linear-gradient(90deg, rgba(0,0,0,0.1) 2px, transparent 2px)", size: "60px 60px", gridOpacity: "1", bought: false, price: 120 },
+    { name: "Ondas", image: "radial-gradient(circle at 100% 50%, transparent 40%, rgba(255,255,255,0.1) 41%, transparent 45%)", size: "50px 25px", gridOpacity: "0.3", bought: false, price: 240 },
+    { name: "Tecido", image: "linear-gradient(90deg, rgba(0,0,0,0.02) 50%, transparent 50%), linear-gradient(rgba(0,0,0,0.02) 50%, transparent 50%)", size: "4px 4px", gridOpacity: "0", bought: false, price: 130 },
+    { name: "Hexágono", image: "radial-gradient(circle, rgba(0,0,0,0.05) 50%, transparent 51%)", size: "30px 30px", gridOpacity: "0.5", bought: false, price: 260 },
+    { name: "Granilite", image: "radial-gradient(circle, rgba(0,0,0,0.08) 10%, transparent 10.5%), radial-gradient(circle, rgba(255,255,255,0.2) 10%, transparent 10.5%)", size: "60px 60px", gridOpacity: "0.2", bought: false, price: 280 },
+    { name: "Triângulos", image: "conic-gradient(from 150deg at 50% 33%, rgba(0,0,0,0.05) 60deg, transparent 0)", size: "40px 40px", gridOpacity: "0.6", bought: false, price: 220 }
 ];
 
 const wallPatterns = [
@@ -685,6 +712,7 @@ if (savedHouseInv) {
     savedHouseInv.walls.forEach((b, i) => { if(wallColors[i]) wallColors[i].bought = b; });
     savedHouseInv.floors.forEach((b, i) => { if(floorColors[i]) floorColors[i].bought = b; });
     savedHouseInv.patterns.forEach((b, i) => { if(wallPatterns[i]) wallPatterns[i].bought = b; });
+    if (savedHouseInv.floorPatterns) savedHouseInv.floorPatterns.forEach((b, i) => { if(floorPatterns[i]) floorPatterns[i].bought = b; });
 }
 
 btnLoja.addEventListener('click', openShop);
@@ -840,7 +868,7 @@ function openShop() {
     createClothingShopSection("Comidas", foodOptions, () => {}, () => {}, false);
 
     // Só exibe as seções de personalização se estiver no quarto (3)
-    if (currentRoom === 3) {
+    if (currentRoom === 1) {
         carregarSecoesRoupas(false);
     }
 
@@ -854,11 +882,12 @@ function openShop() {
         const swatch = document.createElement('div');
         swatch.className = 'color-swatch';
         swatch.style.backgroundColor = color.color;
-        swatch.style.backgroundImage = "linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px)";
         
         card.onclick = () => {
             const applyFloor = () => {
-                document.querySelectorAll('.chao')[currentRoom].style.background = `radial-gradient(circle at 50% 0%, ${color.color} 20%, #bababa 100%)`;
+                const floor = document.querySelectorAll('.chao')[currentRoom];
+                floor.style.setProperty('--floor-color', color.color);
+                floor.style.background = 'none'; // Limpa background inline antigo
                 saveHouseData();
             };
 
@@ -892,6 +921,60 @@ function openShop() {
     });
     floorSection.appendChild(floorGrid);
     shopContainer.appendChild(floorSection);
+
+    // 10. Seção de Textura do Piso
+    const floorPatternSection = createShopSection("Textura do Piso");
+    const floorPatternGrid = document.createElement('div');
+    floorPatternGrid.className = 'shop-grid';
+    floorPatterns.forEach(pattern => {
+        const card = document.createElement('div');
+        card.className = 'shop-item-card';
+        const swatch = document.createElement('div');
+        swatch.className = 'color-swatch';
+        swatch.style.backgroundColor = '#ddd';
+        swatch.style.backgroundImage = pattern.image;
+        swatch.style.backgroundSize = pattern.size;
+
+        card.onclick = () => {
+            const applyPatt = () => {
+                const floor = document.querySelectorAll('.chao')[currentRoom];
+                floor.style.setProperty('--floor-pattern', pattern.image);
+                floor.style.setProperty('--floor-size', pattern.size);
+                floor.style.setProperty('--floor-grid-opacity', pattern.gridOpacity);
+                floor.style.background = 'none';
+                saveHouseData();
+            };
+
+            if (pattern.bought) {
+                applyPatt();
+            } else {
+                processPurchase(pattern, () => {
+                    applyPatt();
+                    saveHouseData();
+                    openShop();
+                });
+            }
+        };
+
+        card.appendChild(swatch);
+
+        if (!pattern.bought && pattern.price > 0) {
+            const priceTag = document.createElement('div');
+            priceTag.style.position = 'absolute';
+            priceTag.style.fontSize = '9px';
+            priceTag.style.top = '2px';
+            priceTag.style.background = 'rgba(0,0,0,0.5)';
+            priceTag.style.color = 'white';
+            priceTag.style.borderRadius = '3px';
+            priceTag.style.padding = '1px 3px';
+            priceTag.innerText = `🟡${pattern.price}`;
+            card.appendChild(priceTag);
+        }
+
+        floorPatternGrid.appendChild(card);
+    });
+    floorPatternSection.appendChild(floorPatternGrid);
+    shopContainer.appendChild(floorPatternSection);
 
     shopOverlay.classList.remove('hidden');
 }
@@ -1964,9 +2047,9 @@ abajur.addEventListener('click', () => {
 
 function atualizarPosicaoPet() {
     if (estaDormindo) {
-        // Se está dormindo, fixa a posição no quarto (Room 3)
+        // Se está dormindo, fixa a posição no novo quarto (Room 1)
         // O offset é a diferença entre o quarto e o cômodo atual
-        const offset = (3 - currentRoom) * window.innerWidth;
+        const offset = (1 - currentRoom) * window.innerWidth;
         lumoWrapper.style.transform = `translateX(calc(-50% + ${offset}px))`;
     } else {
         // Se está acordado, fica sempre centralizado na tela
@@ -2086,15 +2169,15 @@ function handleEndDragRoom(endX) {
     const diffX = startXRoom - endX;
     const previousRoom = currentRoom;
 
-    if (diffX > 50 && currentRoom < 3) currentRoom++; // Arrastou para a esquerda -> Próximo cômodo
+    if (diffX > 50 && currentRoom < 4) currentRoom++; // Arrastou para a esquerda -> Próximo cômodo (Limite 4 agora)
     if (diffX < -50 && currentRoom > 0) currentRoom--; // Arrastou para a direita -> Cômodo anterior
 
     // Desliga o chuveiro se sair do banheiro (0)
     if (previousRoom === 0 && currentRoom !== 0 && estaChovendo) {
         desligarChuveiro();
     }
-    // Reseta a bolinha se sair da sala (1)
-    if (previousRoom === 1 && currentRoom !== 1) {
+    // Reseta a bolinha se sair da sala (3)
+    if (previousRoom === 3 && currentRoom !== 3) {
         resetBolinhaPosition();
     }
     atualizarPosicaoPet();
@@ -2124,7 +2207,13 @@ if (savedHouseStyles) {
             walls[i].style.backgroundSize = style.wallSize;
             walls[i].style.backgroundPosition = style.wallPos;
         }
-        if (floors[i]) floors[i].style.background = style.floorBG;
+        if (floors[i]) {
+            if (style.floorColor) floors[i].style.setProperty('--floor-color', style.floorColor);
+            if (style.floorPattern) floors[i].style.setProperty('--floor-pattern', style.floorPattern);
+            if (style.floorSize) floors[i].style.setProperty('--floor-size', style.floorSize);
+            floors[i].style.setProperty('--floor-grid-opacity', style.floorGrid || "1");
+            floors[i].style.background = 'none'; // Garante que a variável controle o visual
+        }
     });
 }
 
